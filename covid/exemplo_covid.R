@@ -19,12 +19,12 @@ cities <- downloadCovid19(level = "cities")
 
 mg <- filter(states, state == "MG" & date >= "2020-04-01")
 
-# Preciso inserir os dados de média móvel no data frame. A solução inicial foi usar
-# a função rollmean do pacote zoo
+# Preciso inserir os dados de mÃ©dia mÃ³vel no data frame. A soluÃ§Ã£o inicial foi usar
+# a funÃ§Ã£o rollmean do pacote zoo
 
 mm_mg <- rollmean(mg$newDeaths,14)
 
-# Solução para resolver o problema de diferença de dimensão quando gero o vetor média movel (mm_mg)
+# SoluÃ§Ã£o para resolver o problema de diferenÃ§a de dimensÃ£o quando gero o vetor mÃ©dia movel (mm_mg)
 mm_mg_full <- c(rep(0,13),mm_mg)
 
 mg$mm <- mm_mg_full
