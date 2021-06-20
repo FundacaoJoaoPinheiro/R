@@ -3,16 +3,52 @@ Título do script
 Autor do script
 Data de criação do script
 
-Para exibir texto, use \#’
+Para exibir texto, use \#’. Observe que toda a sintaxe do markdown
+funciona aqui.
+
+Se quiser executar código inline, use o acento grave: dois mais dois
+igual a 4
+
+# Opções de visualização
+
+Para configurar as opções de visualização do código, faça como a seguir:
+\#+ r setup, warning = FALSE
+
+Outras opções:
+
+-   eval = TRUE - executa o código e inclui o resultado
+-   echo = TRUE - exibe o código e seu resultado
+-   warning = FALSE - exibe as mensagens de aviso
+-   error = FALSE - exibe as mensagens de erro
+-   tidy = FALSE - exibe o código em um formato mais compacto
+
+As configurações acima devem ser colocadas antes de cada bloco de
+código. caso deseje fazer configurações globais, use
 
 ``` r
-summary(VADeaths)
+options(warn=-1)
 ```
 
-    ##    Rural Male     Rural Female     Urban Male     Urban Female  
-    ##  Min.   :11.70   Min.   : 8.70   Min.   :15.40   Min.   : 8.40  
-    ##  1st Qu.:18.10   1st Qu.:11.70   1st Qu.:24.30   1st Qu.:13.60  
-    ##  Median :26.90   Median :20.30   Median :37.00   Median :19.30  
-    ##  Mean   :32.74   Mean   :25.18   Mean   :40.48   Mean   :25.28  
-    ##  3rd Qu.:41.00   3rd Qu.:30.90   3rd Qu.:54.60   3rd Qu.:35.10  
-    ##  Max.   :66.00   Max.   :54.30   Max.   :71.10   Max.   :50.00
+# Estrutura do script
+
+# Limpa a memória e console
+
+``` r
+cat("\014")  
+```
+
+
+
+``` r
+rm(list = ls())
+```
+
+## Carrega as bibliotecas
+
+``` r
+library("tidyr")
+```
+
+# Importa os dados
+
+# Manipulação da base de dados
