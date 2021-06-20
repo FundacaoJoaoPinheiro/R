@@ -29,8 +29,7 @@ options(warn=-1)
 
 #' # Estrutura do script
 #' 
-#' # Limpa a memória e console
-
+#' ## Limpa a memória e console
 cat("\014")  
 rm(list = ls())
 
@@ -38,6 +37,6 @@ rm(list = ls())
 library("tidyr")
 
 
-#' # Importa os dados
+#' ## Importa os dados
 
-#' # Manipulação da base de dados
+#' ## Manipulação da base de dados
