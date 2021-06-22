@@ -1,6 +1,6 @@
 #' ---
 #' title: "Título do script"
-#' author: "Autor do script"
+#' author: "Autor do script - email"
 #' date: "Data de criação do script"
 #' output: github_document 
 #' ---
@@ -34,7 +34,17 @@ cat("\014")
 rm(list = ls())
 
 #' ## Carrega as bibliotecas
-library("tidyr")
+pacotes <- c("data.table", "forcats", "magrittr",
+             "ggplot2", "plotly", "RColorBrewer")
+
+#' Verifica se alguma das bibliotecas necessárias ainda não foi instalada
+pacotes_instalados <- pacotes %in% rownames(installed.packages())
+if (any(pacotes_instalados == FALSE)) {
+  install.packages(pacotes[!pacotes_instalados])
+}
+
+#' carrega as bibliotecas
+lapply(pacotes, library, character.only=TRUE)
 
 
 #' ## Importa os dados
