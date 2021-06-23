@@ -11,9 +11,9 @@
 #' 
 #' # Opções de visualização
 #' 
-#' Para configurar as opções de visualização do código, faça como a seguir: #+ r setup, warning = FALSE
+#' Para configurar as opções de visualização do código, faça como a seguir: #+ warning = FALSE
   
-#+ r setup, warning = FALSE
+#+ warning = FALSE
 
 #' Outras opções:
 #' 
