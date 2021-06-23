@@ -66,33 +66,6 @@ lapply(pacotes, library, character.only=TRUE)
     ## 
     ##     layout
 
-    ## [[1]]
-    ## [1] "data.table" "stats"      "graphics"   "grDevices"  "utils"     
-    ## [6] "datasets"   "methods"    "base"      
-    ## 
-    ## [[2]]
-    ## [1] "forcats"    "data.table" "stats"      "graphics"   "grDevices" 
-    ## [6] "utils"      "datasets"   "methods"    "base"      
-    ## 
-    ## [[3]]
-    ##  [1] "magrittr"   "forcats"    "data.table" "stats"      "graphics"  
-    ##  [6] "grDevices"  "utils"      "datasets"   "methods"    "base"      
-    ## 
-    ## [[4]]
-    ##  [1] "ggplot2"    "magrittr"   "forcats"    "data.table" "stats"     
-    ##  [6] "graphics"   "grDevices"  "utils"      "datasets"   "methods"   
-    ## [11] "base"      
-    ## 
-    ## [[5]]
-    ##  [1] "plotly"     "ggplot2"    "magrittr"   "forcats"    "data.table"
-    ##  [6] "stats"      "graphics"   "grDevices"  "utils"      "datasets"  
-    ## [11] "methods"    "base"      
-    ## 
-    ## [[6]]
-    ##  [1] "RColorBrewer" "plotly"       "ggplot2"      "magrittr"     "forcats"     
-    ##  [6] "data.table"   "stats"        "graphics"     "grDevices"    "utils"       
-    ## [11] "datasets"     "methods"      "base"
-
 ## Importação dos dados
 
 Verifica se os dados já não foram baixados
@@ -119,7 +92,7 @@ tab_1407 <- fread(entrada,
 
 ## Manipulação dos dados
 
-### EXEMPLO 1
+### Exemplo 1
 
 1 Região, 1 Variável (Pessoal ocupado) e “N” Divisões de comércio
 
@@ -129,7 +102,7 @@ Realiza a filtragem dos dados
 n_divisao <- tab_1407[Territorio %like% "Minas"][, Rank := frank(-Valor, na.last = "keep"), by = Ano]
 ```
 
-### EXEMPLO 2
+### Exemplo 2
 
 “N” Territórios, 1 Variável(Pessoal ocupado) e 1 Divisão Realiza a
 filtragem dos dados
@@ -139,7 +112,7 @@ n_territorio <- tab_1407[Territorio %like% "Minas|Janeiro|Paulo|Sudeste" &
                            Divisao %like% "varejista"]
 ```
 
-### EXEMPLO 3
+### Exemplo 3
 
 Todos os Estados, 1 Variável, 2 Divisões (em formato wide) e 6 anos
 

@@ -22,6 +22,7 @@
 #' * warning = FALSE - exibe as mensagens de aviso
 #' * error =  FALSE  - exibe as mensagens de erro
 #' * tidy = FALSE    - exibe o código em um formato mais compacto
+#' * results = 'hide'- excuta o códifo e oculta o resultado
 #' 
 #' As configurações acima devem ser colocadas antes de cada bloco de código. caso
 #' deseje fazer configurações globais, use
@@ -32,6 +33,12 @@ options(warn=-1)
 #' ## Limpa a memória e console
 cat("\014")  
 rm(list = ls())
+
+#' ## Configura o diretório de trabalho
+#' Altera a pasta de trabalho para a mesma onde o script está salvo
+dir <- dirname(rstudioapi::getActiveDocumentContext()$path)
+setwd(dir)
+
 
 #' ## Carrega as bibliotecas
 pacotes <- c("data.table", "forcats", "magrittr",
