@@ -102,6 +102,7 @@ g_bolha <-  n_divisao[Rank <= 10] %>%
   labs(y = "Divisão de comércio e grupo de atividade") 
 
 # visualizar com o plotly
+#+ grafico_bolhas
 p <- ggplotly(g_bolha, tooltip = c("text", "y", "size")) %>% hide_guides()
 
 export(p, file = "fig.png")

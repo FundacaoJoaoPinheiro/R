@@ -156,9 +156,12 @@ g_bolha <-  n_divisao[Rank <= 10] %>%
   labs(y = "Divisão de comércio e grupo de atividade") 
 
 # visualizar com o plotly
+```
+
+``` r
 p <- ggplotly(g_bolha, tooltip = c("text", "y", "size")) %>% hide_guides()
 
 export(p, file = "fig.png")
 ```
 
-![](pac_sidra_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
+![](pac_sidra_files/figure-gfm/grafico_bolhas-1.png)<!-- -->
