@@ -18,7 +18,10 @@ Limpa a memória e console
 
 ``` r
 rm(list = ls())
+cat("\014")  
 ```
+
+
 
 Altera a pasta de trabalho para a mesma onde o script está salvo
 
@@ -135,4 +138,23 @@ Cria colunas de rank
 wide_div[, `:=` (Rank_V = frank(-Comercio.de.veiculos, na.last = "keep"),
                  Rank_C = frank(-Combustiveis, na.last = "keep")),
          by = .(Ano, Territorio)]
+```
+
+## Visualização
+
+``` r
+n_divisao$Divisao <- fct_reorder(n_divisao$Divisao, -n_divisao$Rank)
+
+g_bolha <-  n_divisao[Rank <= 10] %>%
+  ggplot(aes(x = Ano, y = Divisao, text = paste("Rank: ", Rank))) +
+  geom_point(
+    aes(size = Valor, color = as.factor(Rank)),
+    show.legend = F
+  ) +
+  scale_size(range = c(3, 12)) +
+  scale_color_brewer(palette = "Paired") +
+  labs(y = "Divisão de comércio e grupo de atividade") 
+
+# visualizar com o plotly
+p <- ggplotly(g_bolha, tooltip = c("text", "y", "size")) %>% hide_guides()
 ```
