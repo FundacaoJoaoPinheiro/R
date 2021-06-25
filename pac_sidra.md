@@ -157,4 +157,8 @@ g_bolha <-  n_divisao[Rank <= 10] %>%
 
 # visualizar com o plotly
 p <- ggplotly(g_bolha, tooltip = c("text", "y", "size")) %>% hide_guides()
+
+export(p, file = "fig.png")
 ```
+
+![](pac_sidra_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
