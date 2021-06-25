@@ -88,7 +88,8 @@ wide_div[, `:=` (Rank_V = frank(-Comercio.de.veiculos, na.last = "keep"),
 
 #' ## Visualização
 #' 
-#' 
+#' ### Gráfico de bolhas
+#' As 10 maiores divisões por variável, estado e ano
 n_divisao$Divisao <- fct_reorder(n_divisao$Divisao, -n_divisao$Rank)
 
 g_bolha <-  n_divisao[Rank <= 10] %>%
@@ -101,9 +102,41 @@ g_bolha <-  n_divisao[Rank <= 10] %>%
   scale_color_brewer(palette = "Paired") +
   labs(y = "Divisão de comércio e grupo de atividade") 
 
-# visualizar com o plotly
+#' Salva a imagem em um arquivo.
 #+ grafico_bolhas
 p <- ggplotly(g_bolha, tooltip = c("text", "y", "size")) %>% hide_guides()
+export(p, file = "grafico_bolhas.png")
 
-export(p, file = "fig.png")
 
+#' ### Gráfico de caixa
+#' 1 Estado, 1 Variável, todos os Anos e todas as Divisao's
+
+#' Usando os ranks podemos escolher a abrangência das Divisao's
+distribuicao <- n_divisao[Rank %between% c(20,50)] %>%
+  ggplot(aes(x = Ano, y = Valor/1000)) +
+  geom_jitter(aes(text = paste("Divisao: ", Divisao)),
+              fill = "pink", alpha = 0.3, shape = 21) +
+  geom_boxplot(aes(fill = Ano), alpha = 0.6) +
+  theme_classic()
+
+#' Salva a imagem em um arquivo.
+#+ grafico_caixa
+p <- ggplotly(distribuicao, tooltip = c("text", "y")) %>% hide_guides()
+export(p, file = "grafico_caixa.png")
+
+#' ### Gráfico de correlação
+
+#' Série histórica
+
+# elaboração do gráfico
+serie_h <- n_divisao %>%
+  ggplot(aes(x = Ano, y = Valor/1000)) +
+  geom_line(aes(color = Divisao, group = Divisao)) +
+  ylab("Divisão de comércio e grupo de atividade") +
+  theme(legend.position="right")
+
+#' Salva a imagem em um arquivo.
+#+ grafico_correlacao
+#' Observação, se quiser exbir a legenda, retire o trecho %>% hide_guides() da linha a seguir
+p <- ggplotly(serie_h, tooltip = c("color", "y", "x")) %>% hide_guides()
+export(p, file = "grafico_correlacao.png")
