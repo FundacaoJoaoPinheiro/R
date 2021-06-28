@@ -205,14 +205,12 @@ serie_h <- n_divisao %>%
   theme(legend.position="right")
 ```
 
-Salva a imagem em um arquivo.
-
-Observação, se quiser exbir a legenda, retire o trecho %&gt;%
-hide\_guides() da linha a seguir
+Salva a imagem em um arquivo. Observação, se quiser exbir a legenda,
+retire o trecho %&gt;% hide\_guides() da linha a seguir
 
 ``` r
 p <- ggplotly(serie_h, tooltip = c("color", "y", "x")) %>% hide_guides()
 export(p, file = "grafico_correlacao.png")
 ```
 
-![](pac_sidra_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
+![](pac_sidra_files/figure-gfm/grafico_correlacao-1.png)<!-- -->

@@ -136,7 +136,8 @@ serie_h <- n_divisao %>%
   theme(legend.position="right")
 
 #' Salva a imagem em um arquivo.
-#+ grafico_correlacao
 #' Observação, se quiser exbir a legenda, retire o trecho %>% hide_guides() da linha a seguir
+
+#+ grafico_correlacao
 p <- ggplotly(serie_h, tooltip = c("color", "y", "x")) %>% hide_guides()
 export(p, file = "grafico_correlacao.png")
