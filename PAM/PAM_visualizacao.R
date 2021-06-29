@@ -32,7 +32,7 @@ if (any(pacotes_instalados == FALSE)) {
 }
 
 #' carrega as bibliotecas
-#+ results = "hide"
+#+ results = 'hide'
 lapply(pacotes, library, character.only=TRUE)
 
 #' ## Geração de gráficos
