@@ -1,7 +1,12 @@
-# Repositório de rotinas
+# Produção Agrícola Municipal (PAM) - IBGE
 
-##  Produção Agrícola Municipal (PAM) - IBGE
+Exemplos de extração online e offline de dados relativos à Produção Agrícola Municipal pode ser encontrado  [aqui](https://github.com/FundacaoJoaoPinheiro/R/blob/main/PAM/PAM_importacao.md). 
 
-Um exemplo de extração online de microdados do PAC pode ser visualizada [aqui](https://github.com/FundacaoJoaoPinheiro/R/blob/main/PAC/pac_sidra.md).
+Observe que a consulta aos dados do IBGE, seja por meio da função `get_sidra` ou através de uma url, só é possível se a consulta retorna até 50.000 observações. Caso deseje realizar uma consulta que retorne mais dados, ela terá que ser feita de forma parcial, como por exemplo, por ano ou UF. Para cada consulta deve-se salvar um arquivo. No script, faz-se a leitura dos arquivos e os dados são unificados.
 
-Nesse script os dados são importados e manipulados. Para visualizar o script completo, clique [aqui](https://github.com/FundacaoJoaoPinheiro/R/blob/main/PAC/pac_sidra.R).
+Exemplos de gráficos que podem ser obtidos a partir dos dados extraídos no script anterior podem ser encontrados [aqui](https://github.com/FundacaoJoaoPinheiro/R/blob/main/PAM/PAM_visualizacao.md).
+
+Os scripts completos podem ser obtidos a seguir:
+
+  * [Importação](https://github.com/FundacaoJoaoPinheiro/R/blob/main/PAM/PAM_importacao.R);
+  * [Visualização](https://github.com/FundacaoJoaoPinheiro/R/blob/main/PAM/PAM_visualizacao.R).
