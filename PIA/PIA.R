@@ -91,3 +91,76 @@ wide_var[, `:=` (Rank_C = frank(-Custos, na.last = "keep"),
                  Rank_S = frank(-Salarios, na.last = "keep")),
          by = .(Ano, Estado)]
 
+#' ## Visualização
+#' 
+#' ### Gráfico de bolhas
+#' As 10 maiores CNAE's por Variável, Estado e Ano.
+
+#' Coloca as CNAE's em ordem crescente
+n_cnae$CNAE <- fct_reorder(n_cnae$CNAE, -n_cnae$Rank)
+
+#' Constrói o gráfico
+g_bolha <-  n_cnae[Rank <= 10] %>%
+  ggplot(aes(x = Ano, y = CNAE, text = paste("Rank: ", Rank))) +
+  geom_point(
+    aes(size = Valor, color = as.factor(Rank)),
+    show.legend = F
+  ) +
+  scale_size(range = c(3, 12)) +
+  scale_color_brewer(palette = "Paired") +
+  labs(y = "Produtos da Lavoura") 
+
+#' Visualizar o gráfico
+g_bolha
+
+#' Opcionalmente, visualizar com o plotly
+#+ eval = FALSE
+p <- ggplotly(g_bolha, tooltip = c("text", "y", "size")) %>% hide_guides()
+
+#' Se desejar salvar o gráfico em um arquivo .png
+#+ eval = FALSE
+export(p, file = "maiores_CNAE.png")
+
+#' ### Gráfico de caixa
+#' 1 Estado, 1 Variável, todos os Anos e todas as CNAE's
+
+#' Usando os ranks pode-se escolher a abrangência das CNAE's
+distribuicao <- n_cnae[Rank %between% c(1,5)] %>%
+                      ggplot(aes(x = Ano, y = Valor/1000)) +
+                      geom_jitter(aes(text = paste("CNAE: ", CNAE)),
+                                  fill = "pink", alpha = 0.3, shape = 21) +
+                      geom_boxplot(aes(fill = Ano), alpha = 0.6) +
+                      theme_classic()
+
+#' Visualiza o gráfico
+distribuicao
+
+#' Opcionalmente, visualizar com o plotly
+#+ eval = FALSE
+ggplotly(distribuicao, tooltip = c("text", "y")) %>% hide_guides()
+
+#' ### Gráfico de correlação
+
+#' Usando os ranks pode-se escolher a abrangência das duas variáveis
+g_corr <- wide_var[Rank_C > 20 & Rank_S > 20] %>%
+                  ggplot(aes(x = Salarios/1000, y = Custos/1000)) +
+                  geom_jitter(aes(fill = Estado, text = paste("CNAE: ", CNAE),
+                                  shape = "21", alpha = 0.3)) +
+                  geom_smooth(aes(color = Ano), alpha = 0.6) +
+                  theme_bw() +
+                  facet_wrap(~Ano, nrow = 2)
+
+#' Visualiza o gráfico
+g_corr
+
+#' ### Série histórica
+
+#' Constrói o gráfico
+serie_h <- n_cnae %>%
+          ggplot(aes(x = Ano, y = Valor/1000)) +
+          geom_line(aes(color = CNAE, group = CNAE)) +
+          ylab("VPB Industrial (Mil Reais)")
+
+#' Visualiza o gráfico
+ggplotly(serie_h, tooltip = c("colors", "y", "x"))
+
