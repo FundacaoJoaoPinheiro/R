@@ -1,7 +1,7 @@
 # Repositório de rotinas
 
-##  Pesquisa Anual de Comércio (PAC) - IBGE
+Aqui você encontra diversas rotinas relacionadas à extração de dados de diversas bases, bem como sua manipulação e visualização. Vários dessas bases de dados são abertas ao público em geral. Nesse caso, disponibilizaremos os dados ou daremos informações sobre como obtê-los.
 
-Um exemplo de extração online de microdados do PAC pode ser visualizada [aqui](https://github.com/FundacaoJoaoPinheiro/R/blob/main/PAC/pac_sidra.md).
 
-Nesse script os dados são importados e manipulados. Para visualizar o script completo, clique [aqui](https://github.com/FundacaoJoaoPinheiro/R/blob/main/PAC/pac_sidra.R).
+
+
