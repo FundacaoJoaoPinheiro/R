@@ -111,23 +111,26 @@ saida <- map(list_api_vol, ~ get_sidra(api = .x))
 #' elas seguem um padrão: ou estão na 10ª, 12ª ou 13ª posições.
 #'
 #' * categorias na coluna 10: tabelas 74, 3653 (MG e BR), 3416 (MG e BR), 291, 289, 5434, 839, 1001, 1002 e 5457
-tipo1 <- c(7:11, 15:17)
+tipo1 <- c(7, 17)
 
-#' * categorias na coluna 12: tabelas 3419 (MG e BR), 6444 e 1618
-tipo2 <- c(12:14, 22)
+#' * categorias na coluna 12: tabelas 3419 (MG e BR), 6444 e 
+tipo2 <- c(12:13)
 
 #' * categorias na coluna 13: tabelas 3939
-tipo3 <- c(6, 18:21)
+tipo3 <- c(6, 8:11, 15:16, 21)
+
+#' * categorias na coluna 15: tabelas 1618
+tipo4 <- c(14, 22)
 
 #' Para algumas tabelas é desejado que tenham junto das categorias suas unidades de medidas
-# for (i in c(7,15,16)) {               # tabelas 74, 291 e 289
-#   saida[[i]][[10]] = paste0(                           
-#     saida[[i]][[10]],                 # coluna 10 é a coluna das categorias
-#     " (", 
-#     saida[[i]][[12]],                 # coluna 12 é das unidades de medida    
-#     ")"                    
-#   )
-# } 
+for (i in c(7,15,16)) {               # tabelas 74, 291 e 289
+  saida[[i]][[10]] = paste0(
+    saida[[i]][[10]],                 # coluna 10 é a coluna das categorias
+    " (",
+    saida[[i]][[12]],                 # coluna 12 é das unidades de medida
+    ")"
+  )
+}
 
 #' Renomeia as colunas de categorias para o nome "Categorias"
 for (i in tipo1) {
@@ -139,6 +142,10 @@ for (i in tipo2) {
 for (i in tipo3) {
   colnames(saida[[i]])[[13]] <- "Categorias"
 }
+for (i in tipo4) {
+  colnames(saida[[i]])[[15]] <- "Categorias"
+}
+
 
 
 #' ### Transformação para o formato wide
@@ -148,8 +155,8 @@ for (i in tipo3) {
 #' 
 #' *Observação*: algumas exceções serão formatadas de forma individual posteriormente. As exceções
 #' são decorrentes de tabelas com informação de trimestres e as tabelas com mais de uma variável
-excecao1<- c(1:7,22)    # tabelas que trabalham com trimestre ou duas referências temporais
-excecao2 <- c(18:21)    # tabelas que trabalham com duas variáveis
+excecao1<- c(1:14,22)    # tabelas que trabalham com trimestre ou duas referências temporais
+excecao2 <- c(15:16, 18:21)    # tabelas que trabalham com duas variáveis
 
 #' Seleciona as colunas a serem mantidas após a formatação
 saida[-c(excecao1, excecao2)] %<>%              # retirar tabelas que são excessões
@@ -277,8 +284,8 @@ PPM <- bind_cols(
 )
 
 #' ### LSPA
-#' 
-#' #### PAM-QP - Tabelas 839, 1001, 1002 e 5457
+#'  
+#' #### PAM - Quantidade Produzida - Tabelas 839, 1001, 1002 e 5457
 #' 
 #' Essas tabelas fazem parte das excessões, portanto ainda não foram formatadas
 #' 
@@ -305,3 +312,190 @@ filtro_QP %<>%
     names_from = 'Categorias',
     values_from = 'Valor'
   )
+
+#' agora vamos retirar as colunas "Ano" duplicadas, mantendo ela apenas na primeira tabelawide
+filtro_QP %<>%
+  map_at(
+    .at = -1,     # vamos manter a coluna em uma tabela
+    .f = select,
+    - Ano
+  )
+
+# agregar as tabelas e criar objeto final
+PAM_QP <- bind_cols(
+  filtro_QP
+)
+
+#' #### PAM - Área plantada - Tabelas 839, 1001, 1002 e 5457
+
+#' a mesma coisa de cima, só que agora vamos filtrar a "Área Plantada"
+#' 
+filtro_AP <- saida [excecao2] %>%
+  map(
+    filter,
+    Variável != 'Quantidade produzida'
+  ) %>%
+    map(
+      select,
+      Ano,                       
+      `Categorias`,
+      Valor
+    ) %>%
+    map(
+      pivot_wider,
+      names_from = 'Categorias',
+      values_from = 'Valor'
+    ) %>%
+    map_at(
+      .at = -1,
+      .f = select,
+      - Ano
+    ) 
+#' agregar as tabelas e criar objeto final
+PAM_AP <- bind_cols(
+  filtro_AP
+)
+
+#' #### LSPA - Quantidade Produzida - Tabela 1618 
+#' 
+## tabela 1618 também está entre as exceções, no caso porque tem duas referências temporais
+## vamos fazer as mesmas operações de antes, filtrando a variável e selecionando colunas
+LSPA_QP <- saida$tab_1618_MG %>%              
+  filter(
+    Variável == 'Produção'                    # filtrar para Quantidade Produzida
+  ) %>%
+  select(                                     # selecionar colunas
+    Mês,
+    `Ano da safra`,
+    Categorias,
+    Valor
+  ) %>%
+  pivot_wider(                                # passar para o formato wide
+    names_from = 'Categorias',
+    values_from = 'Valor'
+  )
+
+#' #### LSPA - Área Plantada - Tabela 1618 
+#' O mesmo que a de cima, só que filtrando para área plantada
+LSPA_AP <- saida$tab_1618_MG %>%
+  filter(
+    Variável != 'Produção'                    # filtrar para Área Plantada
+  ) %>%
+  select(                                     # selecionar colunas
+    Mês,
+    `Ano da safra`,
+    `Categorias`,
+    `Valor`
+  ) %>%
+  pivot_wider(                                # passar para o formato wide
+    names_from = 'Categorias',
+    values_from = 'Valor'
+  )
+
+#' ### PEVS 
+#' 
+#' #### PIM-PF - Tabela 3653 (MG e BR)
+#'
+#'
+PIM_PF <- saida$tab_3653_MG %>%
+  filter(
+    Categorias == "3.16 Fabricação de produtos de madeira"|
+    Categorias == "3.17 Fabricação de celulose, papel e produtos de papel"|
+    Categorias == "3.24 Metalurgia"
+  ) %>%
+  select(                                     # selecionar colunas
+    Mês,
+    `Categorias`,
+    `Valor`
+  ) %>%
+  pivot_wider(                                # passar para o formato wide
+    names_from = 'Categorias',
+    values_from = 'Valor'
+  )
+
+Extracao1 <- saida$tab_289_MG %>%
+  select(                                     # selecionar colunas
+    `Ano`,
+    `Categorias`,
+    `Valor`
+  ) %>%
+  pivot_wider(                                # passar para o formato wide
+    names_from = 'Categorias',
+    values_from = 'Valor'
+  )
+Extracao2 <- saida$tab_291_MG %>%
+  select(                                     # selecionar colunas
+    `Ano`,
+    `Categorias`,
+    `Valor`
+  ) %>%
+  pivot_wider(                                # passar para o formato wide
+    names_from = 'Categorias',
+    values_from = 'Valor'
+  )
+
+Extracao <- bind_cols(
+  Extracao1,
+  Extracao2[,-1]
+)
+
+# 3.4.1 MG (nova) - Tabela 3653 MG ------------------------------------------
+MG_pim_pf <- saida$tab_3653_MG %>%
+  select(                                     # selecionar colunas
+    `Mês`,
+    `Categorias`,
+    `Valor`
+  ) %>%
+  pivot_wider(                                # passar para o formato wide
+    names_from = 'Categorias',
+    values_from = 'Valor'
+  )
+
+# 3.4.2 BR (nova) - Tabela 3653 BR ------------------------------------------
+BR_pim_pf <- saida$tab_3653_BR  %>%
+  select(                                     # selecionar colunas
+    `Mês`,
+    `Categorias`,
+    `Valor`
+  ) %>%
+  pivot_wider(                                # passar para o formato wide
+    names_from = 'Categorias',
+    values_from = 'Valor'
+  )
+
+# 3.5 V.PMC ======================================================================
+## 3.5.1 MG (nova) - tabelas 3416 e 3419 ---------------------------------------
+# essas tabelas já foram formatadas na 2.2. Basta manipular as colunas
+
+# agregar coluna à tabela 3419 com o valor da tabela 3416
+MG_pmc <- saida$tab_3419_MG %>%
+  mutate(
+    `Índice de volume de vendas no comércio varejista` = saida$tab_3416_MG$`Índice base fixa (2014=100)`)
+
+# reordenar a coluna criada para a segunda posição
+MG_pmc <- MG_pmc[c(1,15, 2:14)]
+
+## 3.5.2 BR (nova) - tabelas 3416 e 3419 ---------------------------------------
+# essas tabelas já foram formatadas na 2.2. Basta manipular as colunas
+
+# agregar coluna à tabela 3419 com o valor da tabela 3416
+BR_pmc <- saida$tab_3419_BR %>%
+  mutate(
+    `Índice de volume de vendas no comércio varejista` = saida$tab_3416_BR$`Índice base fixa (2014=100)`)
+# reordenar a coluna criada para a segunda posição
+BR_pmc <- BR_pmc[c(1,15, 2:14)]
+
+# 3.6 V.PMS ======================================================================
+# Volume - Tabela 6444 ------------------------------------------
+## essas tabelas já foram formatadas na 2.2
+Volume_pms <- saida$tab_6444_MG  %>%
+  select(                                     # selecionar colunas
+    `Mês`,
+    `Categorias`,
+    `Valor`
+  ) %>%
+  pivot_wider(                                # passar para o formato wide
+    names_from = 'Categorias',
+    values_from = 'Valor'
+  )
+
