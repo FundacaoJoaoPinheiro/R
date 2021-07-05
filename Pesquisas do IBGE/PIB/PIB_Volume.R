@@ -22,7 +22,7 @@ setwd(dir)
 
 #' ## Carrega as bibliotecas
 pacotes <- c("purrr", "dplyr","tidyr", "sidrar", "stringr",            
-             "magrittr", "rio")
+             "magrittr", "rio", "data.table")
 
 #' Verifica se alguma das bibliotecas necessárias ainda não foi instalada
 pacotes_instalados <- pacotes %in% rownames(installed.packages())
@@ -108,23 +108,26 @@ saida <- map(list_api_vol, ~ get_sidra(api = .x))
 #' 
 #' Serão necessárias as colunas CATEGORIAS e VALORES. Em todas as tabelas, os valores estão na 
 #' coluna nomeada "Valor". No entanto, as colunas das categorias estão com diferentes nomes. Apesar disso, 
-#' elas seguem um padrão: ou estão na 10ª ou na 12ª posições.
+#' elas seguem um padrão: ou estão na 10ª, 12ª ou 13ª posições.
 #'
-#' * categorias na coluna 10: tabelas 3939, 74, 3653 (MG e BR), 3416 (MG e BR), 291, 289, 5434, 839, 1001, 1002 e 5457
-tipo1 <- c(6:11, 15:21)
+#' * categorias na coluna 10: tabelas 74, 3653 (MG e BR), 3416 (MG e BR), 291, 289, 5434, 839, 1001, 1002 e 5457
+tipo1 <- c(7:11, 15:17)
 
 #' * categorias na coluna 12: tabelas 3419 (MG e BR), 6444 e 1618
 tipo2 <- c(12:14, 22)
 
+#' * categorias na coluna 13: tabelas 3939
+tipo3 <- c(6, 18:21)
+
 #' Para algumas tabelas é desejado que tenham junto das categorias suas unidades de medidas
-for (i in c(7,15,16)) {               # tabelas 74, 291 e 289
-  saida[[i]][[10]] = paste0(                           
-    saida[[i]][[10]],                 # coluna 10 é a coluna das categorias
-    " (", 
-    saida[[i]][[12]],                 # coluna 12 é das unidades de medida    
-    ")"                    
-  )
-} 
+# for (i in c(7,15,16)) {               # tabelas 74, 291 e 289
+#   saida[[i]][[10]] = paste0(                           
+#     saida[[i]][[10]],                 # coluna 10 é a coluna das categorias
+#     " (", 
+#     saida[[i]][[12]],                 # coluna 12 é das unidades de medida    
+#     ")"                    
+#   )
+# } 
 
 #' Renomeia as colunas de categorias para o nome "Categorias"
 for (i in tipo1) {
@@ -133,19 +136,23 @@ for (i in tipo1) {
 for (i in tipo2) {
   colnames(saida[[i]])[[12]] <- "Categorias"
 }
+for (i in tipo3) {
+  colnames(saida[[i]])[[13]] <- "Categorias"
+}
 
-#' ### Transformação parao formato wide
+
+#' ### Transformação para o formato wide
 #'
 #' Antes de aplicar a operação, deve-se selecionar as colunas que vão ser mantidas, isto é, 
 #' uma coluna temporal (sempre a 6ª), a coluna "Categoria" e a coluna "Valores".
 #' 
-#' *Observação*: algumas exceções serão formatadas de forma individual posteriormente. As excessões
+#' *Observação*: algumas exceções serão formatadas de forma individual posteriormente. As exceções
 #' são decorrentes de tabelas com informação de trimestres e as tabelas com mais de uma variável
-exceção1<- c(1:5,22)    # tabelas que trabalham com trimestre ou duas referências temporais
-exceção2 <- c(18:21)    # tabelas que trabalham com duas variáveis
+excecao1<- c(1:7,22)    # tabelas que trabalham com trimestre ou duas referências temporais
+excecao2 <- c(18:21)    # tabelas que trabalham com duas variáveis
 
 #' Seleciona as colunas a serem mantidas após a formatação
-saida[-c(exceção1, exceção2)] %<>%              # retirar tabelas que são excessões
+saida[-c(excecao1, excecao2)] %<>%              # retirar tabelas que são excessões
   map(                              
     select,
     8,
@@ -154,7 +161,145 @@ saida[-c(exceção1, exceção2)] %<>%              # retirar tabelas que são e
   )
 
 #' Transforma as tabelas para formato wide
-saida[-c(exceção1, exceção2)] %<>%
+saida[-c(excecao1, excecao2)] %<>%
+  map(
+    pivot_wider,
+    names_from = 'Categorias',
+    values_from = 'Valor'
+  )
+
+#' ### Criação de funções para as variáveis TEMPORAIS 
+#'
+#' Como dito anteriormente, algumas tabelas trabalham com trimestre. Para essas tabelas, a coluna 
+#' Ano_Trimestre será transformada na coluna Ano_Mês.
+#' 
+#' Função para criar uma string no formato "2008 T2" a partir da coluna 'Trimestre'
+ano_tri <- function(col) {
+  paste0(
+    str_extract(col, "\\d{4}$"), # extrair o ano
+    ' T',
+    str_extract(col, "\\d(?=º)") # extrair o trimestre
+  )
+}
+
+#' Função para associar a coluna '`Ano_Trimestre`' com os meses correspondentes
+meses_tri <- function(df){
+  case_when(str_detect(df$`Ano_Trimestre`, "(?<=T)1") & 
+              str_detect(df$`Referência temporal`, "1(?=º)") ~ 'janeiro',
+            str_detect(df$`Ano_Trimestre`, "(?<=T)1") & 
+              str_detect(df$`Referência temporal`, "2(?=º)") ~ 'fevereiro',
+            str_detect(df$`Ano_Trimestre`, "(?<=T)1") & 
+              str_detect(df$`Referência temporal`, "3(?=º)") ~ 'março',
+            str_detect(df$`Ano_Trimestre`, "(?<=T)2") & 
+              str_detect(df$`Referência temporal`, "1(?=º)") ~ 'abril',
+            str_detect(df$`Ano_Trimestre`, "(?<=T)2") & 
+              str_detect(df$`Referência temporal`, "2(?=º)") ~ 'maio',
+            str_detect(df$`Ano_Trimestre`, "(?<=T)2") & 
+              str_detect(df$`Referência temporal`, "3(?=º)") ~ 'junho',
+            str_detect(df$`Ano_Trimestre`, "(?<=T)3") & 
+              str_detect(df$`Referência temporal`, "1(?=º)") ~ 'julho',
+            str_detect(df$`Ano_Trimestre`, "(?<=T)3") & 
+              str_detect(df$`Referência temporal`, "2(?=º)") ~ 'agosto',
+            str_detect(df$`Ano_Trimestre`, "(?<=T)3") & 
+              str_detect(df$`Referência temporal`, "3(?=º)") ~ 'setembro',
+            str_detect(df$`Ano_Trimestre`, "(?<=T)4") & 
+              str_detect(df$`Referência temporal`, "1(?=º)") ~ 'outubro',
+            str_detect(df$`Ano_Trimestre`, "(?<=T)4") & 
+              str_detect(df$`Referência temporal`, "2(?=º)") ~ 'novembro',
+            str_detect(df$`Ano_Trimestre`, "(?<=T)4") & 
+              str_detect(df$`Referência temporal`, "3(?=º)") ~ 'dezembro',
+            TRUE ~ 'Valor de `df` inválido')
+}
+
+#' Função que gera o formato "2002 janeiro"
+ano_mes <- function(df){
+  paste0(
+    str_extract(df$`Ano_Trimestre`, "^\\d*"),
+    " ",
+    meses_tri(df)
+  )
+}
+
+#' *Observação*: essas funções definidas anteriormente serão aplicadas nas próximas 
+#' 
+#' ### Formatações por grupo
+
+#' #### ABATE
+#' 
+#' Abate - Tabelas 1092; 1093; 1094; 1086; 915
+#'  
+#' Essas tabelas não precisam ser formatadas em wide; Serão montadas coluna a coluna. Inicialmente
+#' serão criadas as colunas de mês e trimestre
+saida$tab_1092_MG %<>% mutate(.,                                       
+                              `Ano_Trimestre` = ano_tri(.$Trimestre)
+)          
+
+saida$tab_1092_MG %<>% mutate(.,                                       
+                              `Ano_Mês` = ano_mes(.)
+)
+
+#' Cria a tabela "Abate"
+Abate <- tibble(
+  'Ano_Trimestre' = saida$tab_1092_MG$`Ano_Trimestre`,
+  'Ano_Mês' = saida$tab_1092_MG$`Ano_Mês`,
+  'Bovino tab_1092' = saida$tab_1092_MG$Valor,
+  'Suínos tab_1093' = saida$tab_1093_MG$Valor,
+  'Aves tab_1092' = saida$tab_1092_MG$Valor,
+  'Leite tab_1086' = saida$tab_1086_MG$Valor,
+  'Ovos tab_915' = saida$tab_915_MG$Valor
+)
+
+#' #### PPM - Tabelas 3939 e 74
+#'
+#' Transforma a tabela 3939, selecionando somente os dados de interesse
+saida$tab_3939_MG <- saida$tab_3939_MG %>% 
+  dcast(Ano ~ `Categorias`, 
+        value.var = 'Valor',
+        fun.aggregate = sum)
+
+
+#' Adiciona uma coluna "Aves Total", que será a soma das colunas "Galináceos Total" e "Codornas"
+saida$tab_3939_MG %<>%
+  mutate(
+    `Aves Total` = .$`Galináceos - total` + .$Codornas
+  )
+
+#' Transforma a tabela 74, selecionando somente os dados de interesse
+saida$tab_74_MG <- saida$tab_74_MG %>% 
+  dcast(Ano ~ `Tipo de produto de origem animal`,
+        value.var = 'Valor',
+        fun.aggregate = sum)
+
+#' Agrega as linhas das duas tabelas retirando a coluna duplicada "Ano"
+PPM <- bind_cols(
+  saida$tab_3939_MG,
+  saida$tab_74_MG[,-1]
+)
+
+#' ### LSPA
+#' 
+#' #### PAM-QP - Tabelas 839, 1001, 1002 e 5457
+#' 
+#' Essas tabelas fazem parte das excessões, portanto ainda não foram formatadas
+#' 
+#' primeiro vamos filtrar a coluna de variável para "Quantidade Produzida"
+filtro_QP <- saida [excecao2] %>%
+  map(
+    filter,
+    Variável == 'Quantidade produzida'
+  )
+
+#' Seleciona as colunas a serem mantidas depois da formatação
+filtro_QP %<>%
+  map(
+    select,
+    Ano,                       
+    Categorias,
+    Valor
+  )
+
+#' Passa para o formato wide
+filtro_QP %<>%
   map(
     pivot_wider,
     names_from = 'Categorias',
