@@ -9,7 +9,6 @@
 options(warn=-1)
 
 
-
 #' ## Limpa a memória e console
 cat("\014")  
 rm(list = ls())
@@ -31,6 +30,7 @@ if (any(pacotes_instalados == FALSE)) {
 }
 
 #' carrega as bibliotecas
+#+ results = "hide"
 lapply(pacotes, library, character.only=TRUE)
 
 
@@ -108,18 +108,18 @@ saida <- map(list_api_vol, ~ get_sidra(api = .x))
 #' 
 #' Serão necessárias as colunas CATEGORIAS e VALORES. Em todas as tabelas, os valores estão na 
 #' coluna nomeada "Valor". No entanto, as colunas das categorias estão com diferentes nomes. Apesar disso, 
-#' elas seguem um padrão: ou estão na 10ª, 12ª ou 13ª posições.
+#' elas seguem um padrão: ou estão na 10ª, 12ª, 13ª ou 15ª  posições.
 #'
-#' * categorias na coluna 10: tabelas 74, 3653 (MG e BR), 3416 (MG e BR), 291, 289, 5434, 839, 1001, 1002 e 5457
+#' * categorias na coluna 10: tabelas 74, 5434
 tipo1 <- c(7, 17)
 
-#' * categorias na coluna 12: tabelas 3419 (MG e BR), 6444 e 
+#' * categorias na coluna 12: tabelas 3419 (MG e BR)
 tipo2 <- c(12:13)
 
-#' * categorias na coluna 13: tabelas 3939
+#' * categorias na coluna 13: tabelas 291, 289, 5434, 839, 1001, 1002 e 5457
 tipo3 <- c(6, 8:11, 15:21)
 
-#' * categorias na coluna 15: tabelas 1618
+#' * categorias na coluna 15: tabelas 6444 e 1618
 tipo4 <- c(14, 22)
 
 #' Para algumas tabelas é desejado que tenham junto das categorias suas unidades de medidas
@@ -151,29 +151,11 @@ for (i in tipo4) {
 #' ### Transformação para o formato wide
 #'
 #' Antes de aplicar a operação, deve-se selecionar as colunas que vão ser mantidas, isto é, 
-#' uma coluna temporal (sempre a 6ª), a coluna "Categoria" e a coluna "Valores".
+#' uma coluna com informação sobre o tempo, a coluna "Categoria" e a coluna "Valor".
 #' 
 #' *Observação*: algumas exceções serão formatadas de forma individual posteriormente. As exceções
 #' são decorrentes de tabelas com informação de trimestres e as tabelas com mais de uma variável
-excecao1<- c(1:17,22)    # tabelas que trabalham com trimestre ou duas referências temporais
-excecao2 <- c(18:21)    # tabelas que trabalham com duas variáveis
-
-#' Seleciona as colunas a serem mantidas após a formatação
-saida[-c(excecao1, excecao2)] %<>%              # retirar tabelas que são excessões
-  map(                              
-    select,
-    8,
-    Categorias,
-    Valor
-  )
-
-#' Transforma as tabelas para formato wide
-saida[-c(excecao1, excecao2)] %<>%
-  map(
-    pivot_wider,
-    names_from = 'Categorias',
-    values_from = 'Valor'
-  )
+excecao <- c(18:21)    # tabelas que trabalham com duas variáveis
 
 #' ### Criação de funções para as variáveis TEMPORAIS 
 #'
@@ -227,7 +209,7 @@ ano_mes <- function(df){
   )
 }
 
-#' *Observação*: essas funções definidas anteriormente serão aplicadas nas próximas 
+#' *Observação*: essas funções definidas anteriormente serão aplicadas nas próximas etapas
 #' 
 #' ### Formatações por grupo
 
@@ -287,10 +269,10 @@ PPM <- bind_cols(
 #'  
 #' #### PAM - Quantidade Produzida - Tabelas 839, 1001, 1002 e 5457
 #' 
-#' Essas tabelas fazem parte das excessões, portanto ainda não foram formatadas
+#' Essas tabelas fazem parte das excessões
 #' 
-#' primeiro vamos filtrar a coluna de variável para "Quantidade Produzida"
-filtro_QP <- saida [excecao2] %>%
+#' Primeiro será aplicado o filtro para variável igual a "Quantidade Produzida"
+filtro_QP <- saida [excecao] %>%
   map(
     filter,
     Variável == 'Quantidade produzida'
@@ -313,24 +295,23 @@ filtro_QP %<>%
     values_from = 'Valor'
   )
 
-#' agora vamos retirar as colunas "Ano" duplicadas, mantendo ela apenas na primeira tabelawide
+#' Retira as colunas "Ano" duplicadas, mantendo ela apenas na primeira tabelawide
 filtro_QP %<>%
   map_at(
-    .at = -1,     # vamos manter a coluna em uma tabela
+    .at = -1,     # manter a coluna em uma tabela
     .f = select,
     - Ano
   )
 
-# agregar as tabelas e criar objeto final
+#' Agrega as tabelas e criar objeto final
 PAM_QP <- bind_cols(
   filtro_QP
 )
 
 #' #### PAM - Área plantada - Tabelas 839, 1001, 1002 e 5457
-
-#' a mesma coisa de cima, só que agora vamos filtrar a "Área Plantada"
-#' 
-filtro_AP <- saida [excecao2] %>%
+#'
+#' Aplica-se o mesmo procedimento acima, com a dirença que o filtro será para Área Plantada.
+filtro_AP <- saida [excecao] %>%
   map(
     filter,
     Variável != 'Quantidade produzida'
@@ -358,36 +339,36 @@ PAM_AP <- bind_cols(
 
 #' #### LSPA - Quantidade Produzida - Tabela 1618 
 #' 
-## tabela 1618 também está entre as exceções, no caso porque tem duas referências temporais
-## vamos fazer as mesmas operações de antes, filtrando a variável e selecionando colunas
+#' A tabela 1618 tem duas referências temporais.
 LSPA_QP <- saida$tab_1618_MG %>%              
   filter(
-    Variável == 'Produção'                    # filtrar para Quantidade Produzida
+    Variável == 'Produção'                    # filtra para Quantidade Produzida
   ) %>%
-  select(                                     # selecionar colunas
+  select(                                     # seleciona colunas
     Mês,
     `Ano da safra`,
     Categorias,
     Valor
   ) %>%
-  pivot_wider(                                # passar para o formato wide
+  pivot_wider(                                # transforma para o formato wide
     names_from = 'Categorias',
     values_from = 'Valor'
   )
 
-#' #### LSPA - Área Plantada - Tabela 1618 
-#' O mesmo que a de cima, só que filtrando para área plantada
+#' #### LSPA - Área Plantada - Tabela 1618
+#'  
+#' Aplica-se o mesmo prodimento acima, filtrando para Área plantada.
 LSPA_AP <- saida$tab_1618_MG %>%
   filter(
-    Variável != 'Produção'                    # filtrar para Área Plantada
+    Variável != 'Produção'                    # filtra para Área Plantada
   ) %>%
-  select(                                     # selecionar colunas
+  select(                                     # seleciona colunas
     Mês,
     `Ano da safra`,
     `Categorias`,
     `Valor`
   ) %>%
-  pivot_wider(                                # passar para o formato wide
+  pivot_wider(                                # passa para o formato wide
     names_from = 'Categorias',
     values_from = 'Valor'
   )
@@ -395,31 +376,30 @@ LSPA_AP <- saida$tab_1618_MG %>%
 #' ### PEVS 
 #' 
 #' #### PIM-PF - Tabela 3653 (MG e BR)
-#'
-#'
+
 PIM_PF <- saida$tab_3653_MG %>%
   filter(
     Categorias == "3.16 Fabricação de produtos de madeira"|
     Categorias == "3.17 Fabricação de celulose, papel e produtos de papel"|
     Categorias == "3.24 Metalurgia"
   ) %>%
-  select(                                     # selecionar colunas
+  select(                                     # seleciona colunas
     Mês,
     `Categorias`,
     `Valor`
   ) %>%
-  pivot_wider(                                # passar para o formato wide
+  pivot_wider(                                # transforma para o formato wide
     names_from = 'Categorias',
     values_from = 'Valor'
   )
 
 Extracao1 <- saida$tab_289_MG %>%
-  select(                                     # selecionar colunas
+  select(                                     # seleciona colunas
     `Ano`,
     `Categorias`,
     `Valor`
   ) %>%
-  pivot_wider(                                # passar para o formato wide
+  pivot_wider(                                # transforma para o formato wide
     names_from = 'Categorias',
     values_from = 'Valor'
   )
@@ -429,7 +409,7 @@ Extracao2 <- saida$tab_291_MG %>%
     `Categorias`,
     `Valor`
   ) %>%
-  pivot_wider(                                # passar para o formato wide
+  pivot_wider(                                # transforma para o formato wide
     names_from = 'Categorias',
     values_from = 'Valor'
   )
@@ -439,82 +419,82 @@ Extracao <- bind_cols(
   Extracao2[,-1]
 )
 
-# 3.4.1 MG (nova) - Tabela 3653 MG ------------------------------------------
+#' #### PFI - MG - Tabela 3653 MG 
+#' 
 MG_pim_pf <- saida$tab_3653_MG %>%
-  select(                                     # selecionar colunas
+  select(                                     # seleciona colunas
     `Mês`,
     `Categorias`,
     `Valor`
   ) %>%
-  pivot_wider(                                # passar para o formato wide
+  pivot_wider(                                # transforma para o formato wide
     names_from = 'Categorias',
     values_from = 'Valor'
   )
 
-# 3.4.2 BR (nova) - Tabela 3653 BR ------------------------------------------
+#' #### PFI - BR - Tabela 3653 BR 
 BR_pim_pf <- saida$tab_3653_BR  %>%
-  select(                                     # selecionar colunas
+  select(                                     # seleciona colunas
     `Mês`,
     `Categorias`,
     `Valor`
   ) %>%
-  pivot_wider(                                # passar para o formato wide
+  pivot_wider(                                # transforma para o formato wide
     names_from = 'Categorias',
     values_from = 'Valor'
   )
 
-# 3.5 V.PMC ======================================================================
-## 3.5.1 MG (nova) - tabelas 3416 e 3419 ---------------------------------------
-# essas tabelas já foram formatadas na 2.2. Basta manipular as colunas
 
-# agregar coluna à tabela 3419 com o valor da tabela 3416
+ 
+#' ### PMC - tabelas 3416 e 3419 
+#' 
+#' Agrega coluna à tabela 3419 com o valor da tabela 3416
 MG_pmc <- saida$tab_3419_MG %>%
   mutate(
     `Índice de volume de vendas no comércio varejista` = saida$tab_3416_MG$`Índice base fixa (2014=100)`)
 
-# reordenar a coluna criada para a segunda posição
+#' Reordena a coluna criada para a segunda posição
 MG_pmc <- MG_pmc[c(1,15, 2:14)]
 
-## 3.5.2 BR (nova) - tabelas 3416 e 3419 ---------------------------------------
-# essas tabelas já foram formatadas na 2.2. Basta manipular as colunas
 
-# agregar coluna à tabela 3419 com o valor da tabela 3416
+#' Agrega coluna à tabela 3419 com o valor da tabela 3416
 BR_pmc <- saida$tab_3419_BR %>%
   mutate(
     `Índice de volume de vendas no comércio varejista` = saida$tab_3416_BR$`Índice base fixa (2014=100)`)
-# reordenar a coluna criada para a segunda posição
+#' Reordena a coluna criada para a segunda posição
 BR_pmc <- BR_pmc[c(1,15, 2:14)]
 
-# 3.6 V.PMS ======================================================================
-# Volume - Tabela 6444 ------------------------------------------
-## essas tabelas já foram formatadas na 2.2
+#' ### PMS
+#' 
+#' Volume - Tabela 6444 
 Volume_pms <- saida$tab_6444_MG  %>%
-  select(                                     # selecionar colunas
+  select(                                     # seleciona colunas
     `Mês`,
     `Categorias`,
     `Valor`
   ) %>%
-  pivot_wider(                                # passar para o formato wide
+  pivot_wider(                                # transforma para o formato wide
     names_from = 'Categorias',
     values_from = 'Valor'
   )
 
-# 3.7 V.PNADc ======================================================================
-# PNAD Trimestral - Tabela 5434 ------------------------------------------
-## essas tabelas já foram formatadas na 2.2
+#' ### PNADc
+#'  
+#' PNAD Trimestral - Tabela 5434 
 PNAD_trimestral <- saida$tab_5434_MG %>%
-  select(                                     # selecionar colunas
+  select(                                     # seleciona colunas
     `Trimestre`,
      13, # corresponde a coluna categorias (essa tabela tem duas colunas com esse nome)
     `Valor`
   ) %>%
-  pivot_wider(                                # passar para o formato wide
+  pivot_wider(                                # transforma para o formato wide
     names_from = 'Categorias',
     values_from = 'Valor'
   )
 
-#========================================== 4. EXPORTAR PLANILHAS ==========================================#
-## nessa etapa vamos criar sete listas, uma pra cada uma das planilhas que exportaremos
+#' ## Exporta as planilhas
+#' 
+#' Nessa etapa será criada sete listas, uma pra cada uma das planilhas que serão exportadas
 V.ABATE <- list(Abate, PPM)
 names(V.ABATE) <- c("Abate", "PPM")
 V.LSPA <- list(PAM_AP, PAM_QP, LSPA_AP, LSPA_QP)
@@ -530,7 +510,8 @@ names(V.PMS) <- c("Volume PMS")
 V.PNADc <- list(PNAD_trimestral)
 names(V.PNADc) <- c("PNAD Trimestral")
 
-## depois vamos exportar cada planilha em um arquivo separado
+#' Em seguida, salva cada planilha em um arquivo separado.
+#+ eval= FALSE
 export(V.ABATE,
        file = 'V_ABATE.xlsx')
 export(V.LSPA,
@@ -545,5 +526,4 @@ export(V.PMS,
        file = 'V_PMS.xlsx')
 export(V.PNADc,
        file = 'V_PNADc.xlsx')
-# vamos gerar 7 arquivos (um total de 14 tabelas): V. ABATE; V.LSPA; V.PEVS...
-#...V.PIM-PF; V.PMC; V.PMS; V.PNADc
+
