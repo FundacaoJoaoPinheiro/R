@@ -117,7 +117,7 @@ tipo1 <- c(7, 17)
 tipo2 <- c(12:13)
 
 #' * categorias na coluna 13: tabelas 3939
-tipo3 <- c(6, 8:11, 15:16, 21)
+tipo3 <- c(6, 8:11, 15:21)
 
 #' * categorias na coluna 15: tabelas 1618
 tipo4 <- c(14, 22)
@@ -155,8 +155,8 @@ for (i in tipo4) {
 #' 
 #' *Observação*: algumas exceções serão formatadas de forma individual posteriormente. As exceções
 #' são decorrentes de tabelas com informação de trimestres e as tabelas com mais de uma variável
-excecao1<- c(1:14,22)    # tabelas que trabalham com trimestre ou duas referências temporais
-excecao2 <- c(15:16, 18:21)    # tabelas que trabalham com duas variáveis
+excecao1<- c(1:17,22)    # tabelas que trabalham com trimestre ou duas referências temporais
+excecao2 <- c(18:21)    # tabelas que trabalham com duas variáveis
 
 #' Seleciona as colunas a serem mantidas após a formatação
 saida[-c(excecao1, excecao2)] %<>%              # retirar tabelas que são excessões
@@ -499,3 +499,51 @@ Volume_pms <- saida$tab_6444_MG  %>%
     values_from = 'Valor'
   )
 
+# 3.7 V.PNADc ======================================================================
+# PNAD Trimestral - Tabela 5434 ------------------------------------------
+## essas tabelas já foram formatadas na 2.2
+PNAD_trimestral <- saida$tab_5434_MG %>%
+  select(                                     # selecionar colunas
+    `Trimestre`,
+     13, # corresponde a coluna categorias (essa tabela tem duas colunas com esse nome)
+    `Valor`
+  ) %>%
+  pivot_wider(                                # passar para o formato wide
+    names_from = 'Categorias',
+    values_from = 'Valor'
+  )
+
+#========================================== 4. EXPORTAR PLANILHAS ==========================================#
+## nessa etapa vamos criar sete listas, uma pra cada uma das planilhas que exportaremos
+V.ABATE <- list(Abate, PPM)
+names(V.ABATE) <- c("Abate", "PPM")
+V.LSPA <- list(PAM_AP, PAM_QP, LSPA_AP, LSPA_QP)
+names(V.LSPA) <- c("PAM-AP", "PAM-QP", "LSPA-AP", "LSPA-QP")
+V.PEVS <- list (PIM_PF, Extracao)
+names(V.PEVS) <- c("PIM-PF", "Extracao")
+V.PIM_PF <- list(MG_pim_pf, BR_pim_pf)
+names(V.PIM_PF) <- c("MG PIM-PF", "BR PIM-PF")
+V.PMC <- list(MG_pmc, BR_pmc)
+names(V.PMC) <- c("MG PMC", "BR PMC")
+V.PMS <- list(Volume_pms)
+names(V.PMS) <- c("Volume PMS")
+V.PNADc <- list(PNAD_trimestral)
+names(V.PNADc) <- c("PNAD Trimestral")
+
+## depois vamos exportar cada planilha em um arquivo separado
+export(V.ABATE,
+       file = 'V_ABATE.xlsx')
+export(V.LSPA,
+       file = "V_LSPA.xlsx")
+export(V.PEVS,
+       file = 'V_PEVS.xlsx')
+export(V.PIM_PF,
+       file = 'V_PIM-PF.xlsx')
+export(V.PMC,
+       file = 'V_PMC.xlsx')
+export(V.PMS,
+       file = 'V_PMS.xlsx')
+export(V.PNADc,
+       file = 'V_PNADc.xlsx')
+# vamos gerar 7 arquivos (um total de 14 tabelas): V. ABATE; V.LSPA; V.PEVS...
+#...V.PIM-PF; V.PMC; V.PMS; V.PNADc
