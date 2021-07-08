@@ -51,6 +51,7 @@ if (any(pacotes_instalados == FALSE)) {
 }
 
 #' carrega as bibliotecas
+#+ results = "hide"
 lapply(pacotes, library, character.only=TRUE)
 
 
