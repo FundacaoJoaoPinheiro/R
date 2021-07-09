@@ -1,44 +1,90 @@
-#' ---
-#' title: "CAGED"
-#' author: "Michel Rodrigo - michel.alves@fjp.mg.gov.br e Heloísa"
-#' date: "08 de julho de 2021"
-#' output: github_document 
-#' ---
-#' 
+CAGED
+================
+Michel Rodrigo - <michel.alves@fjp.mg.gov.br> e Heloísa
+08 de julho de 2021
 
+``` r
 options(warn=-1)
+```
 
-  
- 
-#' ## Limpa a memória e console
+## Limpa a memória e console
+
+``` r
 cat("\014")  
-rm(list = ls())
+```
 
-#' ## Configura o diretório de trabalho
-#' Altera a pasta de trabalho para a mesma onde o script está salvo
+
+
+``` r
+rm(list = ls())
+```
+
+## Configura o diretório de trabalho
+
+Altera a pasta de trabalho para a mesma onde o script está salvo
+
+``` r
 dir <- dirname(rstudioapi::getActiveDocumentContext()$path)
 setwd(dir)
+```
 
+## Carrega as bibliotecas
 
-#' ## Carrega as bibliotecas
+``` r
 pacotes <- c("tidyverse", "srvyr", "csv",
              "data.table", "openxlsx", "rio")
+```
 
-#' Verifica se alguma das bibliotecas necessárias ainda não foi instalada
+Verifica se alguma das bibliotecas necessárias ainda não foi instalada
+
+``` r
 pacotes_instalados <- pacotes %in% rownames(installed.packages())
 if (any(pacotes_instalados == FALSE)) {
   install.packages(pacotes[!pacotes_instalados])
 }
+```
 
-#' carrega as bibliotecas
-#+ results = "hide"
+carrega as bibliotecas
+
+``` r
 lapply(pacotes, library, character.only=TRUE)
+```
 
+    ## -- Attaching packages --------------------------------------- tidyverse 1.3.1 --
 
-#' ## Importa os dados
-#' 
-#' *Observação*: os dados já deverão ter sido baixados, conforme as instruções presentes aqui
-#+ eval = FALSE
+    ## v ggplot2 3.3.5     v purrr   0.3.4
+    ## v tibble  3.1.2     v dplyr   1.0.7
+    ## v tidyr   1.1.3     v stringr 1.4.0
+    ## v readr   1.4.0     v forcats 0.5.1
+
+    ## -- Conflicts ------------------------------------------ tidyverse_conflicts() --
+    ## x dplyr::filter() masks stats::filter()
+    ## x dplyr::lag()    masks stats::lag()
+
+    ## 
+    ## Attaching package: 'srvyr'
+
+    ## The following object is masked from 'package:stats':
+    ## 
+    ##     filter
+
+    ## 
+    ## Attaching package: 'data.table'
+
+    ## The following objects are masked from 'package:dplyr':
+    ## 
+    ##     between, first, last
+
+    ## The following object is masked from 'package:purrr':
+    ## 
+    ##     transpose
+
+## Importa os dados
+
+*Observação*: os dados já deverão ter sido baixados, conforme as
+instruções presentes aqui
+
+``` r
 cagedjan2020<- read.table("CAGEDESTAB202001.txt", head=T, sep=";", encoding = "UTF-8")
 cagedfev2020<- read.table("CAGEDESTAB202002.txt", head=T, sep=";", encoding = "UTF-8")
 cagedmar2020<- read.table("CAGEDESTAB202003.txt", head=T, sep=";", encoding = "UTF-8")
@@ -51,11 +97,14 @@ cagedset2020<- read.table("CAGEDESTAB202009.txt", head=T, sep=";", encoding = "U
 cagedout2020<- read.table("CAGEDESTAB202010.txt", head=T, sep=";", encoding = "UTF-8")
 cagednov2020<- read.table("CAGEDESTAB202011.txt", head=T, sep=";", encoding = "UTF-8")
 cageddez2020<- read.table("CAGEDESTAB202012.txt", head=T, sep=";", encoding = "UTF-8")
+```
 
-#' ## Manipulação das bases de dados
-#' 
-#' Função para renomear os respectivos nomes dos setores econômicos.
-#' A sexta coluna da tabela deve conter a letra relativa a cada setor.
+## Manipulação das bases de dados
+
+Função para renomear os respectivos nomes dos setores econômicos. A
+sexta coluna da tabela deve conter a letra relativa a cada setor.
+
+``` r
 nomes <- function(tabela){
   
   ifelse(tabela[6] == "A", "Agricultura, pecuária, produção florestal, pesca e aquicultura",
@@ -84,8 +133,11 @@ nomes <- function(tabela){
 
 meses <- c("Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", 
            "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro")
-#' Para cada mês
-#+ eval = FALSE, results = "asis"
+```
+
+Para cada mês
+
+``` r
 for(i in c(1:length(meses))){
   
   
@@ -137,4 +189,4 @@ for(i in c(1:length(meses))){
   export(saldo_MG_setor, file = paste("caged_", meses[i], "_MG_setor.xlsx", sep = ""))
   
 }
-
+```
