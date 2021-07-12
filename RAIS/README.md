@@ -4,7 +4,7 @@
 
 No site do [Ministério do Trabalho](http://pdet.mte.gov.br/microdados-rais-e-caged), onde é disponibilizado as bases com os microdados da RAIS e CAGED é indicado um [site](http://cemin.wikidot.com/raisr), o qual tem instruções para baixar e importar os microdados da RAIS, usando o R.
 
-A seguir serão mostrados os passos que devem ser seguidos para realizar tal importação de dados. O script que deverá ser executado é mostrado a seguir. Nesse script, inicialmente limpa-se a memória e o console. Em seguida, as bibliotecas necessárias são carregadas. Por fim, é executado o comando `source('http://cemin.wikidot.com/local--files/raisr/rais.r')`, que realiza a conexão com o base de dados e permite sua obtenção.
+A seguir serão mostrados os passos que devem ser seguidos para realizar tal importação de dados. O [script](https://github.com/FundacaoJoaoPinheiro/R/blob/main/RAIS/RAIS.R) que deverá ser executado é mostrado a seguir. Nesse script, inicialmente limpa-se a memória e o console. Em seguida, as bibliotecas necessárias são carregadas. Por fim, é executado o comando `source('http://cemin.wikidot.com/local--files/raisr/rais.r')`, que realiza a conexão com o base de dados e permite sua obtenção.
 
 ```{r}
 cat("\014")
