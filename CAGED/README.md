@@ -1,4 +1,4 @@
-# CAGED
+# CAGED - Cadastro Geral de Empregados e Desempregados
 
 A importação dos microdados do CAGED de é realizada de forma offline, 
 isto é, os arquivos precisam ser baixados e salvos no computador antes de ser executada.
