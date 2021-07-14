@@ -1,4 +1,4 @@
-# Produto Interno Bruto (PIB) - IBGE
+# PIB - Produto Interno Bruto  - IBGE
 
 ## Volume
 Exemplos de extração online de dados relativos ao Produto Interno Bruto - Volume podem ser encontrados  [aqui](https://github.com/FundacaoJoaoPinheiro/R/blob/main/Pesquisas%20do%20IBGE/PIB/PIB_Volume.md)
