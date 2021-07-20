@@ -118,20 +118,20 @@ for(i in c(1:length(meses))){
   
   #' ####  Tabela com saldo de empregos por setor de atividade IBGE
   #+ eval = FALSE
-  saldo_Brasil_setor<- aggregate(tabela$saldo, by=list(tabela$setor,tabela$setor_nomes), FUN=sum)
+  saldo_Brasil_setor<- aggregate(tabela$saldo, by=list(tabela$seção,tabela$setor_nomes), FUN=sum)
   saldo_Brasil_setor<- data.frame(rename(saldo_Brasil_setor, "setor"="Group.1", "setor_nomes"="Group.2", !!paste("saldo_", meses[i], sep = ""):="x"))
   export(saldo_Brasil_setor, file = paste("caged_", meses[i], "_BR_setor.xlsx", sep = ""))
   
-  #' #### Tabela com saldo de empregos MG por seção de atividade IBGE
+  #' #### Tabela com saldo de empregos MG por município
   #+ eval = FALSE
   saldo_MG<- aggregate(tabela$saldo, by=list(mun=tabela$município, uf=tabela$uf), FUN=sum)
   saldo_MG<- filter(saldo_MG, saldo_MG$uf==31)
   saldo_MG<- data.frame(rename(saldo_MG, !!paste("saldo_", meses[i], sep = ""):="x"))
   export(saldo_MG, file = paste("caged_", meses[i], "_MG.xlsx", sep = ""))
   
-  #' #### Tabela com saldo de empregos MG 
+  #' #### Tabela com saldo de empregos MG por setor de atividade IBGE
   #+ eval = FALSE
-  saldo_MG_setor<- aggregate(tabela$saldo, by=list(setor=tabela$setor, tabela$setor_nomes, uf=tabela$uf), FUN=sum)
+  saldo_MG_setor<- aggregate(tabela$saldo, by=list(setor=tabela$seção, tabela$setor_nomes, uf=tabela$uf), FUN=sum)
   saldo_MG_setor<- filter(saldo_MG_setor, saldo_MG_setor$uf==31)
   saldo_MG_setor<- data.frame(rename(saldo_MG_setor, !!paste("saldo_", meses[i], sep = ""):="x", "setor_nomes"="Group.2"))
   export(saldo_MG_setor, file = paste("caged_", meses[i], "_MG_setor.xlsx", sep = ""))
