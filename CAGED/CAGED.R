@@ -89,18 +89,18 @@ meses <- c("Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho",
 for(i in c(1:length(meses))){
   
   
-  if(i == 1) tabela <- cagedjan2020 else 
-  if(i == 2) tabela <- cagedfev2020 else
-  if(i == 3) tabela <- cagedmar2020 else
-  if(i == 4) tabela <- cagedabril2020 else
-  if(i == 5) tabela <- cagedmaio2020 else
-  if(i == 6) tabela <- cagedjun2020 else
-  if(i == 7) tabela <- cagedjul2020 else
-  if(i == 8) tabela <- cagedagos2020 else
-  if(i == 9) tabela <- cagedset2020 else
-  if(i == 10) tabela <- cagedout2020 else
-  if(i == 11) tabela <- cagednov2020 else
-  if(i == 12) tabela <- cageddez2020
+  if(meses[i] == "Janeiro")   tabela <- cagedjan2020 else 
+  if(meses[i] == "Fevereiro") tabela <- cagedfev2020 else
+  if(meses[i] == "Março")     tabela <- cagedmar2020 else
+  if(meses[i] == "Abril")     tabela <- cagedabril2020 else
+  if(meses[i] == "Maio")      tabela <- cagedmaio2020 else
+  if(meses[i] == "Junho")     tabela <- cagedjun2020 else
+  if(meses[i] == "Julho")     tabela <- cagedjul2020 else
+  if(meses[i] == "Agosto")    tabela <- cagedagos2020 else
+  if(meses[i] == "Setembro")  tabela <- cagedset2020 else
+  if(meses[i] == "Outubro")   tabela <- cagedout2020 else
+  if(meses[i] == "Novembro")  tabela <- cagednov2020 else
+  if(meses[i] == "Dezembro")  tabela <- cageddez2020
   
   #' Seleciona as colunas de interesse
   tabela<-subset(tabela, select = c("competência", "uf", "município", "seção", "saldomovimentação"))
