@@ -13,4 +13,4 @@ Feito o download dos microdados CAGED e do programa para extração no computado
 
 A estrutura do script pode ser visulizada [aqui](https://github.com/FundacaoJoaoPinheiro/R/blob/main/CAGED/CAGED.md), enquanto o scrip completo pode ser acessado [aqui](https://github.com/FundacaoJoaoPinheiro/R/blob/main/CAGED/CAGED.R).
 
-Um vídeo explicativo sobre o script pode ser visualizado [aqui](https://drive.google.com/file/d/1i9CYRVJBO0J7RikeMjBzRzqfc0ArsKeZ/view?usp=sharing)
+Um vídeo explicativo sobre o script pode ser visualizado [aqui](https://drive.google.com/file/d/1i9CYRVJBO0J7RikeMjBzRzqfc0ArsKeZ/view?usp=sharing).
