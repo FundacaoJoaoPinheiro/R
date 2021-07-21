@@ -100,4 +100,4 @@ Clicar em OK.
 
 Após esse processo, os dados estarão disponíveis em seu ambiente de trabalho no R.
 
-Um vídeo explicativo pode ser visualizado (aqui)[https://drive.google.com/file/d/12juSOfdF2SQfv2inyrq95LW4R8AVrU4V/view?usp=sharing].
+Um vídeo explicativo pode ser visualizado [aqui](https://drive.google.com/file/d/12juSOfdF2SQfv2inyrq95LW4R8AVrU4V/view?usp=sharing).
