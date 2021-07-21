@@ -13,3 +13,6 @@ Os scripts completos podem ser obtidos a seguir:
   * [Preço](https://github.com/FundacaoJoaoPinheiro/R/blob/main/Pesquisas%20do%20IBGE/PIB/PIB_Preco.R).
 
 
+Vídeos explicativos sobre a utilização dos scripts:
+
+ * [Volume](https://drive.google.com/file/d/1EXtq-4iEhNmD45MTalNPCtdSCUV3pjlr/view?usp=sharing)
