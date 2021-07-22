@@ -12,3 +12,5 @@ Recomenda-se o [7zip](https://www.7-zip.org/download.html) ou [WinRAR](https://w
 Feito o download dos microdados CAGED e do programa para extração no computador, basta extrair os arquivos dos microdados em sua pasta de trabalho.
 
 A estrutura do script pode ser visulizada [aqui](https://github.com/FundacaoJoaoPinheiro/R/blob/main/CAGED/CAGED.md), enquanto o scrip completo pode ser acessado [aqui](https://github.com/FundacaoJoaoPinheiro/R/blob/main/CAGED/CAGED.R).
+
+Um vídeo explicativo sobre o script pode ser visualizado [aqui](https://drive.google.com/file/d/1i9CYRVJBO0J7RikeMjBzRzqfc0ArsKeZ/view?usp=sharing).
