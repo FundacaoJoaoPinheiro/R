@@ -142,7 +142,7 @@ formatar_wide <- function(x){       # criar função
 
 saida <- saida %>%
   map_at(                           # aplicar a função criada nas tabelas selecionadas
-    .at = c(4,5,6),                 # vetor com as tabelas selecionadas
+    .at = c(5,6,7),                 # vetor com as tabelas selecionadas
     .f = formatar_wide
   )
 
