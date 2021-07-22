@@ -1,5 +1,5 @@
 #' ---
-#' title: "Cálculo do PIB - Volume"
+#' title: "Cálculo do PIB - Preço"
 #' author: "Michel Rodrigo - michel.alves@fjp.mg.gov.br e João Paulo G. Garcia - joaopauloggarcia@gmail.com"
 #' date: "06 de julho de 2021"
 #' output: github_document 
