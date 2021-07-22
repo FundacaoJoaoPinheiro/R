@@ -16,3 +16,4 @@ Os scripts completos podem ser obtidos a seguir:
 Vídeos explicativos sobre a utilização dos scripts:
 
  * [Volume](https://drive.google.com/file/d/1EXtq-4iEhNmD45MTalNPCtdSCUV3pjlr/view?usp=sharing)
+ * [Preço](https://drive.google.com/file/d/1OAt3W1FZZWjE-U24ZpN4UrEIRNrrOvlN/view?usp=sharing)
