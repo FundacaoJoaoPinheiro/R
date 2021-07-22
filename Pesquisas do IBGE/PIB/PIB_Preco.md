@@ -1,4 +1,4 @@
-Cálculo do PIB - Volume
+Cálculo do PIB - Preço
 ================
 Michel Rodrigo - <michel.alves@fjp.mg.gov.br> e João Paulo G. Garcia -
 <joaopauloggarcia@gmail.com>
