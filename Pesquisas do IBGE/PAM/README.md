@@ -1,6 +1,6 @@
 # Produção Agrícola Municipal (PAM) - IBGE
 
-Exemplos de extração online e offline de dados relativos à Produção Agrícola Municipal podem ser encontrado  [aqui](https://github.com/FundacaoJoaoPinheiro/R/blob/main/PAM/PAM_importacao.md). 
+Exemplos de extração online e offline de dados relativos à Produção Agrícola Municipal podem ser encontrado  [aqui](https://github.com/FundacaoJoaoPinheiro/R/blob/main/Pesquisas%20do%20IBGE/PAM/PAM_importacao.md). 
 
 
 Exemplos de gráficos que podem ser obtidos a partir dos dados extraídos no script anterior podem ser encontrados [aqui](https://github.com/FundacaoJoaoPinheiro/R/blob/main/PAM/PAM_visualizacao.md).
