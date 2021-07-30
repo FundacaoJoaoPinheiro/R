@@ -7,7 +7,7 @@ Exemplos de gráficos que podem ser obtidos a partir dos dados extraídos no scr
 
 Os scripts completos podem ser obtidos a seguir:
 
-  * [Importação](https://github.com/FundacaoJoaoPinheiro/R/blob/main/PAM/PAM_importacao.R);
-  * [Visualização](https://github.com/FundacaoJoaoPinheiro/R/blob/main/PAM/PAM_visualizacao.R).
+  * [Importação](https://github.com/FundacaoJoaoPinheiro/R/blob/main/Pesquisas%20do%20IBGE/PAM/PAM_importacao.R);
+  * [Visualização](https://github.com/FundacaoJoaoPinheiro/R/blob/main/Pesquisas%20do%20IBGE/PAM/PAM_visualizacao.R).
 
 *Observação*: o script de importação utiliza arquivos que foram obtidos no sidra. Eles podem ser obtidos [aqui](https://drive.google.com/file/d/1oP2fNwh_XjzKqgqeei-voXhfEv_3U-az/view?usp=sharing).
