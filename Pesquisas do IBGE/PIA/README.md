@@ -4,3 +4,5 @@ Os microdados relativos à PIA estão disponíveis na tabela 1848 do Sidra - IBG
 
 [Aqui](https://github.com/FundacaoJoaoPinheiro/R/blob/main/Pesquisas%20do%20IBGE/PIA/PIA.md) você verá vários exemplos de manipulação dos dados, bem como exemplos de visualizações gráficas. 
 O script completo pode ser obtido [aqui](https://github.com/FundacaoJoaoPinheiro/R/blob/main/Pesquisas%20do%20IBGE/PIA/PIA.R).
+
+Um vídeo explicativo sobre o script pode ser acessado [aqui](https://drive.google.com/file/d/14rbMdbDHBx5jU38Agc8l6bfDtypKubGx/view?usp=sharing).
