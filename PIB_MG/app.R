@@ -566,6 +566,7 @@ server <- function(input, output, session) {
         paste("You chose", input$state)
     })
     
+    #desabilita a opção de Participação das atividades no VAB do Brasil caso VAB não seja selecionado
     observeEvent(input$tipo_resultado, {
         if(input$tipo_resultado == "VBP" || input$tipo_resultado == "CI"){
             shinyjs::disable(selector = "#aspectos_aspecto_fixo input[value='pbr']")
@@ -578,8 +579,10 @@ server <- function(input, output, session) {
         }
     })
     
+    #faz com que o tipo de gráfico selecionado seja o de linha quando o usuário selecionou o gráfico de barra empilhado ou pizza e escolheu um
+    #aspecto que não comporta esse tipo de gráfico
     observeEvent(input$aspectos_aspecto_fixo, {
-        if(input$aspectos_aspecto_fixo == "vv" || input$aspectos_aspecto_fixo == "vc" || input$aspectos_aspecto_fixo == "vp"){
+        if(input$aspectos_aspecto_fixo == "vv" || input$aspectos_aspecto_fixo == "vc" || input$aspectos_aspecto_fixo == "vp" || input$aspectos_aspecto_fixo == "pbr"){
             if(input$tipo_grafico_aspecto_fixo == 'barra_empilhado' || input$tipo_grafico_aspecto_fixo == 'pizza'){
                 updateRadioButtons(inputId = "tipo_grafico_aspecto_fixo", selected = tiposGraficos[1])
             }
@@ -587,9 +590,9 @@ server <- function(input, output, session) {
         
     })
     
-    
+    #habilita as opções de gráfico barra empilhado e pizza quando o usuário seleciona participação em minas
     observeEvent(input$aspectos_aspecto_fixo, {
-        if(input$aspectos_aspecto_fixo == "vc" || input$aspectos_aspecto_fixo == "vv" || input$aspectos_aspecto_fixo == "vp"){
+        if(input$aspectos_aspecto_fixo == "vc" || input$aspectos_aspecto_fixo == "vv" || input$aspectos_aspecto_fixo == "vp" || input$aspectos_aspecto_fixo == "pbr"){
             shinyjs::disable(selector = "#tipo_grafico_aspecto_fixo input[value= 'barra_empilhado']")
             shinyjs::disable(selector = "#tipo_grafico_aspecto_fixo input[value= 'pizza']")
         }
@@ -599,7 +602,7 @@ server <- function(input, output, session) {
         }
     })
     
-    
+    #muda a opção de ano quando o usuário escolhe o gráfico de pizza
     observeEvent(input$tipo_grafico_aspecto_fixo, {
         if(input$tipo_grafico_aspecto_fixo == "pizza"){
             shinyjs::hide(id = "anos_resultados_aspecto_fixo")
@@ -611,7 +614,7 @@ server <- function(input, output, session) {
         }
     })
     
-    
+    #seleciona o primeiro setor quando o usuário desmarca a opção de selecionar todos
     observe({
         updateCheckboxGroupInput(
             session, 'spec_setores_aspecto_fixo', choices = setor,
@@ -998,7 +1001,7 @@ server <- function(input, output, session) {
         if(input$tipo_resultado == 'VBP'){
             
             h <- h %>%
-                hc_title(text = list("Valor Bruto da Produção")) 
+                hc_title(text = list("Valor Bruto da Produção - MG")) 
             if(input$tipo_grafico_aspecto_fixo == "barra" || input$tipo_grafico_aspecto_fixo == "barra_empilhado"){
                 h <- h %>% hc_chart(type = "column")
             }
@@ -1055,15 +1058,20 @@ server <- function(input, output, session) {
                         
                             
                         for (k in 1:length(ds)) {
-                            h <- h %>%    
-                            hc_add_series(data = ds[[k]], name = input$spec_setores_aspecto_fixo[k], stack = "Valor", dataLabels = list(enabled = TRUE,
-                                                                                                                                        format = '{point.name}: {point.percentage:.1f} %'))
+                            h <- h %>%  
+                            hc_add_series(data = ds[[k]], name = input$spec_setores_aspecto_fixo[k], stack = "Valor") #, dataLabels = list(enabled = TRUE,
+                                                                                                                       #                 format = '{point.name}: {point.percentage:.1f} %'))
                         }
                             h <- h %>%hc_plotOptions(column = list(stacking = "normal"))
                                 
                         if(!setequal(input$spec_setores_aspecto_fixo, setor)){ #verifica se todas as opções estão selecionadas
                             h <- h %>% hc_add_series(data = ds2, name = "Outros", stack = "Valor")
+                            
                         }
+                      
+                           
+                        
+                            
                     }
                     else if(input$tipo_grafico_aspecto_fixo == "pizza"){
                         
@@ -1143,59 +1151,59 @@ server <- function(input, output, session) {
                         }) 
                         h <- h %>% hc_yAxis(title = list(text = "Part. das atividades no Valor Bruto da Produção (%)"))
                         
+                    }
+                        
+                    if(input$tipo_grafico_aspecto_fixo == "barra_empilhado"){
+                        ds2 <- subset(vbp[c(1,2, 6)], (ano >= anos[1] & ano <= anos[2]) & !(setor %in% input$spec_areas_aspecto_fixo) & (setor %in% c("Agropecuária", "Indústria", "Serviços")))
+                        ds2 <- ds2 %>% 
+                            group_by(ano) %>% 
+                            summarise(particip = sum(particip)) 
+                        names(ds2) <- c('x', 'y')
                         
                         
-                        if(input$tipo_grafico_aspecto_fixo == "barra_empilhado"){
-                            ds2 <- subset(vbp[c(1,2, 6)], (ano >= anos[1] & ano <= anos[2]) & !(setor %in% input$spec_areas_aspecto_fixo) & (setor %in% c("Agropecuária", "Indústria", "Serviços")))
-                            ds2 <- ds2 %>% 
-                                group_by(ano) %>% 
-                                summarise(particip = sum(particip)) 
-                            names(ds2) <- c('x', 'y')
-                            
-                            
-                            for (k in 1:length(ds)) {
-                                h <- h %>%    
-                                    hc_add_series(data = ds[[k]], name = input$spec_areas_aspecto_fixo[k], stack = "Valor")
-                            }
-                            h <- h %>%hc_plotOptions(column = list(stacking = "normal"))
-                            
-                            if(!setequal(input$spec_areas_aspecto_fixo, area)){ #verifica se todas as opções estão selecionadas
-                                h <- h %>% hc_add_series(data = ds2, name = "Outros", stack = "Valor")
-                            }
-                                
+                        for (k in 1:length(ds)) {
+                            h <- h %>%    
+                                hc_add_series(data = ds[[k]], name = input$spec_areas_aspecto_fixo[k], stack = "Valor")
                         }
-                        else if(input$tipo_grafico_aspecto_fixo == "pizza"){
+                        h <- h %>%hc_plotOptions(column = list(stacking = "normal"))
+                        
+                        if(!setequal(input$spec_areas_aspecto_fixo, area)){ #verifica se todas as opções estão selecionadas
+                            h <- h %>% hc_add_series(data = ds2, name = "Outros", stack = "Valor")
+                        }
                             
-                            ano_pie_chart <-  input$anos_resultados_aspecto_fixo_pizza
-                            
-                            if(!setequal(input$spec_areas_aspecto_fixo, area)){ #verifica se todas as opções estão selecionadas
-                                d <- subset(vbp[c(1,2, 6)], (setor %in% c("Agropecuária", "Indústria", "Serviços")) & ano %in% ano_pie_chart & !(setor %in% input$spec_areas_aspecto_fixo))
-                                demais <- sum(d$particip )
-                                labels_pi_chart <- c(input$spec_areas_aspecto_fixo, "Outros")
-                                valores_pi_chart <- c(subset(vbp[c(1, 2, 6)], setor %in% input$spec_areas_aspecto_fixo & ano %in% ano_pie_chart)$particip, demais)
-                            }
-                            else{
-                                d <- subset(vbp[c(1,2, 6)], (setor %in% c("Agropecuária", "Indústria", "Serviços")) & ano %in% ano_pie_chart & !(setor %in% input$spec_areas_aspecto_fixo))
-                                labels_pi_chart <- c(input$spec_areas_aspecto_fixo)
-                                valores_pi_chart <- c(subset(vbp[c(1, 2, 6)], setor %in% input$spec_areas_aspecto_fixo & ano %in% ano_pie_chart)$particip)
-                            }
-                            
-                            h <- h %>% 
-                                hc_chart(type = "pie") %>% 
-                                hc_subtitle(text = (paste("Part. das atividades no Valor Bruto da Produção - ", toString(ano_pie_chart)))) %>%
-                                myhc_add_series_labels_values(labels = labels_pi_chart, values = valores_pi_chart, text = labels_pi_chart, 
-                                                              dataLabels = list(enabled = TRUE,
-                                                                                format = '{point.name}: {point.percentage:.1f} %'))
-                                                              
+                    }
+                    else if(input$tipo_grafico_aspecto_fixo == "pizza"){
+                        
+                        ano_pie_chart <-  input$anos_resultados_aspecto_fixo_pizza
+                        
+                        if(!setequal(input$spec_areas_aspecto_fixo, area)){ #verifica se todas as opções estão selecionadas
+                            d <- subset(vbp[c(1,2, 6)], (setor %in% c("Agropecuária", "Indústria", "Serviços")) & ano %in% ano_pie_chart & !(setor %in% input$spec_areas_aspecto_fixo))
+                            demais <- sum(d$particip )
+                            labels_pi_chart <- c(input$spec_areas_aspecto_fixo, "Outros")
+                            valores_pi_chart <- c(subset(vbp[c(1, 2, 6)], setor %in% input$spec_areas_aspecto_fixo & ano %in% ano_pie_chart)$particip, demais)
                         }
                         else{
-                            for (k in 1:length(ds)) {
-                                h <- h %>%
-                                    hc_add_series(ds[[k]], name = input$spec_areas_aspecto_fixo[k])
-                                
-                            }
+                            d <- subset(vbp[c(1,2, 6)], (setor %in% c("Agropecuária", "Indústria", "Serviços")) & ano %in% ano_pie_chart & !(setor %in% input$spec_areas_aspecto_fixo))
+                            labels_pi_chart <- c(input$spec_areas_aspecto_fixo)
+                            valores_pi_chart <- c(subset(vbp[c(1, 2, 6)], setor %in% input$spec_areas_aspecto_fixo & ano %in% ano_pie_chart)$particip)
+                        }
+                        
+                        h <- h %>% 
+                            hc_chart(type = "pie") %>% 
+                            hc_subtitle(text = (paste("Part. das atividades no Valor Bruto da Produção - ", toString(ano_pie_chart)))) %>%
+                            myhc_add_series_labels_values(labels = labels_pi_chart, values = valores_pi_chart, text = labels_pi_chart, 
+                                                          dataLabels = list(enabled = TRUE,
+                                                                            format = '{point.name}: {point.percentage:.1f} %'))
+                                                          
+                    }
+                    else{
+                        for (k in 1:length(ds)) {
+                            h <- h %>%
+                                hc_add_series(ds[[k]], name = input$spec_areas_aspecto_fixo[k])
+                            
                         }
                     }
+                    
                 }
             }
             
@@ -1207,14 +1215,16 @@ server <- function(input, output, session) {
             
             
             h <- h %>%
-                hc_title(text = list("Consumo Intermediário")) 
-               
+                hc_title(text = list("Consumo Intermediário - MG")) 
+            if(input$tipo_grafico_aspecto_fixo == "barra" || input$tipo_grafico_aspecto_fixo == "barra_empilhado"){
+                h <- h %>% hc_chart(type = "column")
+            }
             
             if(input$area_ou_setor_aspecto_fixo == "Setores"){
                 if(!is_empty(input$spec_setores_aspecto_fixo)){
                     if(input$aspectos_aspecto_fixo == 'vc'){
                         ds <- lapply(input$spec_setores_aspecto_fixo, function(x){
-                            d <- subset(ci, setor %in% x & (ano >= 2010 & ano <= 2018))
+                            d <- subset(ci, setor %in% x & (ano >= anos[1] & ano <= anos[2]))
                             data = data.frame(x = d$ano,
                                               y = d$corrente)
                             
@@ -1223,7 +1233,7 @@ server <- function(input, output, session) {
                     }
                     else if(input$aspectos_aspecto_fixo == "vv"){
                         ds <- lapply(input$spec_setores_aspecto_fixo, function(x){
-                            d <- subset(ci, setor %in% x & (ano >= 2011 & ano <= 2018))
+                            d <- subset(ci, setor %in% x & (ano >= anos[1] & ano <= anos[2]))
                             data = data.frame(x = d$ano,
                                               y = d$var_volume)
                             
@@ -1232,7 +1242,7 @@ server <- function(input, output, session) {
                     }
                     else if(input$aspectos_aspecto_fixo == "vp"){
                         ds <- lapply(input$spec_setores_aspecto_fixo, function(x){
-                            d <- subset(ci, setor %in% x & (ano >= 2011 & ano <= 2018))
+                            d <- subset(ci, setor %in% x & (ano >= anos[1] & ano <= anos[2]))
                             data = data.frame(x = d$ano,
                                               y = d$var_preco)
                             
@@ -1242,7 +1252,113 @@ server <- function(input, output, session) {
                     }
                     else if(input$aspectos_aspecto_fixo == "pmg"){
                         ds <- lapply(input$spec_setores_aspecto_fixo, function(x){
-                            d <- subset(ci, setor %in% x & (ano >= 2010 & ano <= 2018))
+                            d <- subset(ci, setor %in% x & (ano >= anos[1] & ano <= anos[2]))
+                            data = data.frame(x = d$ano,
+                                              y = d$particip)
+                            
+                        })
+                        
+                        
+                        h <- h %>% hc_yAxis(title = list(text = "Part. das atividades no Consumo Intermediário (%)"))
+                        
+                    }
+                    
+                    if(input$tipo_grafico_aspecto_fixo == "barra_empilhado"){
+                        ds2 <- subset(ci[c(1,2, 6)], (ano >= anos[1] & ano <= anos[2]) & !(setor %in% input$spec_setores_aspecto_fixo) & !(setor %in% c("Agropecuária", "Indústria", "Serviços")))
+                        ds2 <- ds2 %>% 
+                            group_by(ano) %>% 
+                            summarise(particip = sum(particip)) 
+                        names(ds2) <- c('x', 'y')
+                        
+                        
+                        for (k in 1:length(ds)) {
+                            h <- h %>%  
+                                hc_add_series(data = ds[[k]], name = input$spec_setores_aspecto_fixo[k], stack = "Valor") #, dataLabels = list(enabled = TRUE,
+                            #                 format = '{point.name}: {point.percentage:.1f} %'))
+                        }
+                        h <- h %>%hc_plotOptions(column = list(stacking = "normal"))
+                        
+                        if(!setequal(input$spec_setores_aspecto_fixo, setor)){ #verifica se todas as opções estão selecionadas
+                            h <- h %>% hc_add_series(data = ds2, name = "Outros", stack = "Valor")
+                            
+                        }
+                        
+                        
+                        
+                        
+                    }
+                    else if(input$tipo_grafico_aspecto_fixo == "pizza"){
+                        
+                        ano_pie_chart <-  input$anos_resultados_aspecto_fixo_pizza
+                        
+                        if(!setequal(input$spec_setores_aspecto_fixo, setor)){ #verifica se todas as opções estão selecionadas
+                            d <- subset(ci[c(1,2, 6)], !(setor %in% c("Agropecuária", "Indústria", "Serviços")) & ano %in% ano_pie_chart & !(setor %in% input$spec_setores_aspecto_fixo))
+                            demais <- sum(d$particip )
+                            labels_pi_chart <- c(input$spec_setores_aspecto_fixo, "Outros")
+                            valores_pi_chart <- c(subset(ci[c(1, 2, 6)], setor %in% input$spec_setores_aspecto_fixo & ano %in% ano_pie_chart)$particip, demais)
+                        }
+                        else{
+                            d <- subset(ci[c(1,2, 6)], !(setor %in% c("Agropecuária", "Indústria", "Serviços")) & ano %in% ano_pie_chart & !(setor %in% input$spec_setores_aspecto_fixo))
+                            labels_pi_chart <- c(input$spec_setores_aspecto_fixo)
+                            valores_pi_chart <- c(subset(ci[c(1, 2, 6)], setor %in% input$spec_setores_aspecto_fixo & ano %in% ano_pie_chart)$particip)
+                        }
+                        
+                        
+                        h <- h %>% 
+                            hc_chart(type = "pie") %>% 
+                            hc_subtitle(text = (paste("Part. das atividades no Consumo Intermediário - ", toString(ano_pie_chart)))) %>%
+                            myhc_add_series_labels_values(labels = labels_pi_chart, values = valores_pi_chart, text = labels_pi_chart, 
+                                                          dataLabels = list(enabled = TRUE,
+                                                                            format = '{point.name}: {point.percentage:.1f} %'))
+                        
+                    }
+                    else{
+                        for (k in 1:length(ds)) {
+                            h <- h %>%
+                                hc_add_series(ds[[k]], name = input$spec_setores_aspecto_fixo[k])
+                            
+                        } 
+                    }
+                    
+                    
+                }
+                
+            }
+            else{
+                if(!is_empty(input$spec_areas_aspecto_fixo)){
+                    if(input$aspectos_aspecto_fixo == 'vc'){
+                        ds <- lapply(input$spec_areas_aspecto_fixo, function(x){
+                            d <- subset(ci, setor %in% x & (ano >= anos[1] & ano <= anos[2]))
+                            data = data.frame(x = d$ano,
+                                              y = d$corrente)
+                            
+                        }) 
+                        h <- h %>% hc_yAxis(title = list(text = "Valor corrente (1.000.000 R$)"))
+                        
+                        
+                    }
+                    if(input$aspectos_aspecto_fixo == "vv"){
+                        ds <- lapply(input$spec_areas_aspecto_fixo, function(x){
+                            d <- subset(ci, setor %in% x & (ano >= 2011 & ano <= 2018))
+                            data = data.frame(x = d$ano,
+                                              y = d$var_volume)
+                            
+                        }) 
+                        h <- h %>% hc_yAxis(title = list(text = "Variação em volume (%)"))
+                    }
+                    if(input$aspectos_aspecto_fixo == "vp"){
+                        ds <- lapply(input$spec_areas_aspecto_fixo, function(x){
+                            d <- subset(ci, setor %in% x & (ano >= 2011 & ano <= 2018))
+                            data = data.frame(x = d$ano,
+                                              y = d$var_preco)
+                            
+                        })
+                        h <- h %>% hc_yAxis(title = list(text = "Variação de preço (%)"))
+                        
+                    }
+                    if(input$aspectos_aspecto_fixo == "pmg"){
+                        ds <- lapply(input$spec_areas_aspecto_fixo, function(x){
+                            d <- subset(ci, setor %in% x & (ano >= anos[1] & ano <= anos[2]))
                             data = data.frame(x = d$ano,
                                               y = d$particip)
                             
@@ -1251,69 +1367,59 @@ server <- function(input, output, session) {
                         
                     }
                     
-                    for (k in 1:length(ds)) {
-                        h <- h %>%
-                            hc_add_series(ds[[k]], name = input$spec_setores_aspecto_fixo[k])
+                    if(input$tipo_grafico_aspecto_fixo == "barra_empilhado"){
+                        ds2 <- subset(ci[c(1,2, 6)], (ano >= anos[1] & ano <= anos[2]) & !(setor %in% input$spec_areas_aspecto_fixo) & (setor %in% c("Agropecuária", "Indústria", "Serviços")))
+                        ds2 <- ds2 %>% 
+                            group_by(ano) %>% 
+                            summarise(particip = sum(particip)) 
+                        names(ds2) <- c('x', 'y')
                         
+                        
+                        for (k in 1:length(ds)) {
+                            h <- h %>%    
+                                hc_add_series(data = ds[[k]], name = input$spec_areas_aspecto_fixo[k], stack = "Valor")
+                        }
+                        h <- h %>%hc_plotOptions(column = list(stacking = "normal"))
+                        
+                        if(!setequal(input$spec_areas_aspecto_fixo, area)){ #verifica se todas as opções estão selecionadas
+                            h <- h %>% hc_add_series(data = ds2, name = "Outros", stack = "Valor")
+                        }
+                        
+                    }
+                    else if(input$tipo_grafico_aspecto_fixo == "pizza"){
+                        
+                        ano_pie_chart <-  input$anos_resultados_aspecto_fixo_pizza
+                        
+                        if(!setequal(input$spec_areas_aspecto_fixo, area)){ #verifica se todas as opções estão selecionadas
+                            d <- subset(ci[c(1,2, 6)], (setor %in% c("Agropecuária", "Indústria", "Serviços")) & ano %in% ano_pie_chart & !(setor %in% input$spec_areas_aspecto_fixo))
+                            demais <- sum(d$particip )
+                            labels_pi_chart <- c(input$spec_areas_aspecto_fixo, "Outros")
+                            valores_pi_chart <- c(subset(ci[c(1, 2, 6)], setor %in% input$spec_areas_aspecto_fixo & ano %in% ano_pie_chart)$particip, demais)
+                        }
+                        else{
+                            d <- subset(ci[c(1,2, 6)], (setor %in% c("Agropecuária", "Indústria", "Serviços")) & ano %in% ano_pie_chart & !(setor %in% input$spec_areas_aspecto_fixo))
+                            labels_pi_chart <- c(input$spec_areas_aspecto_fixo)
+                            valores_pi_chart <- c(subset(ci[c(1, 2, 6)], setor %in% input$spec_areas_aspecto_fixo & ano %in% ano_pie_chart)$particip)
+                        }
+                        
+                        h <- h %>% 
+                            hc_chart(type = "pie") %>% 
+                            hc_subtitle(text = (paste("Part. das atividades no Consumo Intermediário - ", toString(ano_pie_chart)))) %>%
+                            myhc_add_series_labels_values(labels = labels_pi_chart, values = valores_pi_chart, text = labels_pi_chart, 
+                                                          dataLabels = list(enabled = TRUE,
+                                                                            format = '{point.name}: {point.percentage:.1f} %'))
+                        
+                    }
+                    else{
+                        for (k in 1:length(ds)) {
+                            h <- h %>%
+                                hc_add_series(ds[[k]], name = input$spec_areas_aspecto_fixo[k])
+                            
+                        }
                     }
                     
                 }
-                
             }
-            else{
-                if(!is_empty(input$spec_areas_aspecto_fixo)){
-                    if(input$aspectos_aspecto_fixo == 'vc'){
-                        ds <- lapply(input$spec_areas_aspecto_fixo, function(x){
-                            d <- subset(ci, setor %in% x & (ano >= 2010 & ano <= 2018))
-                            data = data.frame(x = d$ano,
-                                              y = d$corrente)
-                            
-                        }) 
-                        h <- h %>% hc_yAxis(title = list(text = "Valor corrente (1.000.000 R$)"))
-                        
-                        
-                    }
-                    else if(input$aspectos_aspecto_fixo == "vv"){
-                        ds <- lapply(input$spec_areas_aspecto_fixo, function(x){
-                            d <- subset(ci, setor %in% x & (ano >= 2011 & ano <= 2018))
-                            data = data.frame(x = d$ano,
-                                              y = d$var_volume)
-                            
-                        }) 
-                        h <- h %>% hc_yAxis(title = list(text = "Variação em volume (%)"))
-                    }
-                    else if(input$aspectos_aspecto_fixo == "vp"){
-                        ds <- lapply(input$spec_areas_aspecto_fixo, function(x){
-                            d <- subset(ci, setor %in% x & (ano >= 2011 & ano <= 2018))
-                            data = data.frame(x = d$ano,
-                                              y = d$var_preco)
-                            
-                        })
-                        h <- h %>% hc_yAxis(title = list(text = "Variação de preço (%)"))
-                        
-                    }
-                    else if(input$aspectos_aspecto_fixo == "pmg"){
-                        ds <- lapply(input$spec_areas_aspecto_fixo, function(x){
-                            d <- subset(ci, setor %in% x & (ano >= 2010 & ano <= 2018))
-                            data = data.frame(x = d$ano,
-                                              y = d$particip)
-                            
-                        }) 
-                        h <- h %>% hc_yAxis(title = list(text = "Part. das atividades no Valor Bruto da Produção (%)"))
-                        
-                    }
-                    for (k in 1:length(ds)) {
-                        h <- h %>%
-                            hc_add_series(ds[[k]], name = input$spec_areas_aspecto_fixo[k])
-                        
-                    }
-                }
-            }
-            
-            
-            
-            
-            
             h 
             
             
@@ -1321,33 +1427,35 @@ server <- function(input, output, session) {
         else if(input$tipo_resultado == 'VAB'){
             
             
-            h <- h %>%  
-                hc_title(text = list("Valor Adicionado Bruto")) 
-                
+            h <- h %>%
+                hc_title(text = list("Valor Adicionado Bruto - MG")) 
+            if(input$tipo_grafico_aspecto_fixo == "barra" || input$tipo_grafico_aspecto_fixo == "barra_empilhado"){
+                h <- h %>% hc_chart(type = "column")
+            }
             
             if(input$area_ou_setor_aspecto_fixo == "Setores"){
                 if(!is_empty(input$spec_setores_aspecto_fixo)){
                     if(input$aspectos_aspecto_fixo == 'vc'){
                         ds <- lapply(input$spec_setores_aspecto_fixo, function(x){
-                            d <- subset(vab, setor %in% x & (ano >= 2010 & ano <= 2018))
+                            d <- subset(vab, setor %in% x & (ano >= anos[1] & ano <= anos[2]))
                             data = data.frame(x = d$ano,
                                               y = d$corrente)
                             
                         }) 
                         h <- h %>% hc_yAxis(title = list(text = "Valor corrente (1.000.000 R$)"))
                     }
-                    else if(input$aspectos_aspecto_fixo == "vv"){
+                    if(input$aspectos_aspecto_fixo == "vv"){
                         ds <- lapply(input$spec_setores_aspecto_fixo, function(x){
-                            d <- subset(vab, setor %in% x & (ano >= 2011 & ano <= 2018))
+                            d <- subset(vab, setor %in% x & (ano >= anos[1] & ano <= anos[2]))
                             data = data.frame(x = d$ano,
                                               y = d$var_volume)
                             
                         }) 
                         h <- h %>% hc_yAxis(title = list(text = "Variação em volume (%)"))
                     }
-                    else if(input$aspectos_aspecto_fixo == "vp"){
+                    if(input$aspectos_aspecto_fixo == "vp"){
                         ds <- lapply(input$spec_setores_aspecto_fixo, function(x){
-                            d <- subset(vab, setor %in% x & (ano >= 2011 & ano <= 2018))
+                            d <- subset(vab, setor %in% x & (ano >= anos[1] & ano <= anos[2]))
                             data = data.frame(x = d$ano,
                                               y = d$var_preco)
                             
@@ -1355,41 +1463,93 @@ server <- function(input, output, session) {
                         h <- h %>% hc_yAxis(title = list(text = "Variação de preço (%)"))
                         
                     }
-                    else if(input$aspectos_aspecto_fixo == "pmg"){
+                    if(input$aspectos_aspecto_fixo == "pmg"){
                         ds <- lapply(input$spec_setores_aspecto_fixo, function(x){
-                            d <- subset(vab, setor %in% x & (ano >= 2010 & ano <= 2018))
+                            d <- subset(vab, setor %in% x & (ano >= anos[1] & ano <= anos[2]))
                             data = data.frame(x = d$ano,
                                               y = d$particip)
                             
-                        }) 
-                        h <- h %>% hc_yAxis(title = list(text = "Part. das atividades no Valor Bruto da Produção (%)"))
+                        })
+                        
+                        
+                        h <- h %>% hc_yAxis(title = list(text = "Part. das atividades no Valor Adicionado Bruto (%)"))
+                        
+                        if(input$tipo_grafico_aspecto_fixo == "barra_empilhado"){
+                            ds2 <- subset(vab[c(1,2, 6)], (ano >= anos[1] & ano <= anos[2]) & !(setor %in% input$spec_setores_aspecto_fixo) & !(setor %in% c("Agropecuária", "Indústria", "Serviços")))
+                            ds2 <- ds2 %>% 
+                                group_by(ano) %>% 
+                                summarise(particip = sum(particip)) 
+                            names(ds2) <- c('x', 'y')
+                            
+                            
+                            for (k in 1:length(ds)) {
+                                h <- h %>%  
+                                    hc_add_series(data = ds[[k]], name = input$spec_setores_aspecto_fixo[k], stack = "Valor") #, dataLabels = list(enabled = TRUE,
+                                #                 format = '{point.name}: {point.percentage:.1f} %'))
+                            }
+                            h <- h %>%hc_plotOptions(column = list(stacking = "normal"))
+                            
+                            if(!setequal(input$spec_setores_aspecto_fixo, setor)){ #verifica se todas as opções estão selecionadas
+                                h <- h %>% hc_add_series(data = ds2, name = "Outros", stack = "Valor")
+                                
+                            }
+                            
+                            
+                            
+                            
+                        }
+                        else if(input$tipo_grafico_aspecto_fixo == "pizza"){
+                            
+                            ano_pie_chart <-  input$anos_resultados_aspecto_fixo_pizza
+                            
+                            if(!setequal(input$spec_setores_aspecto_fixo, setor)){ #verifica se todas as opções estão selecionadas
+                                d <- subset(vab[c(1,2, 6)], !(setor %in% c("Agropecuária", "Indústria", "Serviços")) & ano %in% ano_pie_chart & !(setor %in% input$spec_setores_aspecto_fixo))
+                                demais <- sum(d$particip )
+                                labels_pi_chart <- c(input$spec_setores_aspecto_fixo, "Outros")
+                                valores_pi_chart <- c(subset(vab[c(1, 2, 6)], setor %in% input$spec_setores_aspecto_fixo & ano %in% ano_pie_chart)$particip, demais)
+                            }
+                            else{
+                                d <- subset(vab[c(1,2, 6)], !(setor %in% c("Agropecuária", "Indústria", "Serviços")) & ano %in% ano_pie_chart & !(setor %in% input$spec_setores_aspecto_fixo))
+                                labels_pi_chart <- c(input$spec_setores_aspecto_fixo)
+                                valores_pi_chart <- c(subset(vab[c(1, 2, 6)], setor %in% input$spec_setores_aspecto_fixo & ano %in% ano_pie_chart)$particip)
+                            }
+                            
+                            
+                            h <- h %>% 
+                                hc_chart(type = "pie") %>% 
+                                hc_subtitle(text = (paste("Part. das atividades no Consumo Intermediário - ", toString(ano_pie_chart)))) %>%
+                                myhc_add_series_labels_values(labels = labels_pi_chart, values = valores_pi_chart, text = labels_pi_chart, 
+                                                              dataLabels = list(enabled = TRUE,
+                                                                                format = '{point.name}: {point.percentage:.1f} %'))
+                            
+                        }
                         
                     }
-                    else if(input$aspectos_aspecto_fixo == "pbr"){
+                    if(input$aspectos_aspecto_fixo == "pbr"){
                         ds <- lapply(input$spec_setores_aspecto_fixo, function(x){
-                            d <- subset(vab, setor %in% x & (ano >= 2010 & ano <= 2018))
+                            d <- subset(vab, setor %in% x & (ano >= anos[1] & ano <= anos[2]))
                             data = data.frame(x = d$ano,
                                               y = d$particip_br)
                             
-                        }) 
-                        h <- h %>% hc_yAxis(title = list(text = "Part. das atividades no Valor Bruto da Produção (%)"))
+                        })
+                        h <- h %>% hc_yAxis(title = list(text = "Participação no Valor Adicionado Bruto do Brasil (%)"))
+                        
                         
                     }
                     
-                    for (k in 1:length(ds)) {
-                        h <- h %>%
-                            hc_add_series(ds[[k]], name = input$spec_setores_aspecto_fixo[k])
-                        
+                    if(!(input$tipo_grafico_aspecto_fixo == "barra_empilhado") && !(input$tipo_grafico_aspecto_fixo == "pizza")){
+                        for (k in 1:length(ds)) {
+                            h <- h %>%
+                                hc_add_series(ds[[k]], name = input$spec_setores_aspecto_fixo[k])
+                        }
                     }
-                    
                 }
-                
             }
             else{
                 if(!is_empty(input$spec_areas_aspecto_fixo)){
                     if(input$aspectos_aspecto_fixo == 'vc'){
                         ds <- lapply(input$spec_areas_aspecto_fixo, function(x){
-                            d <- subset(vab, setor %in% x & (ano >= 2010 & ano <= 2018))
+                            d <- subset(vab, setor %in% x & (ano >= anos[1] & ano <= anos[2]))
                             data = data.frame(x = d$ano,
                                               y = d$corrente)
                             
@@ -1419,38 +1579,82 @@ server <- function(input, output, session) {
                     }
                     if(input$aspectos_aspecto_fixo == "pmg"){
                         ds <- lapply(input$spec_areas_aspecto_fixo, function(x){
-                            d <- subset(vab, setor %in% x & (ano >= 2010 & ano <= 2018))
+                            d <- subset(vab, setor %in% x & (ano >= anos[1] & ano <= anos[2]))
                             data = data.frame(x = d$ano,
                                               y = d$particip)
                             
                         }) 
-                        h <- h %>% hc_yAxis(title = list(text = "Part. das atividades no Valor Bruto da Produção (%)"))
+                        h <- h %>% hc_yAxis(title = list(text = "Part. das atividades no Valor Adicionado Bruto (%)"))
                         
                     }
                     
+                    if(input$tipo_grafico_aspecto_fixo == "barra_empilhado"){
+                        ds2 <- subset(vab[c(1,2, 6)], (ano >= anos[1] & ano <= anos[2]) & !(setor %in% input$spec_areas_aspecto_fixo) & (setor %in% c("Agropecuária", "Indústria", "Serviços")))
+                        ds2 <- ds2 %>% 
+                            group_by(ano) %>% 
+                            summarise(particip = sum(particip)) 
+                        names(ds2) <- c('x', 'y')
+                        
+                        
+                        for (k in 1:length(ds)) {
+                            h <- h %>%    
+                                hc_add_series(data = ds[[k]], name = input$spec_areas_aspecto_fixo[k], stack = "Valor")
+                        }
+                        h <- h %>%hc_plotOptions(column = list(stacking = "normal"))
+                        
+                        if(!setequal(input$spec_areas_aspecto_fixo, area)){ #verifica se todas as opções estão selecionadas
+                            h <- h %>% hc_add_series(data = ds2, name = "Outros", stack = "Valor")
+                        }
+                        
+                    }
+                    else if(input$tipo_grafico_aspecto_fixo == "pizza"){
+                        
+                        ano_pie_chart <-  input$anos_resultados_aspecto_fixo_pizza
+                        
+                        if(!setequal(input$spec_areas_aspecto_fixo, area)){ #verifica se todas as opções estão selecionadas
+                            d <- subset(vab[c(1,2, 6)], (setor %in% c("Agropecuária", "Indústria", "Serviços")) & ano %in% ano_pie_chart & !(setor %in% input$spec_areas_aspecto_fixo))
+                            demais <- sum(d$particip )
+                            labels_pi_chart <- c(input$spec_areas_aspecto_fixo, "Outros")
+                            valores_pi_chart <- c(subset(vab[c(1, 2, 6)], setor %in% input$spec_areas_aspecto_fixo & ano %in% ano_pie_chart)$particip, demais)
+                        }
+                        else{
+                            d <- subset(vab[c(1,2, 6)], (setor %in% c("Agropecuária", "Indústria", "Serviços")) & ano %in% ano_pie_chart & !(setor %in% input$spec_areas_aspecto_fixo))
+                            labels_pi_chart <- c(input$spec_areas_aspecto_fixo)
+                            valores_pi_chart <- c(subset(vab[c(1, 2, 6)], setor %in% input$spec_areas_aspecto_fixo & ano %in% ano_pie_chart)$particip)
+                        }
+                        
+                        h <- h %>% 
+                            hc_chart(type = "pie") %>% 
+                            hc_subtitle(text = (paste("Part. das atividades no Valor Adicionado Bruto - ", toString(ano_pie_chart)))) %>%
+                            myhc_add_series_labels_values(labels = labels_pi_chart, values = valores_pi_chart, text = labels_pi_chart, 
+                                                          dataLabels = list(enabled = TRUE,
+                                                                            format = '{point.name}: {point.percentage:.1f} %'))
+                        
+                    }
                     if(input$aspectos_aspecto_fixo == "pbr"){
                         ds <- lapply(input$spec_areas_aspecto_fixo, function(x){
-                            d <- subset(vab, setor %in% x & (ano >= 2010 & ano <= 2018))
+                            d <- subset(vab, setor %in% x & (ano >= anos[1] & ano <= anos[2]))
                             data = data.frame(x = d$ano,
                                               y = d$particip_br)
                             
-                        }) 
-                        h <- h %>% hc_yAxis(title = list(text = "Part. das atividades no Valor Bruto da Produção (%)"))
+                        })
+                        h <- h %>% hc_yAxis(title = list(text = "Participação no Valor Adicionado Bruto do Brasil (%)"))
+                        
                         
                     }
-                    for (k in 1:length(ds)) {
-                        h <- h %>%
-                            hc_add_series(ds[[k]], name = input$spec_areas_aspecto_fixo[k])
-                        
+                    
+                    if(!(input$tipo_grafico_aspecto_fixo == "barra_empilhado") && !(input$tipo_grafico_aspecto_fixo == "pizza")){
+                        for (k in 1:length(ds)) {
+                            h <- h %>%
+                                hc_add_series(ds[[k]], name = input$spec_areas_aspecto_fixo[k])
+                        }
                     }
+                    
+                    
                 }
             }
-            
-            
-            
-            
-            
             h 
+            
             
             
         }
