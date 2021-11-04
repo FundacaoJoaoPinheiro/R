@@ -85,6 +85,7 @@ area <- setores[area_index]
 tipoResutados <- c("Valor Bruto da Produção" = 'VBP', "Consumo Intermediário" = 'CI', "Valor Adicionado Bruto" = 'VAB')
 aspectos2 <- c("Valor corrente" = 'vc', "Var. volume" = 'vv', "Var. preço" = 'vp', "Part. valor corrente em MG" = 'pmg' , "Part. valor corrente no Brasil" = 'pbr')
 tiposGraficos <- c("Linha" = 'linha', "Barra"= 'barra', "Barra Empilhado" = 'barra_empilhado', "Pizza" = 'pizza')
+tiposGraficos2 <- c("Linha" = 'linha', "Barra"= 'barra')
 vbp_corrente[, 1] <-  setores
 colnames(vbp_corrente)[c(1:10)] <- c("setor", as.character(c(2010:2018)))
 vbp_corrente <- vbp_corrente %>% gather(key = 'ano', value = 'valor', -setor)
@@ -190,7 +191,28 @@ vab_particip_br[, -1] <- lapply(vab_particip_br[, -1], as.numeric) # make all co
 vab <- cbind(vab_corrente, vab_var_volume[3], vab_var_preco[3],  vab_particip[3], vab_particip_br[3] )
 colnames(vab) <- c("setor", "ano", "corrente", "var_volume", "var_preco", "particip", "particip_br")
 
+valor_corrente <- cbind(vbp_corrente, ci_corrente[3], vab_corrente[3])
+colnames(valor_corrente) <- c("setor", "ano", "VBP", "CI", "VAB")
+valor_corrente <- pivot_longer(valor_corrente, cols = c(3:5), names_to = "resultado", values_to = "valor")
 
+var_volume <- cbind(vbp_var_volume, ci_var_volume[3], vab_var_volume[3])
+colnames(var_volume) <- c("setor", "ano", "VBP", "CI", "VAB")
+var_volume <- pivot_longer(var_volume, cols = c(3:5), names_to = "resultado", values_to = "valor")
+
+var_preco <- cbind(vbp_var_preco, ci_var_preco[3], vab_var_preco[3])
+colnames(var_preco) <- c("setor", "ano", "VBP", "CI", "VAB")
+var_preco <- pivot_longer(var_preco, cols = c(3:5), names_to = "resultado", values_to = "valor")
+
+participacao_mg <- cbind(vbp_particip, ci_particip[3], vab_particip[3])
+colnames(participacao_mg) <- c("setor", "ano", "VBP", "CI", "VAB")
+participacao_mg <- pivot_longer(participacao_mg, cols = c(3:5), names_to = "resultado", values_to = "valor")
+
+participacao_br <- cbind(vab_particip)
+colnames(participacao_br) <- c("setor", "ano", "VAB")
+participacao_br <- pivot_longer(participacao_br, cols = c(3), names_to = "resultado", values_to = "valor")
+
+
+#função para exportação de imagens
 export <- list(
     list(text="PNG",
          onclick=JS("function () {
@@ -201,6 +223,7 @@ export <- list(
     
 )
 
+#função auxiliar para criar gráfico de pizza
 myhc_add_series_labels_values <- function (hc, labels, values, text, colors = NULL, ...) 
 {
     assertthat::assert_that(is.highchart(hc), is.numeric(values), 
@@ -219,7 +242,7 @@ myhc_add_series_labels_values <- function (hc, labels, values, text, colors = NU
 areas <- c("Agropecuária", "Indústria",  "Serviços")
 aspectos <- c("Valor Bruto da Produção (%)", "Consumo Intermediário (%)", "Valor Adicionado (%)")	
 
-
+#função que mostra o logo carregando - não está funcionando
 loadingLogo <- function(href, src, loadingsrc, height = NULL, width = NULL, alt = NULL) {
     tagList(
         tags$head(
@@ -243,9 +266,10 @@ loadingLogo <- function(href, src, loadingsrc, height = NULL, width = NULL, alt 
     )
 }
 
+# USER INTERFACE -------------------------------------------------------------------------------------
 ui <- dashboardPage(
    
-    
+    #Título
     header <- dashboardHeader(title =  loadingLogo('http://fjp.mg.gov.br/',
                                                        'H://FJP//cripts//Shiny//PIB//logo_fjp2.png',
                                                        'H://FJP//cripts//Shiny//PIB//loader.gif', 
@@ -255,299 +279,319 @@ ui <- dashboardPage(
                                      # tags$a(href='http://fjp.mg.gov.br/',
                                       #           tags$img(src='H://FJP//cripts//Shiny//PIB//logo_fjp.png', )), 
                                   #),      
-       
-        dashboardSidebar(
-            sidebarMenu( id = "barra_lateral",
-                menuItem("Contas Econômicas", tabName = "contas_economicas"), 
-                menuItem("PIB per capita", tabName = "pib_per_capita"),
-                menuItem("PIB per capita2", tabName = "pib_per_capita2"),
-                menuItem("Resultados", tabName = "resultados")
-            ), 
-            
-            conditionalPanel(
-                condition = "input.barra_lateral == 'contas_economicas'",  
-                checkboxGroupInput("espec_prod", "Ótica da Produção", c('Produção', 'Impostos produtos', 'Consumo Intermediário', 'Valor adicionado bruto'), 
-                                   selected = c('Produção', 'Impostos produtos', 'Consumo Intermediário', 'Valor adicionado bruto')),
-                checkboxGroupInput("espec_renda", "Ótica da Renda", c("Salários", "Contribuições", "Impostos produção", "Excedente", "Valor adicionado bruto"), 
-                                   selected =  c("Salários", "Contribuições", "Impostos produção", "Excedente", "Valor adicionado bruto"))
-            )
-            
-        ),
-                
+    #Barra lateral    
+    dashboardSidebar(
+        sidebarMenu( id = "barra_lateral",
+            menuItem("Contas Econômicas", tabName = "contas_economicas"), 
+            menuItem("PIB per capita", tabName = "pib_per_capita"),
+            menuItem("PIB per capita2", tabName = "pib_per_capita2"),
+            menuItem("Resultados", tabName = "resultados")
+        ), 
         
-        dashboardBody(
-            tabItems(
-                tabItem(tabName = 'contas_economicas',
-                    fluidRow( 
+        conditionalPanel(
+            condition = "input.barra_lateral == 'contas_economicas'",  
+            checkboxGroupInput("espec_prod", "Ótica da Produção", c('Produção', 'Impostos produtos', 'Consumo Intermediário', 'Valor adicionado bruto'), 
+                               selected = c('Produção', 'Impostos produtos', 'Consumo Intermediário', 'Valor adicionado bruto')),
+            checkboxGroupInput("espec_renda", "Ótica da Renda", c("Salários", "Contribuições", "Impostos produção", "Excedente", "Valor adicionado bruto"), 
+                               selected =  c("Salários", "Contribuições", "Impostos produção", "Excedente", "Valor adicionado bruto"))
+        )
+        
+    ),
+            
+    #Corpo    
+    dashboardBody(
+        tabItems(
+            tabItem(tabName = 'contas_economicas',
+                fluidRow( 
+                    box(
+                        title = "Ótica da Produção", status = "primary", solidHeader = TRUE,
+                        width = 10,
+                        collapsible = FALSE,
                         box(
-                            title = "Ótica da Produção", status = "primary", solidHeader = TRUE,
-                            width = 10,
+                            title = NULL, status = "success", solidHeader = FALSE, width = 6,
                             collapsible = FALSE,
+                            fluidRow(box(highchartOutput('linePlot_prod'), height=400,width = 12)),#,background='white')),
                             box(
-                                title = NULL, status = "success", solidHeader = FALSE, width = 6,
-                                collapsible = FALSE,
-                                fluidRow(box(highchartOutput('linePlot_prod'), height=400,width = 12)),#,background='white')),
-                                box(
-                                    status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
-                                    radioButtons(inputId = "valor_absoluto_lineplot_prod",choices = c("Valores absolutos", "valores relativos"), label = NULL, inline = TRUE),
-                                    sliderInput("anos_lineplot_prod", "Escolha o ano:", min=2010, max=2018, value=c(2010, 2018),animate=T)
-                                )
-                                
-                            ),
-                            box(
-                                title = NULL, status = "success", solidHeader = FALSE, width = 6,
-                                collapsible = FALSE,
-                                fluidRow(box(highchartOutput('piePlot_prod'), height=400 ,width = 12)),#,background='white')),
-                                box(
-                                    status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
-                                    sliderInput("anos_columplot_prod", "Escolha o ano:", min=2010, max=2018, value=c(2010, 2018),animate=T)
-                                )
-                            )
-                        ),
-                        box(
-                            title = "Informações",  status = "primary", solidHeader = TRUE, width = 2
-                        )
-                        
-                    ),
-                    fluidRow( 
-                        box(
-                            title = "Ótica da Renda", status = "primary", solidHeader = TRUE,
-                            width = 10,
-                            collapsible = FALSE,
-                            box(
-                                title = NULL, status = "success", solidHeader = FALSE,
-                                collapsible = FALSE, width = 6,
-                                fluidRow(box(highchartOutput('linePlot_renda'), height=400,width = 12)),#,background='white')),
-                                box(
-                                    status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
-                                    sliderInput("anos_lineplot_renda", "Escolha o ano:", min=2010, max=2018, value=c(2010, 2018),animate=T)
-                                )
-                            ),
-                            box(
-                                title = NULL, status = "success", solidHeader = FALSE,
-                                collapsible = FALSE, width = 6,
-                                fluidRow(box(highchartOutput('piePlot_renda'), height=400 ,width = 12)),#,background='white')),
-                                box(
-                                    status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
-                                    sliderInput("anos_columnplot_renda", "Escolha o ano:", min=2010, max=2018, value=c(2010, 2018),animate=T)
-                                )
-                            )
-                        )
-                    )
-                ),
-                tabItem(tabName = 'pib_per_capita',
-                    fluidRow( 
-                        box(
-                            title = "PIB", status = "primary", solidHeader = TRUE,
-                            width = 10,
-                            box(
-                                title = NULL, status = "success", solidHeader = FALSE, width = 12,
-                                collapsible = FALSE,
-                                fluidRow(box(highchartOutput('linePlot_pib_percapita8'), height=400,width = 12)),#,background='white')),
-                                box(
-                                    status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
-                                    radioButtons(inputId = "tipo_graf_lineplot_pib_percapita8",choices = c("Linha", "Barra"), label = NULL, inline = TRUE),
-                                    sliderInput("anos_lineplot_pib_percapita8", "Escolha o ano:", min=2010, max=2018, value=c(2010, 2018),animate=T)
-                                )
-                                
-                            ),
-                            
-                        )
-                    ), 
-                    fluidRow( 
-                        box(
-                            title = "PIB", status = "primary", solidHeader = TRUE,
-                            width = 10,
-                            box(
-                                title = NULL, status = "success", solidHeader = FALSE, width = 12,
-                                collapsible = FALSE,
-                                fluidRow(box(highchartOutput('linePlot_pib_percapita1'), height=400,width = 12)),#,background='white')),
-                                box(
-                                    status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
-                                    radioButtons(inputId = "tipo_graf_lineplot_pib_percapita1",choices = c("Linha", "Barra"), label = NULL, inline = TRUE),
-                                    sliderInput("anos_lineplot_pib_percapita1", "Escolha o ano:", min=2010, max=2018, value=c(2010, 2018),animate=T)
-                                )
-                                
-                            ),
-                                   
-                        )
-                    ), 
-                    fluidRow( 
-                        box(
-                            title = "População", status = "primary", solidHeader = TRUE,
-                            width = 10,
-                            box(
-                                title = NULL, status = "success", solidHeader = FALSE, width = 12,
-                                collapsible = FALSE,
-                                fluidRow(box(highchartOutput('linePlot_pib_percapita2'), height=400,width = 12)),#,background='white')),
-                                box(
-                                    status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
-                                    radioButtons(inputId = "tipo_graf_lineplot_pib_percapita2",choices = c("Linha", "Barra"), label = NULL, inline = TRUE),
-                                    sliderInput("anos_lineplot_pib_percapita2", "Escolha o ano:", min=2010, max=2018, value=c(2010, 2018),animate=T)
-                                )
-                                
-                            ),
-                            
-                        )
-                    ),
-                    fluidRow( 
-                        box(
-                            title = "PIB per capita", status = "primary", solidHeader = TRUE,
-                            width = 10,
-                            box(
-                                title = NULL, status = "success", solidHeader = FALSE, width = 12,
-                                collapsible = FALSE,
-                                fluidRow(box(highchartOutput('linePlot_pib_percapita3'), height=400,width = 12)),#,background='white')),
-                                box(
-                                    status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
-                                    radioButtons(inputId = "tipo_graf_lineplot_pib_percapita3",choices = c("Linha", "Barra"), label = NULL, inline = TRUE),
-                                    sliderInput("anos_lineplot_pib_percapita3", "Escolha o ano:", min=2010, max=2018, value=c(2010, 2018),animate=T)
-                                )
-                                
-                            ),
-                            
-                        )
-                    )
-                ),
-                tabItem(tabName = 'pib_per_capita2',
-                    fluidRow( 
-                        box(
-                            title = "PIB", status = "primary", solidHeader = TRUE,
-                            width = 4,
-                            box(
-                                title = NULL, status = "success", solidHeader = FALSE, width = 12,
-                                collapsible = FALSE,
-                                fluidRow(box(highchartOutput('linePlot_pib_percapita4'), height=400,width = 12)),#,background='white')),
-                                box(
-                                    status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
-                                    radioButtons(inputId = "tipo_graf_lineplot_pib_percapita4",choices = c("Linha", "Barra"), label = NULL, inline = TRUE)
-                                )
-                                
-                            ),
-                            
-                        ), 
-                        box(
-                            title = "População", status = "primary", solidHeader = TRUE,
-                            width = 4,
-                            box(
-                                title = NULL, status = "success", solidHeader = FALSE, width = 12,
-                                collapsible = FALSE,
-                                fluidRow(box(highchartOutput('linePlot_pib_percapita5'), height=400,width = 12)),#,background='white')),
-                                box(
-                                    status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
-                                    radioButtons(inputId = "tipo_graf_lineplot_pib_percapita5",choices = c("Linha", "Barra"), label = NULL, inline = TRUE)
-                                )
-                                
-                            ),
-                            
-                        ), 
-                        box(
-                            title = "PIB per capita", status = "primary", solidHeader = TRUE,
-                            width = 4,
-                            box(
-                                title = NULL, status = "success", solidHeader = FALSE, width = 12,
-                                collapsible = FALSE,
-                                fluidRow(box(highchartOutput('linePlot_pib_percapita6'), height=400,width = 12)),#,background='white')),
-                                box(
-                                    status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
-                                    radioButtons(inputId = "tipo_graf_lineplot_pib_percapita6",choices = c("Linha", "Barra"), label = NULL, inline = TRUE)
-                                )
-                                
+                                status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
+                                radioButtons(inputId = "valor_absoluto_lineplot_prod",choices = c("Valores absolutos", "valores relativos"), label = NULL, inline = TRUE),
+                                sliderInput("anos_lineplot_prod", "Escolha o ano:", min=2010, max=2018, value=c(2010, 2018),animate=T)
                             )
                             
                         ),
-                        fluidRow(
+                        box(
+                            title = NULL, status = "success", solidHeader = FALSE, width = 6,
+                            collapsible = FALSE,
+                            fluidRow(box(highchartOutput('piePlot_prod'), height=400 ,width = 12)),#,background='white')),
                             box(
-                                status = "info", solidHeader = FALSE, width = 3, collapsed = FALSE, collapsible = TRUE,
-                                sliderInput("anos_lineplot_pib_percapita7", "Escolha o ano:", min=2010, max=2018, value=c(2010, 2018),animate=T)
+                                status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
+                                sliderInput("anos_columplot_prod", "Escolha o ano:", min=2010, max=2018, value=c(2010, 2018),animate=T)
                             )
                         )
-                        
-                    ) 
-                        
+                    ),
+                    box(
+                        title = "Informações",  status = "primary", solidHeader = TRUE, width = 2
+                    )
+                    
                 ),
-                tabItem(tabName = 'resultados',
-                        fluidRow( 
-                            tabBox(
-                                title = NULL, width = 12,
-                                id = "tab_opcoes", height = "250px",
-                                tabPanel("Opção 1", 
+                fluidRow( 
+                    box(
+                        title = "Ótica da Renda", status = "primary", solidHeader = TRUE,
+                        width = 10,
+                        collapsible = FALSE,
+                        box(
+                            title = NULL, status = "success", solidHeader = FALSE,
+                            collapsible = FALSE, width = 6,
+                            fluidRow(box(highchartOutput('linePlot_renda'), height=400,width = 12)),#,background='white')),
+                            box(
+                                status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
+                                sliderInput("anos_lineplot_renda", "Escolha o ano:", min=2010, max=2018, value=c(2010, 2018),animate=T)
+                            )
+                        ),
+                        box(
+                            title = NULL, status = "success", solidHeader = FALSE,
+                            collapsible = FALSE, width = 6,
+                            fluidRow(box(highchartOutput('piePlot_renda'), height=400 ,width = 12)),#,background='white')),
+                            box(
+                                status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
+                                sliderInput("anos_columnplot_renda", "Escolha o ano:", min=2010, max=2018, value=c(2010, 2018),animate=T)
+                            )
+                        )
+                    )
+                )
+            ),
+            tabItem(tabName = 'pib_per_capita',
+                fluidRow( 
+                    box(
+                        title = "PIB", status = "primary", solidHeader = TRUE,
+                        width = 10,
+                        box(
+                            title = NULL, status = "success", solidHeader = FALSE, width = 12,
+                            collapsible = FALSE,
+                            fluidRow(box(highchartOutput('linePlot_pib_percapita8'), height=400,width = 12)),#,background='white')),
+                            box(
+                                status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
+                                radioButtons(inputId = "tipo_graf_lineplot_pib_percapita8",choices = c("Linha", "Barra"), label = NULL, inline = TRUE),
+                                sliderInput("anos_lineplot_pib_percapita8", "Escolha o ano:", min=2010, max=2018, value=c(2010, 2018),animate=T)
+                            )
+                            
+                        ),
+                        
+                    )
+                ), 
+                fluidRow( 
+                    box(
+                        title = "PIB", status = "primary", solidHeader = TRUE,
+                        width = 10,
+                        box(
+                            title = NULL, status = "success", solidHeader = FALSE, width = 12,
+                            collapsible = FALSE,
+                            fluidRow(box(highchartOutput('linePlot_pib_percapita1'), height=400,width = 12)),#,background='white')),
+                            box(
+                                status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
+                                radioButtons(inputId = "tipo_graf_lineplot_pib_percapita1",choices = c("Linha", "Barra"), label = NULL, inline = TRUE),
+                                sliderInput("anos_lineplot_pib_percapita1", "Escolha o ano:", min=2010, max=2018, value=c(2010, 2018),animate=T)
+                            )
+                            
+                        ),
+                               
+                    )
+                ), 
+                fluidRow( 
+                    box(
+                        title = "População", status = "primary", solidHeader = TRUE,
+                        width = 10,
+                        box(
+                            title = NULL, status = "success", solidHeader = FALSE, width = 12,
+                            collapsible = FALSE,
+                            fluidRow(box(highchartOutput('linePlot_pib_percapita2'), height=400,width = 12)),#,background='white')),
+                            box(
+                                status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
+                                radioButtons(inputId = "tipo_graf_lineplot_pib_percapita2",choices = c("Linha", "Barra"), label = NULL, inline = TRUE),
+                                sliderInput("anos_lineplot_pib_percapita2", "Escolha o ano:", min=2010, max=2018, value=c(2010, 2018),animate=T)
+                            )
+                            
+                        ),
+                        
+                    )
+                ),
+                fluidRow( 
+                    box(
+                        title = "PIB per capita", status = "primary", solidHeader = TRUE,
+                        width = 10,
+                        box(
+                            title = NULL, status = "success", solidHeader = FALSE, width = 12,
+                            collapsible = FALSE,
+                            fluidRow(box(highchartOutput('linePlot_pib_percapita3'), height=400,width = 12)),#,background='white')),
+                            box(
+                                status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
+                                radioButtons(inputId = "tipo_graf_lineplot_pib_percapita3",choices = c("Linha", "Barra"), label = NULL, inline = TRUE),
+                                sliderInput("anos_lineplot_pib_percapita3", "Escolha o ano:", min=2010, max=2018, value=c(2010, 2018),animate=T)
+                            )
+                            
+                        ),
+                        
+                    )
+                )
+            ),
+            tabItem(tabName = 'pib_per_capita2',
+                fluidRow( 
+                    box(
+                        title = "PIB", status = "primary", solidHeader = TRUE,
+                        width = 4,
+                        box(
+                            title = NULL, status = "success", solidHeader = FALSE, width = 12,
+                            collapsible = FALSE,
+                            fluidRow(box(highchartOutput('linePlot_pib_percapita4'), height=400,width = 12)),#,background='white')),
+                            box(
+                                status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
+                                radioButtons(inputId = "tipo_graf_lineplot_pib_percapita4",choices = c("Linha", "Barra"), label = NULL, inline = TRUE)
+                            )
+                            
+                        ),
+                        
+                    ), 
+                    box(
+                        title = "População", status = "primary", solidHeader = TRUE,
+                        width = 4,
+                        box(
+                            title = NULL, status = "success", solidHeader = FALSE, width = 12,
+                            collapsible = FALSE,
+                            fluidRow(box(highchartOutput('linePlot_pib_percapita5'), height=400,width = 12)),#,background='white')),
+                            box(
+                                status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
+                                radioButtons(inputId = "tipo_graf_lineplot_pib_percapita5",choices = c("Linha", "Barra"), label = NULL, inline = TRUE)
+                            )
+                            
+                        ),
+                        
+                    ), 
+                    box(
+                        title = "PIB per capita", status = "primary", solidHeader = TRUE,
+                        width = 4,
+                        box(
+                            title = NULL, status = "success", solidHeader = FALSE, width = 12,
+                            collapsible = FALSE,
+                            fluidRow(box(highchartOutput('linePlot_pib_percapita6'), height=400,width = 12)),#,background='white')),
+                            box(
+                                status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
+                                radioButtons(inputId = "tipo_graf_lineplot_pib_percapita6",choices = c("Linha", "Barra"), label = NULL, inline = TRUE)
+                            )
+                            
+                        )
+                        
+                    ),
+                    fluidRow(
+                        box(
+                            status = "info", solidHeader = FALSE, width = 3, collapsed = FALSE, collapsible = TRUE,
+                            sliderInput("anos_lineplot_pib_percapita7", "Escolha o ano:", min=2010, max=2018, value=c(2010, 2018),animate=T)
+                        )
+                    )
+                    
+                ) 
+                    
+            ),
+            tabItem(tabName = 'resultados',
+                    fluidRow( 
+                        tabBox(
+                            title = NULL, width = 12,
+                            id = "tab_opcoes", height = "250px",
+                            tabPanel("Opção 1", 
+                                 fluidRow(
+                                     box(
+                                         status = "info", solidHeader = FALSE, width = 12, collapsible = FALSE,
+                                         radioButtons(inputId = "tipo_resultado", label = "Escolha:", choices = tipoResutados, selected = "VBP", inline = TRUE)
+                                     )
+                                 ),
+                                fluidRow(
+                                    box(
+                                        status = "warning", solidHeader = FALSE, width = 3, collapsible = FALSE,
+                                        radioButtons(inputId = "area_ou_setor_aspecto_fixo", label = NULL, choices = c("Setores", "Áreas"), selected = "Setores", inline = TRUE),
+                                        conditionalPanel(
+                                            condition = "input.area_ou_setor_aspecto_fixo == 'Setores'",
+                                            checkboxInput(inputId = "spec_setores_aspecto_fixo_tudo", label = "Selecionar Tudo", value = FALSE),
+                                            checkboxGroupInput(inputId = "spec_setores_aspecto_fixo", label = NULL, choices = setor, selected = setor[1])
+                                        ),
+                                        conditionalPanel(
+                                            condition = "input.area_ou_setor_aspecto_fixo == 'Áreas'", 
+                                            checkboxGroupInput(inputId = "spec_areas_aspecto_fixo", label = NULL, choices = area, selected = area[1])
+                                        )
+                                    ),
+                                    box(
+                                        status = "warning", solidHeader = FALSE, width = 3, collapsible = FALSE,
+                                        radioButtons(inputId = "aspectos_aspecto_fixo", label = NULL, choices = aspectos2, selected = aspectos2[1])
+                                    ),
+                                    box(
+                                        status = "info", solidHeader = FALSE, width = 6, collapsible = FALSE,
+                                        fluidRow(box(highchartOutput('plot_vbp_ci_vab_aspecto_fixo'), height=400,width = 12)),#,background='white')),
+                                        
+                                    ),
+                                ),
+                                fluidRow(
+                                    box(
+                                        status = "warning", solidHeader = FALSE, width = 6, collapsible = FALSE,
+                                        radioButtons(inputId = "tipo_grafico_aspecto_fixo", label = "Tipo de gráfico", choices = tiposGraficos, selected = 'linha', inline = TRUE)
+                                    ),
+                                    box(
+                                        status = "warning", solidHeader = FALSE, width = 6, collapsible = FALSE,
+                                        sliderInput("anos_resultados_aspecto_fixo", "Escolha o ano:", min=2010, max=2018, value=c(2010, 2018),animate=T),
+                                        sliderInput("anos_resultados_aspecto_fixo_pizza", "Escolha o ano:", min=2010, max=2018, value=c(2018),animate=T)
+                                    ),
+                                    
+                                )        
+                            ),
+                            tabPanel("Opção 2", 
                                      fluidRow(
                                          box(
                                              status = "info", solidHeader = FALSE, width = 12, collapsible = FALSE,
-                                             radioButtons(inputId = "tipo_resultado", label = "Escolha:", choices = tipoResutados, selected = "VBP", inline = TRUE)
+                                             radioButtons(inputId = "aspectos_setor_fixo", label = "Escolha:", choices = aspectos2, selected = aspectos2[1], inline = TRUE)
+                                             
                                          )
                                      ),
-                                    fluidRow(
-                                        box(
-                                            status = "warning", solidHeader = FALSE, width = 3, collapsible = FALSE,
-                                            radioButtons(inputId = "area_ou_setor_aspecto_fixo", label = NULL, choices = c("Setores", "Áreas"), selected = "Setores", inline = TRUE),
-                                            conditionalPanel(
-                                                condition = "input.area_ou_setor_aspecto_fixo == 'Setores'",
-                                                checkboxInput(inputId = "spec_setores_aspecto_fixo_tudo", label = "Selecionar Tudo", value = FALSE),
-                                                checkboxGroupInput(inputId = "spec_setores_aspecto_fixo", label = NULL, choices = setor, selected = setor[1])
-                                            ),
-                                            conditionalPanel(
-                                                condition = "input.area_ou_setor_aspecto_fixo == 'Áreas'", 
-                                                checkboxGroupInput(inputId = "spec_areas_aspecto_fixo", label = NULL, choices = area, selected = area[1])
-                                            )
-                                        ),
-                                        box(
-                                            status = "warning", solidHeader = FALSE, width = 3, collapsible = FALSE,
-                                            radioButtons(inputId = "aspectos_aspecto_fixo", label = NULL, choices = aspectos2, selected = aspectos2[1])
-                                        ),
-                                        box(
-                                            status = "info", solidHeader = FALSE, width = 6, collapsible = FALSE,
-                                            fluidRow(box(highchartOutput('plot_vbp_ci_vab_aspecto_fixo'), height=400,width = 12)),#,background='white')),
-                                            
-                                        ),
-                                    ),
-                                    fluidRow(
-                                        box(
-                                            status = "warning", solidHeader = FALSE, width = 6, collapsible = FALSE,
-                                            radioButtons(inputId = "tipo_grafico_aspecto_fixo", label = "Tipo de gráfico", choices = tiposGraficos, selected = 'linha', inline = TRUE)
-                                        ),
-                                        box(
-                                            status = "warning", solidHeader = FALSE, width = 6, collapsible = FALSE,
-                                            sliderInput("anos_resultados_aspecto_fixo", "Escolha o ano:", min=2010, max=2018, value=c(2010, 2018),animate=T),
-                                            sliderInput("anos_resultados_aspecto_fixo_pizza", "Escolha o ano:", min=2010, max=2018, value=c(2018),animate=T)
-                                        ),
-                                        
-                                    )        
-                                ),
-                                tabPanel("Opção 2", "Trafficker tab", 
-                                         
-                                     box(
-                                         status = "info", solidHeader = FALSE, width = 6, collapsible = FALSE,
-                                         fluidRow(box(highchartOutput('plot_vbp_ci_vab_setor_fixo'), height=400,width = 12)),#,background='white')),
+                                     fluidRow(
                                          box(
-                                             status = "warning", solidHeader = FALSE, width = 6, collapsible = FALSE,
-                                             radioButtons(inputId = "grande_area_ou_setor_setor_fixo", label = NULL, choices = c("Setores", "Áreas"), selected = "Setores", inline = TRUE),
+                                             status = "warning", solidHeader = FALSE, width = 3, collapsible = FALSE,
+                                             radioButtons(inputId = "area_ou_setor_setor_fixo", label = NULL, choices = c("Setores", "Áreas"), selected = "Setores", inline = TRUE),
                                              conditionalPanel(
-                                                 condition = "input.grande_area_ou_setor_setor_fixo == 'Setores'", 
-                                                 radioButtons(inputId = "espec_setores", label = NULL, choices = setores[setor])
+                                                 condition = "input.area_ou_setor_setor_fixo == 'Setores'",
+                                                 radioButtons(inputId = "spec_setores_setor_fixo", label = NULL, choices = setor, selected = setor[1])
                                              ),
                                              conditionalPanel(
-                                                 condition = "input.grande_area_ou_setor_setor_fixo == 'Áreas'", 
-                                                 radioButtons(inputId = "espec_setores", label = NULL, choices = setores[area])
+                                                 condition = "input.area_ou_setor_setor_fixo == 'Áreas'", 
+                                                 radioButtons(inputId = "spec_areas_setor_fixo", label = NULL, choices = area, selected = area[1])
                                              )
                                          ),
                                          box(
+                                             status = "warning", solidHeader = FALSE, width = 3, collapsible = FALSE,
+                                             checkboxGroupInput(inputId = "tipo_resultado_2", label = NULL, choices = tipoResutados, selected = c("VBP", "CI", "VAB"))
+                                         ),
+                                         box(
+                                             status = "info", solidHeader = FALSE, width = 6, collapsible = FALSE,
+                                             fluidRow(box(highchartOutput('plot_vbp_ci_vab_setor_fixo'), height=400,width = 12)),#,background='white')),
+                                             
+                                         ),
+                                     ),
+                                     fluidRow(
+                                         box(
                                              status = "warning", solidHeader = FALSE, width = 6, collapsible = FALSE,
-                                             checkboxGroupInput(inputId = "aspectos_2", label = NULL, choices = aspectos2, selected = aspectos2[1])
-                                         )
+                                             radioButtons(inputId = "tipo_grafico_setor_fixo", label = "Tipo de gráfico", choices = tiposGraficos2, selected = 'linha', inline = TRUE)
+                                         ),
+                                         box(
+                                             status = "warning", solidHeader = FALSE, width = 6, collapsible = FALSE,
+                                             sliderInput("anos_resultados_setor_fixo", "Escolha o ano:", min=2010, max=2018, value=c(2010, 2018),animate=T),
+                                             
+                                         ),
                                          
                                      )
-                                )
                             )
                         )
-                )
+                    )
             )
-           
-        ),
+        )
+       
+    ),
                 
                
-    useShinyjs(),           
+    shinyjs::useShinyjs(),           
              
        
               
@@ -562,9 +606,284 @@ server <- function(input, output, session) {
    
     #read_excel("H:\\FJP\\scripts\\Anexo-estatistico-PIB-MG-anual-2010-2018.xlsx")
     
-    output$result <- renderText({
-        paste("You chose", input$state)
+    output$plot_vbp_ci_vab_setor_fixo <- renderHighchart({
+        
+        anos <- c(input$anos_resultados_setor_fixo[1], input$anos_resultados_setor_fixo[2])
+        
+        h <- highchart() %>%
+            hc_exporting(enabled = T, fallbackToExportServer = F, menuItems = export) %>%
+            hc_xAxis(title = list(text = "Ano"), allowDecimals = FALSE)
+        
+        if(input$aspectos_setor_fixo == 'vc'){
+            
+            h <- h %>%
+                hc_title(text = list("Valor Corrente - MG")) %>%
+                hc_yAxis(title = list(text = "Valor corrente (1.000.000 R$)")) %>%
+                hc_tooltip(crosshairs = TRUE,
+                           borderWidth = 5,
+                           sort = FALSE,
+                           table = TRUE, 
+                           headerFormat = 'Ano: {point.x}<br>',
+                           pointFormat = "{series.name}: {point.y:.1f} mi R$ <br>")
+            
+            if(input$tipo_grafico_setor_fixo == "barra"){
+                h <- h %>% hc_chart(type = "column")
+            }
+            
+            if(input$area_ou_setor_setor_fixo == "Setores"){
+                if(!is_empty(input$tipo_resultado_2)){
+                    ds <- lapply(input$tipo_resultado_2, function(x){
+                        d <- subset(valor_corrente, setor %in% input$spec_setores_setor_fixo & resultado %in% x & (ano >= anos[1] & ano <= anos[2]))
+                        data = data.frame(x = d$ano,
+                                          y = d$valor)
+                        
+                    })
+                
+                    for (k in 1:length(ds)) {
+                        h <- h %>%
+                            hc_add_series(ds[[k]], name = input$tipo_resultado_2[k])
+                    } 
+                    h <- h %>% hc_subtitle(text = input$spec_setores_setor_fixo)
+                }
+            }
+            else{
+                if(!is_empty(input$tipo_resultado_2)){
+                    ds <- lapply(input$tipo_resultado_2, function(x){
+                        d <- subset(valor_corrente, setor %in% input$spec_areas_setor_fixo & resultado %in% x & (ano >= anos[1] & ano <= anos[2]))
+                        data = data.frame(x = d$ano,
+                                          y = d$valor)
+                        
+                    })
+                    for (k in 1:length(ds)) {
+                        h <- h %>%
+                            hc_add_series(ds[[k]], name = input$tipo_resultado_2[k])
+                        
+                    }
+                    h <- h %>% hc_subtitle(text = input$spec_areas_setor_fixo)
+                    
+                }
+            }
+            
+            h
+        }
+        else if(input$aspectos_setor_fixo == 'vv'){
+            
+            h <- h %>%
+                hc_title(text = list("Variação de Volume - MG")) %>%
+                hc_yAxis(title = list(text = "Variação Volume (%)")) %>%
+                hc_tooltip(crosshairs = TRUE,
+                           borderWidth = 5,
+                           sort = FALSE,
+                           table = TRUE, 
+                           headerFormat = 'Ano: {point.x}<br>',
+                           pointFormat = "{series.name}: {point.y:.1f} mi R$ <br>")
+            
+            if(input$tipo_grafico_setor_fixo == "barra"){
+                h <- h %>% hc_chart(type = "column")
+            }
+            
+            if(input$area_ou_setor_setor_fixo == "Setores"){
+                if(!is_empty(input$tipo_resultado_2)){
+                    ds <- lapply(input$tipo_resultado_2, function(x){
+                        d <- subset(var_volume, setor %in% input$spec_setores_setor_fixo & resultado %in% x & (ano >= anos[1] & ano <= anos[2]))
+                        data = data.frame(x = d$ano,
+                                          y = d$valor)
+                        
+                    })
+                    
+                    for (k in 1:length(ds)) {
+                        h <- h %>%
+                            hc_add_series(ds[[k]], name = input$tipo_resultado_2[k])
+                    } 
+                    h <- h %>% hc_subtitle(text = input$spec_setores_setor_fixo)
+                }
+            }
+            else{
+                if(!is_empty(input$tipo_resultado_2)){
+                    ds <- lapply(input$tipo_resultado_2, function(x){
+                        d <- subset(var_volume, setor %in% input$spec_areas_setor_fixo & resultado %in% x & (ano >= anos[1] & ano <= anos[2]))
+                        data = data.frame(x = d$ano,
+                                          y = d$valor)
+                        
+                    })
+                    for (k in 1:length(ds)) {
+                        h <- h %>%
+                            hc_add_series(ds[[k]], name = input$tipo_resultado_2[k])
+                        
+                    }
+                    h <- h %>% hc_subtitle(text = input$spec_areas_setor_fixo)
+                    
+                }
+            }
+            
+            h 
+        }
+        else if(input$aspectos_setor_fixo == 'vp'){
+            
+            h <- h %>%
+                hc_title(text = list("Variação de Preço - MG")) %>%
+                hc_yAxis(title = list(text = "Variação Preço (%)")) %>%
+                hc_tooltip(crosshairs = TRUE,
+                           borderWidth = 5,
+                           sort = FALSE,
+                           table = TRUE, 
+                           headerFormat = 'Ano: {point.x}<br>',
+                           pointFormat = "{series.name}: {point.y:.1f} mi R$ <br>")
+            
+            if(input$tipo_grafico_setor_fixo == "barra"){
+                h <- h %>% hc_chart(type = "column")
+            }
+            
+            if(input$area_ou_setor_setor_fixo == "Setores"){
+                if(!is_empty(input$tipo_resultado_2)){
+                    ds <- lapply(input$tipo_resultado_2, function(x){
+                        d <- subset(var_preco, setor %in% input$spec_setores_setor_fixo & resultado %in% x & (ano >= anos[1] & ano <= anos[2]))
+                        data = data.frame(x = d$ano,
+                                          y = d$valor)
+                        
+                    })
+                    
+                    for (k in 1:length(ds)) {
+                        h <- h %>%
+                            hc_add_series(ds[[k]], name = input$tipo_resultado_2[k])
+                    } 
+                    h <- h %>% hc_subtitle(text = input$spec_setores_setor_fixo)
+                }
+            }
+            else{
+                if(!is_empty(input$tipo_resultado_2)){
+                    ds <- lapply(input$tipo_resultado_2, function(x){
+                        d <- subset(var_preco, setor %in% input$spec_areas_setor_fixo & resultado %in% x & (ano >= anos[1] & ano <= anos[2]))
+                        data = data.frame(x = d$ano,
+                                          y = d$valor)
+                        
+                    })
+                    for (k in 1:length(ds)) {
+                        h <- h %>%
+                            hc_add_series(ds[[k]], name = input$tipo_resultado_2[k])
+                        
+                    }
+                    h <- h %>% hc_subtitle(text = input$spec_areas_setor_fixo)
+                    
+                }
+            }
+            
+            h 
+            
+            
+        }
+        else if(input$aspectos_setor_fixo == 'pmg'){
+            
+            h <- h %>%
+                hc_title(text = list("Participação do Valor Corrente - MG")) %>%
+                hc_yAxis(title = list(text = "Participação (%)")) %>%
+                hc_tooltip(crosshairs = TRUE,
+                           borderWidth = 5,
+                           sort = FALSE,
+                           table = TRUE, 
+                           headerFormat = 'Ano: {point.x}<br>',
+                           pointFormat = "{series.name}: {point.y:.1f} mi R$ <br>")
+            
+            if(input$tipo_grafico_setor_fixo == "barra"){
+                h <- h %>% hc_chart(type = "column")
+            }
+            
+            if(input$area_ou_setor_setor_fixo == "Setores"){
+                if(!is_empty(input$tipo_resultado_2)){
+                    ds <- lapply(input$tipo_resultado_2, function(x){
+                        d <- subset(participacao_mg, setor %in% input$spec_setores_setor_fixo & resultado %in% x & (ano >= anos[1] & ano <= anos[2]))
+                        data = data.frame(x = d$ano,
+                                          y = d$valor)
+                        
+                    })
+                    
+                    for (k in 1:length(ds)) {
+                        h <- h %>%
+                            hc_add_series(ds[[k]], name = input$tipo_resultado_2[k])
+                    } 
+                    h <- h %>% hc_subtitle(text = input$spec_setores_setor_fixo)
+                }
+            }
+            else{
+                if(!is_empty(input$tipo_resultado_2)){
+                    ds <- lapply(input$tipo_resultado_2, function(x){
+                        d <- subset(participacao_mg, setor %in% input$spec_areas_setor_fixo & resultado %in% x & (ano >= anos[1] & ano <= anos[2]))
+                        data = data.frame(x = d$ano,
+                                          y = d$valor)
+                        
+                    })
+                    for (k in 1:length(ds)) {
+                        h <- h %>%
+                            hc_add_series(ds[[k]], name = input$tipo_resultado_2[k])
+                        
+                    }
+                    h <- h %>% hc_subtitle(text = input$spec_areas_setor_fixo)
+                    
+                }
+            }
+            
+            h 
+            
+            
+        }
+        else if(input$aspectos_setor_fixo == 'pbr'){
+            
+            h <- h %>%
+                hc_title(text = list("Participação do Valor Corrente - Brasil")) %>%
+                hc_yAxis(title = list(text = "Participação (%)")) %>%
+                hc_tooltip(crosshairs = TRUE,
+                           borderWidth = 5,
+                           sort = FALSE,
+                           table = TRUE, 
+                           headerFormat = 'Ano: {point.x}<br>',
+                           pointFormat = "{series.name}: {point.y:.1f} mi R$ <br>")
+            
+            if(input$tipo_grafico_setor_fixo == "barra"){
+                h <- h %>% hc_chart(type = "column")
+            }
+            
+            if(input$area_ou_setor_setor_fixo == "Setores"){
+                if(!is_empty(input$tipo_resultado_2)){
+                    ds <- lapply(input$tipo_resultado_2, function(x){
+                        d <- subset(participacao_br, setor %in% input$spec_setores_setor_fixo & resultado %in% x & (ano >= anos[1] & ano <= anos[2]))
+                        data = data.frame(x = d$ano,
+                                          y = d$valor)
+                        
+                    })
+                    
+                    for (k in 1:length(ds)) {
+                        h <- h %>%
+                            hc_add_series(ds[[k]], name = input$tipo_resultado_2[k])
+                    } 
+                    h <- h %>% hc_subtitle(text = input$spec_setores_setor_fixo)
+                }
+            }
+            else{
+                if(!is_empty(input$tipo_resultado_2)){
+                    ds <- lapply(input$tipo_resultado_2, function(x){
+                        d <- subset(participacao_br, setor %in% input$spec_areas_setor_fixo & resultado %in% x & (ano >= anos[1] & ano <= anos[2]))
+                        data = data.frame(x = d$ano,
+                                          y = d$valor)
+                        
+                    })
+                    for (k in 1:length(ds)) {
+                        h <- h %>%
+                            hc_add_series(ds[[k]], name = input$tipo_resultado_2[k])
+                        
+                    }
+                    h <- h %>% hc_subtitle(text = input$spec_areas_setor_fixo)
+                    
+                }
+            }
+            
+            h 
+            
+            
+        }
+        
     })
+    
+    
     
     #desabilita a opção de Participação das atividades no VAB do Brasil caso VAB não seja selecionado
     observeEvent(input$tipo_resultado, {
@@ -576,6 +895,22 @@ server <- function(input, output, session) {
         }
         else{
             shinyjs::enable(selector = "#aspectos_aspecto_fixo input[value='pbr']")
+        }
+    })
+    
+    #desabilita as opções VBP e CI quando partipação no Brasil é selecionado, opção 2
+    observeEvent(input$aspectos_setor_fixo, {
+        if(input$aspectos_setor_fixo == "pbr"){
+            shinyjs::disable(selector = "#tipo_resultado_2 input[value='VBP']")
+            shinyjs::disable(selector = "#tipo_resultado_2 input[value='CI']")
+            if(input$tipo_resultado_2 == 'VBP' || input$tipo_resultado_2 == 'CI'){
+                updateCheckboxGroupInput(inputId = "tipo_resultado_2", selected = tipoResutados[3])
+            }
+            
+        }
+        else{
+            shinyjs::enable(selector = "#tipo_resultado_2 input[value='VBP']")
+            shinyjs::enable(selector = "#tipo_resultado_2 input[value='CI']")
         }
     })
     
@@ -613,6 +948,7 @@ server <- function(input, output, session) {
             shinyjs::hide(id = "anos_resultados_aspecto_fixo_pizza")
         }
     })
+
     
     #seleciona o primeiro setor quando o usuário desmarca a opção de selecionar todos
     observe({
@@ -1001,7 +1337,14 @@ server <- function(input, output, session) {
         if(input$tipo_resultado == 'VBP'){
             
             h <- h %>%
-                hc_title(text = list("Valor Bruto da Produção - MG")) 
+                hc_title(text = list("Valor Bruto da Produção - MG")) %>%
+                hc_tooltip(crosshairs = TRUE,
+                           borderWidth = 5,
+                           sort = FALSE,
+                           table = TRUE, 
+                           headerFormat = 'Ano: {point.x}<br>',
+                           pointFormat = "{series.name}: {point.y:.1f} mi R$ <br>")
+            
             if(input$tipo_grafico_aspecto_fixo == "barra" || input$tipo_grafico_aspecto_fixo == "barra_empilhado"){
                 h <- h %>% hc_chart(type = "column")
             }
@@ -1015,7 +1358,7 @@ server <- function(input, output, session) {
                                               y = d$corrente)
                             
                         }) 
-                        h <- h %>% hc_yAxis(title = list(text = "Valor corrente (1.000.000 R$)"))
+                        h <- h %>% hc_yAxis(title = list(text = "Valor corrente (1.000.000 R$)")) 
                     }
                     else if(input$aspectos_aspecto_fixo == "vv"){
                         ds <- lapply(input$spec_setores_aspecto_fixo, function(x){
@@ -1024,7 +1367,8 @@ server <- function(input, output, session) {
                                               y = d$var_volume)
                             
                         }) 
-                        h <- h %>% hc_yAxis(title = list(text = "Variação em volume (%)"))
+                        h <- h %>% hc_yAxis(title = list(text = "Variação em volume (%)")) %>%
+                        hc_tooltip(pointFormat = "{series.name}: {point.y:.1f} % <br>")
                     }
                     else if(input$aspectos_aspecto_fixo == "vp"){
                         ds <- lapply(input$spec_setores_aspecto_fixo, function(x){
@@ -1033,7 +1377,8 @@ server <- function(input, output, session) {
                                               y = d$var_preco)
                             
                         })
-                        h <- h %>% hc_yAxis(title = list(text = "Variação de preço (%)"))
+                        h <- h %>% hc_yAxis(title = list(text = "Variação de preço (%)")) %>%
+                            hc_tooltip(pointFormat = "{series.name}: {point.y:.1f} % <br>")
                         
                     }
                     else if(input$aspectos_aspecto_fixo == "pmg"){
@@ -1045,7 +1390,8 @@ server <- function(input, output, session) {
                         })
                         
                         
-                        h <- h %>% hc_yAxis(title = list(text = "Part. das atividades no Valor Bruto da Produção (%)"))
+                        h <- h %>% hc_yAxis(title = list(text = "Part. das atividades no Valor Bruto da Produção (%)")) %>%
+                            hc_tooltip(pointFormat = "{series.name}: {point.y:.1f} % <br>")
                         
                     }
                     
@@ -1063,6 +1409,7 @@ server <- function(input, output, session) {
                                                                                                                        #                 format = '{point.name}: {point.percentage:.1f} %'))
                         }
                             h <- h %>%hc_plotOptions(column = list(stacking = "normal"))
+                            
                                 
                         if(!setequal(input$spec_setores_aspecto_fixo, setor)){ #verifica se todas as opções estão selecionadas
                             h <- h %>% hc_add_series(data = ds2, name = "Outros", stack = "Valor")
@@ -1095,13 +1442,16 @@ server <- function(input, output, session) {
                             hc_subtitle(text = (paste("Part. das atividades no Valor Bruto da Produção - ", toString(ano_pie_chart)))) %>%
                             myhc_add_series_labels_values(labels = labels_pi_chart, values = valores_pi_chart, text = labels_pi_chart, 
                                                           dataLabels = list(enabled = TRUE,
-                                                                            format = '{point.name}: {point.percentage:.1f} %'))
+                                                                            format = '{point.name}: {point.percentage:.1f} %'))%>%
+                            hc_tooltip(pointFormat = "{point.name}: {point.y:.1f} % <br>")
                             
                     }
                     else{
                         for (k in 1:length(ds)) {
                             h <- h %>%
                                 hc_add_series(ds[[k]], name = input$spec_setores_aspecto_fixo[k])
+                                
+                            
                             
                         } 
                     }
@@ -1119,7 +1469,8 @@ server <- function(input, output, session) {
                                               y = d$corrente)
                             
                         }) 
-                        h <- h %>% hc_yAxis(title = list(text = "Valor corrente (1.000.000 R$)"))
+                        h <- h %>% hc_yAxis(title = list(text = "Valor corrente (1.000.000 R$)")) %>%
+                            hc_tooltip(pointFormat = "{series.name}: {point.y:.1f} mi R$ <br>")
                         
                         
                     }
@@ -1130,7 +1481,8 @@ server <- function(input, output, session) {
                                               y = d$var_volume)
                             
                         }) 
-                        h <- h %>% hc_yAxis(title = list(text = "Variação em volume (%)"))
+                        h <- h %>% hc_yAxis(title = list(text = "Variação em volume (%)"))%>%
+                            hc_tooltip(pointFormat = "{series.name}: {point.y:.1f} % <br>")
                     }
                     if(input$aspectos_aspecto_fixo == "vp"){
                         ds <- lapply(input$spec_areas_aspecto_fixo, function(x){
@@ -1139,7 +1491,8 @@ server <- function(input, output, session) {
                                               y = d$var_preco)
                             
                         })
-                        h <- h %>% hc_yAxis(title = list(text = "Variação de preço (%)"))
+                        h <- h %>% hc_yAxis(title = list(text = "Variação de preço (%)"))%>%
+                            hc_tooltip(pointFormat = "{series.name}: {point.y:.1f} % <br>")
                         
                     }
                     if(input$aspectos_aspecto_fixo == "pmg"){
@@ -1149,7 +1502,9 @@ server <- function(input, output, session) {
                                               y = d$particip)
                             
                         }) 
-                        h <- h %>% hc_yAxis(title = list(text = "Part. das atividades no Valor Bruto da Produção (%)"))
+                        h <- h %>% hc_yAxis(title = list(text = "Part. das atividades no Valor Bruto da Produção (%)"))%>%
+                            hc_tooltip(pointFormat = "{series.name}: {point.y:.1f} % <br>")
+                        
                         
                     }
                         
@@ -1193,7 +1548,8 @@ server <- function(input, output, session) {
                             hc_subtitle(text = (paste("Part. das atividades no Valor Bruto da Produção - ", toString(ano_pie_chart)))) %>%
                             myhc_add_series_labels_values(labels = labels_pi_chart, values = valores_pi_chart, text = labels_pi_chart, 
                                                           dataLabels = list(enabled = TRUE,
-                                                                            format = '{point.name}: {point.percentage:.1f} %'))
+                                                                            format = '{point.name}: {point.percentage:.1f} %'))%>%
+                            hc_tooltip(pointFormat = "{point.name}: {point.y:.1f} % <br>")
                                                           
                     }
                     else{
@@ -1215,7 +1571,14 @@ server <- function(input, output, session) {
             
             
             h <- h %>%
-                hc_title(text = list("Consumo Intermediário - MG")) 
+                hc_title(text = list("Consumo Intermediário - MG")) %>%
+                hc_tooltip(crosshairs = TRUE,
+                           borderWidth = 5,
+                           sort = FALSE,
+                           table = TRUE, 
+                           headerFormat = 'Ano: {point.x}<br>',
+                           pointFormat = "{series.name}: {point.y:.1f} mi R$ <br>")
+            
             if(input$tipo_grafico_aspecto_fixo == "barra" || input$tipo_grafico_aspecto_fixo == "barra_empilhado"){
                 h <- h %>% hc_chart(type = "column")
             }
@@ -1238,7 +1601,8 @@ server <- function(input, output, session) {
                                               y = d$var_volume)
                             
                         }) 
-                        h <- h %>% hc_yAxis(title = list(text = "Variação em volume (%)"))
+                        h <- h %>% hc_yAxis(title = list(text = "Variação em volume (%)"))%>%
+                            hc_tooltip(pointFormat = "{series.name}: {point.y:.1f} % <br>")
                     }
                     else if(input$aspectos_aspecto_fixo == "vp"){
                         ds <- lapply(input$spec_setores_aspecto_fixo, function(x){
@@ -1247,7 +1611,8 @@ server <- function(input, output, session) {
                                               y = d$var_preco)
                             
                         })
-                        h <- h %>% hc_yAxis(title = list(text = "Variação de preço (%)"))
+                        h <- h %>% hc_yAxis(title = list(text = "Variação de preço (%)"))%>%
+                            hc_tooltip(pointFormat = "{series.name}: {point.y:.1f} % <br>")
                         
                     }
                     else if(input$aspectos_aspecto_fixo == "pmg"){
@@ -1259,7 +1624,8 @@ server <- function(input, output, session) {
                         })
                         
                         
-                        h <- h %>% hc_yAxis(title = list(text = "Part. das atividades no Consumo Intermediário (%)"))
+                        h <- h %>% hc_yAxis(title = list(text = "Part. das atividades no Consumo Intermediário (%)"))%>%
+                            hc_tooltip(pointFormat = "{series.name}: {point.y:.1f} % <br>")
                         
                     }
                     
@@ -1309,7 +1675,8 @@ server <- function(input, output, session) {
                             hc_subtitle(text = (paste("Part. das atividades no Consumo Intermediário - ", toString(ano_pie_chart)))) %>%
                             myhc_add_series_labels_values(labels = labels_pi_chart, values = valores_pi_chart, text = labels_pi_chart, 
                                                           dataLabels = list(enabled = TRUE,
-                                                                            format = '{point.name}: {point.percentage:.1f} %'))
+                                                                            format = '{point.name}: {point.percentage:.1f} %'))%>%
+                                                hc_tooltip(pointFormat = "{point.name}: {point.y:.1f} % <br>")
                         
                     }
                     else{
@@ -1333,7 +1700,8 @@ server <- function(input, output, session) {
                                               y = d$corrente)
                             
                         }) 
-                        h <- h %>% hc_yAxis(title = list(text = "Valor corrente (1.000.000 R$)"))
+                        h <- h %>% hc_yAxis(title = list(text = "Valor corrente (1.000.000 R$)"))%>%
+                            hc_tooltip(pointFormat = "{series.name}: {point.y:.1f} mi R$ <br>")
                         
                         
                     }
@@ -1344,7 +1712,8 @@ server <- function(input, output, session) {
                                               y = d$var_volume)
                             
                         }) 
-                        h <- h %>% hc_yAxis(title = list(text = "Variação em volume (%)"))
+                        h <- h %>% hc_yAxis(title = list(text = "Variação em volume (%)"))%>%
+                            hc_tooltip(pointFormat = "{series.name}: {point.y:.1f} % <br>")
                     }
                     if(input$aspectos_aspecto_fixo == "vp"){
                         ds <- lapply(input$spec_areas_aspecto_fixo, function(x){
@@ -1353,7 +1722,8 @@ server <- function(input, output, session) {
                                               y = d$var_preco)
                             
                         })
-                        h <- h %>% hc_yAxis(title = list(text = "Variação de preço (%)"))
+                        h <- h %>% hc_yAxis(title = list(text = "Variação de preço (%)"))%>%
+                            hc_tooltip(pointFormat = "{series.name}: {point.y:.1f} % <br>")
                         
                     }
                     if(input$aspectos_aspecto_fixo == "pmg"){
@@ -1363,7 +1733,8 @@ server <- function(input, output, session) {
                                               y = d$particip)
                             
                         }) 
-                        h <- h %>% hc_yAxis(title = list(text = "Part. das atividades no Consumo Intermediário (%)"))
+                        h <- h %>% hc_yAxis(title = list(text = "Part. das atividades no Consumo Intermediário (%)"))%>%
+                            hc_tooltip(pointFormat = "{series.name}: {point.y:.1f} % <br>")
                         
                     }
                     
@@ -1379,7 +1750,8 @@ server <- function(input, output, session) {
                             h <- h %>%    
                                 hc_add_series(data = ds[[k]], name = input$spec_areas_aspecto_fixo[k], stack = "Valor")
                         }
-                        h <- h %>%hc_plotOptions(column = list(stacking = "normal"))
+                        h <- h %>%hc_plotOptions(column = list(stacking = "normal"))%>%
+                            hc_tooltip(pointFormat = "{series.name}: {point.y:.1f} % <br>")
                         
                         if(!setequal(input$spec_areas_aspecto_fixo, area)){ #verifica se todas as opções estão selecionadas
                             h <- h %>% hc_add_series(data = ds2, name = "Outros", stack = "Valor")
@@ -1407,7 +1779,9 @@ server <- function(input, output, session) {
                             hc_subtitle(text = (paste("Part. das atividades no Consumo Intermediário - ", toString(ano_pie_chart)))) %>%
                             myhc_add_series_labels_values(labels = labels_pi_chart, values = valores_pi_chart, text = labels_pi_chart, 
                                                           dataLabels = list(enabled = TRUE,
-                                                                            format = '{point.name}: {point.percentage:.1f} %'))
+                                                                            format = '{point.name}: {point.percentage:.1f} %'))%>%
+                            hc_tooltip(pointFormat = "{point.name}: {point.y:.1f} % <br>")
+                        
                         
                     }
                     else{
@@ -1428,7 +1802,13 @@ server <- function(input, output, session) {
             
             
             h <- h %>%
-                hc_title(text = list("Valor Adicionado Bruto - MG")) 
+                hc_title(text = list("Valor Adicionado Bruto - MG")) %>%
+                hc_tooltip(crosshairs = TRUE,
+                           borderWidth = 5,
+                           sort = FALSE,
+                           table = TRUE, 
+                           headerFormat = 'Ano: {point.x}<br>',
+                           pointFormat = "{series.name}: {point.y:.1f} % <br>")
             if(input$tipo_grafico_aspecto_fixo == "barra" || input$tipo_grafico_aspecto_fixo == "barra_empilhado"){
                 h <- h %>% hc_chart(type = "column")
             }
@@ -1442,7 +1822,8 @@ server <- function(input, output, session) {
                                               y = d$corrente)
                             
                         }) 
-                        h <- h %>% hc_yAxis(title = list(text = "Valor corrente (1.000.000 R$)"))
+                        h <- h %>% hc_yAxis(title = list(text = "Valor corrente (1.000.000 R$)"))%>%
+                            hc_tooltip(pointFormat = "{series.name}: {point.y:.1f} mi R$ <br>")
                     }
                     if(input$aspectos_aspecto_fixo == "vv"){
                         ds <- lapply(input$spec_setores_aspecto_fixo, function(x){
@@ -1451,7 +1832,8 @@ server <- function(input, output, session) {
                                               y = d$var_volume)
                             
                         }) 
-                        h <- h %>% hc_yAxis(title = list(text = "Variação em volume (%)"))
+                        h <- h %>% hc_yAxis(title = list(text = "Variação em volume (%)"))%>%
+                            hc_tooltip(pointFormat = "{series.name}: {point.y:.1f} % <br>")
                     }
                     if(input$aspectos_aspecto_fixo == "vp"){
                         ds <- lapply(input$spec_setores_aspecto_fixo, function(x){
@@ -1460,7 +1842,8 @@ server <- function(input, output, session) {
                                               y = d$var_preco)
                             
                         })
-                        h <- h %>% hc_yAxis(title = list(text = "Variação de preço (%)"))
+                        h <- h %>% hc_yAxis(title = list(text = "Variação de preço (%)"))%>%
+                            hc_tooltip(pointFormat = "{series.name}: {point.y:.1f} % <br>")
                         
                     }
                     if(input$aspectos_aspecto_fixo == "pmg"){
@@ -1487,7 +1870,8 @@ server <- function(input, output, session) {
                                     hc_add_series(data = ds[[k]], name = input$spec_setores_aspecto_fixo[k], stack = "Valor") #, dataLabels = list(enabled = TRUE,
                                 #                 format = '{point.name}: {point.percentage:.1f} %'))
                             }
-                            h <- h %>%hc_plotOptions(column = list(stacking = "normal"))
+                            h <- h %>%hc_plotOptions(column = list(stacking = "normal"))%>%
+                                hc_tooltip(pointFormat = "{series.name}: {point.y:.1f} % <br>")
                             
                             if(!setequal(input$spec_setores_aspecto_fixo, setor)){ #verifica se todas as opções estão selecionadas
                                 h <- h %>% hc_add_series(data = ds2, name = "Outros", stack = "Valor")
@@ -1520,7 +1904,8 @@ server <- function(input, output, session) {
                                 hc_subtitle(text = (paste("Part. das atividades no Consumo Intermediário - ", toString(ano_pie_chart)))) %>%
                                 myhc_add_series_labels_values(labels = labels_pi_chart, values = valores_pi_chart, text = labels_pi_chart, 
                                                               dataLabels = list(enabled = TRUE,
-                                                                                format = '{point.name}: {point.percentage:.1f} %'))
+                                                                                format = '{point.name}: {point.percentage:.1f} %'))%>%
+                                hc_tooltip(pointFormat = "{point.name}: {point.y:.1f} % <br>")
                             
                         }
                         
@@ -1532,7 +1917,8 @@ server <- function(input, output, session) {
                                               y = d$particip_br)
                             
                         })
-                        h <- h %>% hc_yAxis(title = list(text = "Participação no Valor Adicionado Bruto do Brasil (%)"))
+                        h <- h %>% hc_yAxis(title = list(text = "Participação no Valor Adicionado Bruto do Brasil (%)"))%>%
+                            hc_tooltip(pointFormat = "{series.name}: {point.y:.1f} % <br>")
                         
                         
                     }
@@ -1554,7 +1940,8 @@ server <- function(input, output, session) {
                                               y = d$corrente)
                             
                         }) 
-                        h <- h %>% hc_yAxis(title = list(text = "Valor corrente (1.000.000 R$)"))
+                        h <- h %>% hc_yAxis(title = list(text = "Valor corrente (1.000.000 R$)"))%>%
+                            hc_tooltip(pointFormat = "{series.name}: {point.y:.1f} mi R$ <br>")
                         
                         
                     }
@@ -1565,7 +1952,8 @@ server <- function(input, output, session) {
                                               y = d$var_volume)
                             
                         }) 
-                        h <- h %>% hc_yAxis(title = list(text = "Variação em volume (%)"))
+                        h <- h %>% hc_yAxis(title = list(text = "Variação em volume (%)"))%>%
+                            hc_tooltip(pointFormat = "{series.name}: {point.y:.1f} % <br>")
                     }
                     if(input$aspectos_aspecto_fixo == "vp"){
                         ds <- lapply(input$spec_areas_aspecto_fixo, function(x){
@@ -1574,7 +1962,8 @@ server <- function(input, output, session) {
                                               y = d$var_preco)
                             
                         })
-                        h <- h %>% hc_yAxis(title = list(text = "Variação de preço (%)"))
+                        h <- h %>% hc_yAxis(title = list(text = "Variação de preço (%)"))%>%
+                            hc_tooltip(pointFormat = "{series.name}: {point.y:.1f} % <br>")
                         
                     }
                     if(input$aspectos_aspecto_fixo == "pmg"){
@@ -1584,7 +1973,8 @@ server <- function(input, output, session) {
                                               y = d$particip)
                             
                         }) 
-                        h <- h %>% hc_yAxis(title = list(text = "Part. das atividades no Valor Adicionado Bruto (%)"))
+                        h <- h %>% hc_yAxis(title = list(text = "Part. das atividades no Valor Adicionado Bruto (%)"))%>%
+                            hc_tooltip(pointFormat = "{series.name}: {point.y:.1f} % <br>")
                         
                     }
                     
@@ -1600,7 +1990,8 @@ server <- function(input, output, session) {
                             h <- h %>%    
                                 hc_add_series(data = ds[[k]], name = input$spec_areas_aspecto_fixo[k], stack = "Valor")
                         }
-                        h <- h %>%hc_plotOptions(column = list(stacking = "normal"))
+                        h <- h %>%hc_plotOptions(column = list(stacking = "normal"))%>%
+                            hc_tooltip(pointFormat = "{series.name}: {point.y:.1f} % <br>")
                         
                         if(!setequal(input$spec_areas_aspecto_fixo, area)){ #verifica se todas as opções estão selecionadas
                             h <- h %>% hc_add_series(data = ds2, name = "Outros", stack = "Valor")
@@ -1628,7 +2019,8 @@ server <- function(input, output, session) {
                             hc_subtitle(text = (paste("Part. das atividades no Valor Adicionado Bruto - ", toString(ano_pie_chart)))) %>%
                             myhc_add_series_labels_values(labels = labels_pi_chart, values = valores_pi_chart, text = labels_pi_chart, 
                                                           dataLabels = list(enabled = TRUE,
-                                                                            format = '{point.name}: {point.percentage:.1f} %'))
+                                                                            format = '{point.name}: {point.percentage:.1f} %'))%>%
+                            hc_tooltip(pointFormat = "{point.name}: {point.y:.1f} % <br>")
                         
                     }
                     if(input$aspectos_aspecto_fixo == "pbr"){
@@ -1638,7 +2030,8 @@ server <- function(input, output, session) {
                                               y = d$particip_br)
                             
                         })
-                        h <- h %>% hc_yAxis(title = list(text = "Participação no Valor Adicionado Bruto do Brasil (%)"))
+                        h <- h %>% hc_yAxis(title = list(text = "Participação no Valor Adicionado Bruto do Brasil (%)"))%>%
+                            hc_tooltip(pointFormat = "{series.name}: {point.y:.1f} % <br>")
                         
                         
                     }
@@ -1659,6 +2052,8 @@ server <- function(input, output, session) {
             
         }
     })
+    
+    
     
 }
 
