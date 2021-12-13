@@ -59,11 +59,13 @@ ano = 2020
 
 #' ## Importa os dados
 dados_icms <- readxl::read_excel("patrimôniocultural_2020_Max.xlsx", sheet =1)
+dados_imrs <- readxl::read_excel("IMRS Cultura 2000 - 2020.xlsx", sheet =1)
 
 indicador_icms <- data.frame(dados_icms[c(1, 3, 16)]) #seleciona as colunas relevantes
 indicador_icms <- indicador_icms[-c(1,2, 856, 857, 858, 859), ] #exclui as linhas irrelevantes.
 chave <- sapply(indicador_icms[1], function(x) paste(ano, x, sep = ''))
+municipios <- as.list(subset(dados_imrs$MUNICÍPIO, dados_imrs$ANO == ano))
 
-indicadores <- cbind(chave, rep(ano, length(chave)), indicador_icms[2], lapply(lapply(indicador_icms[3], as.numeric), round, digits = 2))
+indicadores <- cbind(chave, rep(ano, length(chave)), municipios,sapply(sapply(indicador_icms[3], as.numeric), round, digits = 2))
 colnames(indicadores) <- c("CHAVE", "ANO", "MUNICÍPIO", "C_ICMSPATCULT")
 
