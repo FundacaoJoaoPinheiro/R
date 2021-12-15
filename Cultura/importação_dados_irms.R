@@ -41,7 +41,7 @@ setwd(dir)
 
 
 #' ## Carrega as bibliotecas
-pacotes <- c("readxl")
+pacotes <- c("readxl", "tidyverse")
 
 #' Verifica se alguma das bibliotecas necessárias ainda não foi instalada
 pacotes_instalados <- pacotes %in% rownames(installed.packages())
@@ -55,17 +55,78 @@ lapply(pacotes, library, character.only=TRUE)
 
 
 # Ano
-ano = 2020
+ano = 2021
 
 #' ## Importa os dados
 dados_icms <- readxl::read_excel("patrimôniocultural_2020_Max.xlsx", sheet =1)
 dados_imrs <- readxl::read_excel("IMRS Cultura 2000 - 2020.xlsx", sheet =1)
+dados_munic <- readxl::read_excel("Base_MUNIC_2018_MG.xlsx", sheet =2)
+dados_icms <- as_tibble(dados_icms)
+dados_imrs <- as_tibble(dados_imrs)
+dados_munic <- as_tibble(dados_munic)
 
-indicador_icms <- data.frame(dados_icms[c(1, 3, 16)]) #seleciona as colunas relevantes
-indicador_icms <- indicador_icms[-c(1,2, 856, 857, 858, 859), ] #exclui as linhas irrelevantes.
-chave <- sapply(indicador_icms[1], function(x) paste(ano, x, sep = ''))
-municipios <- as.list(subset(dados_imrs$MUNICÍPIO, dados_imrs$ANO == ano))
+#substitui o - por NA
+#dados_munic <- replace(dados_munic, dados_munic=='-', NA)
 
-indicadores <- cbind(chave, rep(ano, length(chave)), municipios,sapply(sapply(indicador_icms[3], as.numeric), round, digits = 2))
-colnames(indicadores) <- c("CHAVE", "ANO", "MUNICÍPIO", "C_ICMSPATCULT")
+#cria uma coluna de chave utilizando o último ano disponível na tabela do imrs
+#posteriormente, essa chave será atualizada para o ano atual
+dados_icms <- dados_icms %>% select(c(1,16)) %>% mutate(ano = ano) #seleciona as colunas relevantes
+colnames(dados_icms) <- c("ibge", "total", "ano")
+dados_icms <- dados_icms %>% mutate(CHAVE = paste0(ano-1, ibge)) 
 
+#faz a união dos dados de icms com os dados da tabela do imrs
+indicadores <- merge(dados_imrs, dados_icms[-c(1,3)], by = c("CHAVE"))
+#atualiza a chave e o ano
+indicadores <- indicadores %>% mutate(CHAVE = paste0(ano, substring(CHAVE, 5))) %>% mutate(ANO = ano)
+#remove os valores relativos ao ano anterior
+indicadores[, 4:34] <- NA
+#atualiza o valor do indicador C_ICMSPATCULT com o valor da coluna total e em seguida a remove
+indicadores <- indicadores %>% mutate(C_ICMSPATCULT = total) %>% select(-total)
+
+#altera o código de município de 7 dígitos para 6
+dados_munic <- dados_munic %>% mutate(`Cod Municipio` = substring(`Cod Municipio`, 1, 6))
+#cria a coluna de ano e chave
+dados_munic <- dados_munic %>% mutate(ANO = ano, .after = `Cod Municipio`) %>% mutate(CHAVE = paste0(ano, `Cod Municipio`), .after=`Cod Municipio`)
+#faz a união da tabela de indicadores com os dados da munic
+indicadores <- merge(indicadores, dados_munic[c("CHAVE",
+                                              "MCUL3901",
+                                              "MCUL3902",
+                                              "MCUL3903",
+                                              "MCUL3904", 
+                                              "MCUL3905",
+                                              "MCUL3909",
+                                              "MCUL371",
+                                              "MCUL372",
+                                              "MCUL373",
+                                              "MCUL374",
+                                              "MCUL375",
+                                              "MCUL376",
+                                              "MCUL377",
+                                              "MCUL378")], by = c("CHAVE"))
+indicadores <- indicadores %>% mutate(C_BIBLIOTECA = MCUL3901) %>% select(-MCUL3901) %>%
+               mutate(C_MUSEU = MCUL3902) %>% select(-MCUL3902) %>%
+               mutate(C_TEATRO = MCUL3903) %>% select(-MCUL3903) %>%
+               mutate(C_CENTROC = MCUL3904) %>% select(-MCUL3904) %>%
+               mutate(C_ARQPUB = MCUL3905) %>% select(-MCUL3905) %>%
+               mutate(C_CINEMA = MCUL3909) %>% select(-MCUL3909)
+#obtém a quantidade de tipos de equipamentos culturais
+tipos_equip <-  rowSums(cbind(indicadores$C_MUSEU=="Sim", 
+                              indicadores$C_TEATRO=="Sim",
+                              indicadores$C_CENTROC=="Sim",
+                              indicadores$C_ARQPUB=="Sim",
+                              indicadores$C_CINEMA=="Sim"))
+#preenche a coluna C_EQUIP baseado na quantidade de tipos de equipamentos: maior que 2, Sim, caso contrário, Não
+indicadores <- indicadores %>% mutate(C_EQUIP =  if_else(tipos_equip >= 2, "Sim", "Não"))
+
+tipos_meioc <- rowSums(cbind(indicadores$MCUL371=="Sim", #jornal impresso
+                             indicadores$MCUL372=="Sim", #revista impressa
+                             indicadores$MCUL373=="Sim", #radio AM
+                             indicadores$MCUL374=="Sim", #radio FM
+                             indicadores$MCUL375=="Sim", #radio comunitária
+                             indicadores$MCUL376=="Sim", #TV comunitária
+                             indicadores$MCUL377=="Sim", #geradora de TV
+                             indicadores$MCUL378=="Sim"))#provedor de internet
+#preeche a coluna C_MEIOC baseado na disponibilidade dos meios de comunicação: 4 ou mais: alta; 2 ou 3: média; 1: baixa; 
+indicadores <- indicadores %>% mutate(C_MEIOC = if_else(tipos_meioc >=4, "Alta Disponibilidade", if_else(tipos_meioc >=2, "Média Disponibilidade", if_else(tipos_meioc >= 1, "Baixa Disponibilidade", ""))))
+
+indicadores <- indicadores %>% select(-c(MCUL371, MCUL372, MCUL373, MCUL374, MCUL375, MCUL376, MCUL377, MCUL378))
