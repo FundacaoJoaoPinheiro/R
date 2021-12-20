@@ -41,7 +41,7 @@ setwd(dir)
 
 
 #' ## Carrega as bibliotecas
-pacotes <- c("readxl", "tidyverse")
+pacotes <- c("readxl", "tidyverse", "RSelenium")
 
 #' Verifica se alguma das bibliotecas necessárias ainda não foi instalada
 pacotes_instalados <- pacotes %in% rownames(installed.packages())
@@ -118,6 +118,7 @@ tipos_equip <-  rowSums(cbind(indicadores$C_MUSEU=="Sim",
 #preenche a coluna C_EQUIP baseado na quantidade de tipos de equipamentos: maior que 2, Sim, caso contrário, Não
 indicadores <- indicadores %>% mutate(C_EQUIP =  if_else(tipos_equip >= 2, "Sim", "Não"))
 
+#obtém a quantidade de tipos de meio de comunicação
 tipos_meioc <- rowSums(cbind(indicadores$MCUL371=="Sim", #jornal impresso
                              indicadores$MCUL372=="Sim", #revista impressa
                              indicadores$MCUL373=="Sim", #radio AM
@@ -129,4 +130,5 @@ tipos_meioc <- rowSums(cbind(indicadores$MCUL371=="Sim", #jornal impresso
 #preeche a coluna C_MEIOC baseado na disponibilidade dos meios de comunicação: 4 ou mais: alta; 2 ou 3: média; 1: baixa; 
 indicadores <- indicadores %>% mutate(C_MEIOC = if_else(tipos_meioc >=4, "Alta Disponibilidade", if_else(tipos_meioc >=2, "Média Disponibilidade", if_else(tipos_meioc >= 1, "Baixa Disponibilidade", ""))))
 
+#elimina as colunas que não são mais necessárias
 indicadores <- indicadores %>% select(-c(MCUL371, MCUL372, MCUL373, MCUL374, MCUL375, MCUL376, MCUL377, MCUL378))
