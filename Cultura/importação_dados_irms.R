@@ -41,7 +41,7 @@ setwd(dir)
 
 
 #' ## Carrega as bibliotecas
-pacotes <- c("readxl", "tidyverse", "RSelenium")
+pacotes <- c("readxl", "tidyverse", "RSelenium", "fuzzyjoin")
 
 #' Verifica se alguma das bibliotecas necessárias ainda não foi instalada
 pacotes_instalados <- pacotes %in% rownames(installed.packages())
@@ -132,3 +132,44 @@ indicadores <- indicadores %>% mutate(C_MEIOC = if_else(tipos_meioc >=4, "Alta D
 
 #elimina as colunas que não são mais necessárias
 indicadores <- indicadores %>% select(-c(MCUL371, MCUL372, MCUL373, MCUL374, MCUL375, MCUL376, MCUL377, MCUL378))
+
+#cria coluna de números, que será utilizada para realizar a junção com os dados do iepha
+indicadores <- indicadores %>% mutate(numero = c(1:853), .after=ANO)
+#realiza a junção
+indicadores <- left_join(indicadores, dados, 
+               by = "numero")
+
+indicadores <- indicadores %>% mutate(C_TOMBEF = indicadores$'SOMATÓRIO PARA CÁLCULO DE PONTUAÇÃO PELOS TOMBAMENTOS')
+indicadores <- indicadores %>% mutate(C_TOMBMUN = indicadores$'PROTEÇÃO MUNICIPAL calculada com base no')
+indicadores <- indicadores %>% mutate(C_PCL = apply(indicadores[, c('PONTUAÇÃO POLÍTICA CULTURAL',
+                                                                     'PONTUAÇÃO INVESTIMENTOS E DESPESAS',
+                                                                     'PONTUAÇÃO INVENTÁRIO',
+                                                                     'PONTUAÇÃO EDUCAÇÃO e DIFUSÃO')], 1, 
+                                                    function(x) ifelse(all(is.na(x)), as.numeric(NA), sum(x, na.rm=T))))
+
+
+indicadores <- indicadores %>% mutate(C_APRESPC = apply(indicadores[, c('PONTUAÇÃO FINAL TOMBAMENTOS', 
+                                                                        'PONTUAÇÃO FINAL REGISTROS')], 1,
+                                                        function(x) ifelse(all(is.na(x)), as.numeric(NA), sum(x, na.rm=T))))                                      
+                                        
+indicadores <- indicadores %>% mutate(C_GPRESPC = apply(indicadores[, c('C_PCL', 
+                                                                        'C_APRESPC')], 1,
+                                                        function(x) ifelse(all(is.na(x)), as.numeric(NA), sum(x, na.rm=T))))                                      
+
+indicadores <- indicadores %>% mutate(C_REGISTRO = indicadores$'PONTUAÇÃO FINAL REGISTROS')
+
+indicadores <- indicadores %>% mutate(C_FUNDO = indicadores$'PONTUAÇÃO INVESTIMENTOS E DESPESAS')
+
+indicadores <- indicadores %>% select(-c("numero", 
+                                         "SOMATÓRIO PARA CÁLCULO DE PONTUAÇÃO PELOS TOMBAMENTOS",
+                                         "PROTEÇÃO MUNICIPAL calculada com base no",
+                                         "PONTUAÇÃO POLÍTICA CULTURAL",
+                                         "PONTUAÇÃO INVESTIMENTOS E DESPESAS",
+                                         "PONTUAÇÃO INVENTÁRIO",
+                                         "PONTUAÇÃO EDUCAÇÃO e DIFUSÃO",
+                                         "PONTUAÇÃO FINAL TOMBAMENTOS",
+                                         "PONTUAÇÃO FINAL REGISTROS",
+                                         "NOME MUNICÍPIO"))
+
+
+
