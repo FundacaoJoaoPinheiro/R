@@ -246,13 +246,16 @@ indicadores <- indicadores %>% select(-c("numero",
                                          "PONTUAÇÃO FINAL REGISTROS",
                                          "Município"))
 
-a <- drop_na(dados_biblios %>% group_by(Município) %>% summarise(num_bib = n()))
+auxiliar <- drop_na(dados_biblios %>% group_by(Município) %>% summarise(num_bib = n()))
+colnames(auxiliar) <- c("MUNICÍPIO", "num bib")
 
-a <- a %>% mutate(IBGE = )
 
-a <- left_join(a, setNames(aggregate(dados_biblios$`Área de ocupação [m²]`, by= list(dados_biblios$Município), sum), c("Município", "Área")), by="Município")
 
-a <- a %>% mutate(faixa_area = sapply(a[, c("Área")], function(x) ifelse(x > 200, ">200", 
+
+
+auxiliar <- left_join(auxiliar, setNames(aggregate(dados_biblios$`Área de ocupação [m²]`, by= list(dados_biblios$Município), sum), c("MUNICÍPIO", "Área")), by="MUNICÍPIO")
+
+auxiliar <- auxiliar %>% mutate(faixa_area = sapply(auxiliar[, c("Área")], function(x) ifelse(x > 200, ">200", 
                                        ifelse(x >= 161, "161-200", 
                                                ifelse(x >= 131, "131-160", 
                                                        ifelse(x >= 101, "101-130",
@@ -260,13 +263,13 @@ a <- a %>% mutate(faixa_area = sapply(a[, c("Área")], function(x) ifelse(x > 20
                                                                       ifelse(x >= 51, "51-70",
                                                                              ifelse(x >= 31, "31-50", "<30")))))))))
 
-a <- left_join(a, setNames(aggregate(dados_biblios$`Quantos livros...34`, by= list(dados_biblios$Município), sum), c("Município", "Acervo")), by="Município")
+auxiliar <- left_join(auxiliar, setNames(aggregate(dados_biblios$`Quantos livros...34`, by= list(dados_biblios$Município), sum), c("MUNICÍPIO", "Acervo")), by="MUNICÍPIO")
 
-#acervo <- aggregate(dados_biblios$`Quantos livros...34`, by= list(dados_biblios$Município), sum)
+#acervo <- aggregate(dados_biblios$`Quantos livros...34`, by= list(dados_biblios$MUNICÍPIO), sum)
 #colnames(acervo) <- c("Município", "Acervo")
-#a <- left_join(a, acervo, by="Município")
+#auxiliar <- left_join(auxiliar, acervo, by="MUNICÍPIO")
 
-a <- a %>% mutate(faixa_acervo = sapply(a[, c("Acervo")], function(x) ifelse(x > 50000, "acima de 50.000", 
+auxiliar <- auxiliar %>% mutate(faixa_acervo = sapply(auxiliar[, c("Acervo")], function(x) ifelse(x > 50000, "acima de 50.000", 
                                                                          ifelse(x >= 20001, "20.001 - 50.000", 
                                                                                 ifelse(x >= 10001, "10.001 - 20.000", 
                                                                                        ifelse(x >= 5001, "5.001 - 10.000",
@@ -274,12 +277,30 @@ a <- a %>% mutate(faixa_acervo = sapply(a[, c("Acervo")], function(x) ifelse(x >
                                                                                                      ifelse(x >= 51, "1.001 - 3.000", "até 1.000"))))))))
 
 
-a <- left_join(a, setNames(aggregate(dados_biblios$`Leitores por mês`, by= list(dados_biblios$Município), sum), c("Município", "Leitores")) , by="Município")
+auxiliar <- left_join(auxiliar, setNames(aggregate(dados_biblios$`Leitores por mês`, by= list(dados_biblios$Município), sum), c("MUNICÍPIO", "Leitores")) , by="MUNICÍPIO")
 
-a <- left_join(a, setNames(aggregate(dados_biblios$`Média mensal empréstimo`, by= list(dados_biblios$Município), sum), c("Município", "Média emprestimo")), by="Município")
+auxiliar <- left_join(auxiliar, setNames(aggregate(dados_biblios$`Média mensal empréstimo`, by= list(dados_biblios$Município), sum), c("MUNICÍPIO", "Média emprestimo")), by="MUNICÍPIO")
 
-a <- left_join(a, setNames(aggregate(dados_biblios$`PC, internet`, by= list(dados_biblios$Município), function(x)  ifelse(any(x=="Sim"), "Sim", 
-                                                                                                                          ifelse(x=="Branco", as.numeric(NA), "Não"))), c("Município", "Internet") ), by="Município")
+auxiliar <- left_join(auxiliar, setNames(aggregate(dados_biblios$`PC, internet`, by= list(dados_biblios$Município), function(x)  ifelse(any(x=="Sim"), "Sim", 
+                                                                                                                          ifelse(x=="Branco", as.numeric(NA), "Não"))), c("MUNICÍPIO", "Internet") ), by="MUNICÍPIO")
 
-a <- left_join(a, setNames(aggregate(dados_biblios$`Prefeitura comprou últimos 2 anos`, by= list(dados_biblios$Município), function(x)  ifelse(any(x=="Sim"), "Sim", "Não")), c("Município", "Compras")), by="Município")
+auxiliar <- left_join(auxiliar, setNames(aggregate(dados_biblios$`Prefeitura comprou últimos 2 anos`, by= list(dados_biblios$Município), function(x)  ifelse(any(x=="Sim"), "Sim", "Não")), c("MUNICÍPIO", "Compras")), by="MUNICÍPIO")
 
+
+indicadores <- left_join(indicadores, auxiliar, by="MUNICÍPIO")
+
+indicadores <- indicadores %>% mutate(C_AREABIB = indicadores$faixa_area) %>% select(-faixa_area)
+
+indicadores <- indicadores %>% mutate(C_ACERVOBIB = indicadores$faixa_acervo) %>% select(-faixa_acervo)
+
+indicadores <- indicadores %>% mutate(C_WEBBIB = indicadores$Internet) %>% select(-Internet)
+
+indicadores <- indicadores %>% mutate(C_COMPBIB = indicadores$Compras) %>% select(-Compras)
+
+indicadores <- indicadores %>% mutate(C_LEITMESBIB = indicadores$Leitores) %>% select(-Leitores)
+
+indicadores <- indicadores %>% mutate(C_EMPMESBIB = indicadores$`Média emprestimo`) %>% select(-`Média emprestimo`)
+
+indicadores <- indicadores %>% mutate(C_NUMBIB = indicadores$`num bib`) %>% select(-`num bib`)
+
+indicadores <- indicadores %>% select(-c("Área", "Acervo"))
