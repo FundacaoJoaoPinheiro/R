@@ -41,7 +41,7 @@ setwd(dir)
 
 
 #' ## Carrega as bibliotecas
-pacotes <- c("readxl", "tidyverse")
+pacotes <- c("readxl", "tidyverse", "fuzzyjoin", "janitor", "writexl", "stringdist", "hablar")
 
 #' Verifica se alguma das bibliotecas necessárias ainda não foi instalada
 pacotes_instalados <- pacotes %in% rownames(installed.packages())
@@ -57,21 +57,34 @@ lapply(pacotes, library, character.only=TRUE)
 #' Ano
 ano = 2021
 
+#' A diferença entre nomes define o número máximo aceitável de caracteres diferentes entre nomes de municípios com grafias diferentes
+#' Observe que aumentar esse valor fará com que mais nomes sejam parecidos entre si.
+diferenca_entre_nomes <- 1
+
 #' ## Importação dos dados
 #' 
 #' Aqui é realizada a leitura dos arquivos em formato .xlsx. Para os dados que são disponibilizados
 #' originalmente em pdf, como os provenientes do IEPHA, é necessário antes realizar a conversão para o 
 #' formato xlsx, que pode ser realizado [aqui](https://www.ilovepdf.com/pt/pdf_para_excel).
 dados_icms <- as_tibble(readxl::read_excel("patrimôniocultural_2020_Max.xlsx", sheet =1))
-dados_imrs <- as_tibble(readxl::read_excel("IMRS Cultura 2000 - 2020.xlsx", sheet =1))
+dados_imrs <- as_tibble(readxl::read_excel("IMRS_BASE_CULTURA_2000-2020.xlsx", sheet =1))
 dados_munic <- as_tibble(readxl::read_excel("Base_MUNIC_2018_MG.xlsx", sheet =2))
 dados_iepha <- as_tibble(readxl::read_excel("iepha_2021.xlsx", sheet =1))
 dados_biblios <- as_tibble(readxl::read_excel("Questionário 2015_bibliotecas.xlsx", sheet =1))
+municipio_codigo <- as_tibble(readxl::read_excel("RELATORIO_DTB_BRASIL_MUNICIPIO.xls")) 
 
 #' ## Tratamento dos dados
 
+#' Extrai a informação de códigos e nomes dos municípios, que será útil para
+#' realizar a junção de diferentes dados
+municipio_codigo <- municipio_codigo %>% subset(Nome_UF == "Minas Gerais") %>%
+                                         select(c("Código Município Completo", "Nome_Município")) 
+colnames(municipio_codigo) <- c("IBGE7", "municipio")
+municipio_codigo <- municipio_codigo %>% mutate(municipio = tolower(municipio_codigo$municipio))
+
 #' ### Dados do ICMS Patrimônio Cultural
-#' 
+#'
+
 #' O primeiro passo é criar uma coluna de chave utilizando o último ano disponível na tabela do IMRS.
 #' Isso é feito para que seja possível realizar a junção dos dados do ICMS com os nomes dos municípios 
 #' presentes na tabela do IMRS. Posteriormente, essa chave será atualizada para o ano atual
@@ -80,6 +93,8 @@ dados_icms <- dados_icms %>% select(c(1,16)) %>%                  #seleciona as 
                              mutate(ano = ano)                    #cria uma coluna de ano
 colnames(dados_icms) <- c("ibge", "total", "ano")                 #atualiza os nomes das colunas
 dados_icms <- dados_icms %>% mutate(CHAVE = paste0(ano-1, ibge))  #cria uma coluna de chave utilizando o ano anterior ao atual
+
+
 
 #' Agora é feita a união dos dados do ICMS com os dados da tabela do IMRS. Observe que dos dados do ICMS foram excluídas
 #' as colunas 1 e 3, ou seja, foram utilizadas apenas as colunas de chave e total. O resultado é armazenado na
@@ -94,10 +109,10 @@ indicadores <- indicadores %>% mutate(CHAVE = paste0(ano, substring(CHAVE, 5))) 
                                mutate(ANO = ano)
 
 #' Remove os valores relativos ao ano anterior
-indicadores[, 4:34] <- NA # seleciona todas as linhas e colunas de 4 a 34 e atribui o valor NA a elas
+indicadores[, 5:35] <- NA # seleciona todas as linhas e colunas de 4 a 34 e atribui o valor NA a elas
 
 #' Atualiza o valor do indicador C_ICMSPATCULT com o valor da coluna total e em seguida a remove
-indicadores <- indicadores %>% mutate(C_ICMSPATCULT = total) %>% 
+indicadores <- indicadores %>% mutate(C_ICMSPATCULT = formatC(as.numeric(total), digits = 2, format =  "f")) %>% 
                                select(-total)
 
 #' ### Dados da MUNIC
@@ -107,6 +122,10 @@ dados_munic <- dados_munic %>% mutate(`Cod Municipio` = substring(`Cod Municipio
 #' Cria as colunas de ano e chave
 dados_munic <- dados_munic %>% mutate(ANO = ano, .after = `Cod Municipio`) %>% 
                                mutate(CHAVE = paste0(ano, `Cod Municipio`), .after=`Cod Municipio`)
+
+#' Substitui o - por NA
+dados_munic <- replace(dados_munic, dados_munic=='-', NA)
+
 #' Faz a união da tabela de indicadores com os dados da munic utilizando a chave
 indicadores <- merge(indicadores, dados_munic[c("CHAVE",
                                               "MCUL3901",
@@ -171,10 +190,10 @@ indicadores <- indicadores %>% select(-c(MCUL371, MCUL372, MCUL373, MCUL374, MCU
 
 #' Inicialmente seleciona-se as colunas com dados relevantes. Essas colunas deverão sofrer alteração caso 
 #' a tabela seja alterada
-dados_iepha <- dados_iepha %>% select(c(1, 2, 3, 4, 20, 21, 24, 32, 33))   
+dados_iepha <- dados_iepha %>% select(c(1, 21, 20, 2, 3, 4, 33, 24, 32))   
 
 #' Atribui um nome às colunas
-colnames(dados_iepha) <- c("Município", 
+colnames(dados_iepha) <- c("MUNICÍPIO", 
                            "SOMATÓRIO PARA CÁLCULO DE PONTUAÇÃO PELOS TOMBAMENTOS",
                            "PROTEÇÃO MUNICIPAL calculada com base no",
                            "PONTUAÇÃO POLÍTICA CULTURAL", 
@@ -183,50 +202,57 @@ colnames(dados_iepha) <- c("Município",
                            "PONTUAÇÃO EDUCAÇÃO e DIFUSÃO", 
                            "PONTUAÇÃO FINAL TOMBAMENTOS", 
                            "PONTUAÇÃO FINAL REGISTROS")
+dados_iepha <- dados_iepha %>% janitor::clean_names()
+
 
 #' Remove as primeiras 5 linhas, que são desnecessárias. Além disso, remove as linhas que contém
 #' as letras correspondentes às colunas. Essas linhas foram introduzidas durante a conversão do arquivo
 #' pdf para excel 
 dados_iepha <- dados_iepha[-c(1:5), ]   
-dados_iepha <- subset(dados_iepha, Município != 'A')
+dados_iepha <- subset(dados_iepha, municipio != 'A')
 
-#' Extrai o número do município a partir da primeira coluna. 
-numeros_municipios <-  as.integer(sapply(dados_iepha$Município, substr, 1, 3))
 
 #' Atualiza a coluna de nomes dos municípios para conter somente os nomes e cria uma nova coluna
 #' que conterá os números
-dados_iepha <- dados_iepha %>% mutate(Município = sapply(dados_iepha$Município, substr, 5, 50)) %>%
-                               mutate(numero = numeros_municipios, .before = Município)
+dados_iepha <- dados_iepha %>% mutate(municipio = tolower(sapply(dados_iepha$municipio, substr, 5, 50)))
+                               
+
+#' Faz a junção da tabela com os dados do iepha com a de código de municípios
+#' A primeira tentativa é por nomes exatos dos municípios. No caso de nomes de municípios com grafia diferente
+#' daquela do IBGE, é realizada uma junção por aproximação. A variável diferença_entre_nomes determina o quão diferente
+#' os nomes podem ser e ainda serem considerados iguais.
+dados_iepha <- left_join(dados_iepha, municipio_codigo, by="municipio")
+dados_iepha <- dados_iepha %>% mutate(IBGE7= as.numeric(unlist(apply(dados_iepha, 1, function(x) ifelse(is.na(x[10]), municipio_codigo[which(stringdist(x[1], municipio_codigo$municipio, method="lv") <= diferenca_entre_nomes), 1], x[10])))))
+
+#' Verifica se algum município ainda está sem o código do IBGE
+if(any(is.na(dados_iepha$IBGE7))){
+  stop("Não foi possível encontrar o código para o(s) município(s): ")
+  dados_iepha$municipio[which(is.na(dados_iepha$IBGE7))]
+}
         
 #' Faz a conversão dos dados de caracter para númerico                       
 dados_iepha[, c(3:10)] <- sapply(dados_iepha[, c(3:10)], as.numeric)
-                               
 
-#' Na tabela de indicadores, cria-se a coluna de números, que será utilizada para realizar a 
-#' junção com os dados do iepha
-indicadores <- indicadores %>% mutate(numero = c(1:853), .after=ANO)
-
-#' Realiza a junção
-indicadores <- left_join(indicadores, dados_iepha, by = "numero")
+indicadores <- left_join(indicadores, dados_iepha, by="IBGE7")
 
 #' Preenche as colunas dos indicadores que são obtidos diretamente dos dados do iepha
-indicadores <- indicadores %>% mutate(C_TOMBEF = indicadores$'SOMATÓRIO PARA CÁLCULO DE PONTUAÇÃO PELOS TOMBAMENTOS')
-indicadores <- indicadores %>% mutate(C_TOMBMUN = indicadores$'PROTEÇÃO MUNICIPAL calculada com base no')
-indicadores <- indicadores %>% mutate(C_REGISTRO = indicadores$'PONTUAÇÃO FINAL REGISTROS')
-indicadores <- indicadores %>% mutate(C_FUNDO = indicadores$'PONTUAÇÃO INVESTIMENTOS E DESPESAS')
+indicadores <- indicadores %>% mutate(C_TOMBEF = indicadores$somatorio_para_calculo_de_pontuacao_pelos_tombamentos)
+indicadores <- indicadores %>% mutate(C_TOMBMUN = indicadores$protecao_municipal_calculada_com_base_no)
+indicadores <- indicadores %>% mutate(C_REGISTRO = indicadores$pontuacao_final_registros)
+indicadores <- indicadores %>% mutate(C_FUNDO = indicadores$pontuacao_investimentos_e_despesas)
 
 #' Os indicadores a seguir são obtidos pela soma de outras variáveis. A função ifelse é necessária pois 
 #' alguns dos valores podem estar em branco (NA). Se todos os valores forem NA, então o resultado é NA. Se pelo menos
 #' algum dos valores for diferente de NA, então o resultado é a soma desses valores.
-indicadores <- indicadores %>% mutate(C_PCL = apply(indicadores[, c('PONTUAÇÃO POLÍTICA CULTURAL',
-                                                                     'PONTUAÇÃO INVESTIMENTOS E DESPESAS',
-                                                                     'PONTUAÇÃO INVENTÁRIO',
-                                                                     'PONTUAÇÃO EDUCAÇÃO e DIFUSÃO')], 1, 
+indicadores <- indicadores %>% mutate(C_PCL = apply(indicadores[, c('pontuacao_politica_cultural',
+                                                                     'pontuacao_investimentos_e_despesas',
+                                                                     'pontuacao_inventario',
+                                                                     'pontuacao_educacao_e_difusao')], 1, 
                                                     function(x) ifelse(all(is.na(x)), as.numeric(NA), sum(x, na.rm=T))))
 
 
-indicadores <- indicadores %>% mutate(C_APRESPC = apply(indicadores[, c('PONTUAÇÃO FINAL TOMBAMENTOS', 
-                                                                        'PONTUAÇÃO FINAL REGISTROS')], 1,
+indicadores <- indicadores %>% mutate(C_APRESPC = apply(indicadores[, c('pontuacao_final_tombamentos', 
+                                                                        'pontuacao_final_registros')], 1,
                                                         function(x) ifelse(all(is.na(x)), as.numeric(NA), sum(x, na.rm=T))))                                      
                                         
 indicadores <- indicadores %>% mutate(C_GPRESPC = apply(indicadores[, c('C_PCL', 
@@ -235,72 +261,135 @@ indicadores <- indicadores %>% mutate(C_GPRESPC = apply(indicadores[, c('C_PCL',
 
 
 #' Por fim, elimina as colunas que não são mais necessárias
-indicadores <- indicadores %>% select(-c("numero", 
-                                         "SOMATÓRIO PARA CÁLCULO DE PONTUAÇÃO PELOS TOMBAMENTOS",
-                                         "PROTEÇÃO MUNICIPAL calculada com base no",
-                                         "PONTUAÇÃO POLÍTICA CULTURAL",
-                                         "PONTUAÇÃO INVESTIMENTOS E DESPESAS",
-                                         "PONTUAÇÃO INVENTÁRIO",
-                                         "PONTUAÇÃO EDUCAÇÃO e DIFUSÃO",
-                                         "PONTUAÇÃO FINAL TOMBAMENTOS",
-                                         "PONTUAÇÃO FINAL REGISTROS",
-                                         "Município"))
+indicadores <- indicadores %>% select(-c(somatorio_para_calculo_de_pontuacao_pelos_tombamentos,
+                                         protecao_municipal_calculada_com_base_no,
+                                         pontuacao_politica_cultural,
+                                         pontuacao_investimentos_e_despesas,
+                                         pontuacao_inventario,
+                                         pontuacao_educacao_e_difusao,
+                                         pontuacao_final_tombamentos,
+                                         pontuacao_final_registros,
+                                         municipio))
 
-auxiliar <- drop_na(dados_biblios %>% group_by(Município) %>% summarise(num_bib = n()))
-colnames(auxiliar) <- c("MUNICÍPIO", "num bib")
+#' ### Dados da Secretaria de Cultura
+#' 
+#' Limpa os nomes das colunas
+dados_biblios <- dados_biblios %>% janitor::clean_names()
+dados_biblios$municipio = tolower(dados_biblios$municipio)
 
+dados_biblios <- dados_biblios %>% mutate(faixa_area_de_ocupacao_min = sapply(dados_biblios$faixa_area_de_ocupacao,
+                                                                              function(x) ifelse(length(grep("-", x))>0, strsplit(x, "[-]")[[1]][1], 
+                                                                                                 ifelse(length(grep(">", x))>0, "201", 
+                                                                                                        ifelse(length(grep("<", x))>0, "30", NA)))), .after="faixa_area_de_ocupacao") %>%
+  mutate(faixa_area_de_ocupacao_max = sapply(dados_biblios$faixa_area_de_ocupacao,
+                                             function(x) ifelse(length(grep("-", x))>0, strsplit(x, "[-]")[[1]][2], 
+                                                                ifelse(length(grep("<", x))>0, "30",
+                                                                       ifelse(length(grep(">", x))>0, "201", NA)))), .after="faixa_area_de_ocupacao")
+#' Faz a conversão dos dados de caracter para númerico                       
+dados_biblios[, c("faixa_area_de_ocupacao_max", "faixa_area_de_ocupacao_min")] <- sapply(dados_biblios[, c("faixa_area_de_ocupacao_max", "faixa_area_de_ocupacao_min")], as.numeric)
+dados_biblios <- dados_biblios %>% mutate(area_pela_faixa= apply(dados_biblios[c("area_de_ocupacao_m2", "faixa_area_de_ocupacao_max", "faixa_area_de_ocupacao_min")], 1, function(x) ifelse(is.na(x[1]), (((x[2]-x[3])/2)+x[3]), x[1])), .after="faixa_area_de_ocupacao")
 
+a <- apply(dados_biblios[c("area_de_ocupacao_m2", "faixa_area_de_ocupacao_max", "faixa_area_de_ocupacao_min")], 1, function(x) ifelse(is.na(x[1]), (((x[2]-x[3])/2)+x[3]), x[1]))
+#(dados_biblios$faixa_area_de_ocupacao_max - dados_biblios$faixa_area_de_ocupacao_min)/2+dados_biblios$faixa_area_de_ocupacao_min, .after="faixa_area_de_ocupacao")
 
-
-
-auxiliar <- left_join(auxiliar, setNames(aggregate(dados_biblios$`Área de ocupação [m²]`, by= list(dados_biblios$Município), sum), c("MUNICÍPIO", "Área")), by="MUNICÍPIO")
-
-auxiliar <- auxiliar %>% mutate(faixa_area = sapply(auxiliar[, c("Área")], function(x) ifelse(x > 200, ">200", 
-                                       ifelse(x >= 161, "161-200", 
-                                               ifelse(x >= 131, "131-160", 
-                                                       ifelse(x >= 101, "101-130",
-                                                               ifelse(x >= 71, "71-100",
-                                                                      ifelse(x >= 51, "51-70",
-                                                                             ifelse(x >= 31, "31-50", "<30")))))))))
-
-auxiliar <- left_join(auxiliar, setNames(aggregate(dados_biblios$`Quantos livros...34`, by= list(dados_biblios$Município), sum), c("MUNICÍPIO", "Acervo")), by="MUNICÍPIO")
-
-#acervo <- aggregate(dados_biblios$`Quantos livros...34`, by= list(dados_biblios$MUNICÍPIO), sum)
-#colnames(acervo) <- c("Município", "Acervo")
-#auxiliar <- left_join(auxiliar, acervo, by="MUNICÍPIO")
-
-auxiliar <- auxiliar %>% mutate(faixa_acervo = sapply(auxiliar[, c("Acervo")], function(x) ifelse(x > 50000, "acima de 50.000", 
-                                                                         ifelse(x >= 20001, "20.001 - 50.000", 
-                                                                                ifelse(x >= 10001, "10.001 - 20.000", 
-                                                                                       ifelse(x >= 5001, "5.001 - 10.000",
-                                                                                              ifelse(x >= 3001, "3.001 - 5.000",
-                                                                                                     ifelse(x >= 51, "1.001 - 3.000", "até 1.000"))))))))
-
-
-auxiliar <- left_join(auxiliar, setNames(aggregate(dados_biblios$`Leitores por mês`, by= list(dados_biblios$Município), sum), c("MUNICÍPIO", "Leitores")) , by="MUNICÍPIO")
-
-auxiliar <- left_join(auxiliar, setNames(aggregate(dados_biblios$`Média mensal empréstimo`, by= list(dados_biblios$Município), sum), c("MUNICÍPIO", "Média emprestimo")), by="MUNICÍPIO")
-
-auxiliar <- left_join(auxiliar, setNames(aggregate(dados_biblios$`PC, internet`, by= list(dados_biblios$Município), function(x)  ifelse(any(x=="Sim"), "Sim", 
-                                                                                                                          ifelse(x=="Branco", as.numeric(NA), "Não"))), c("MUNICÍPIO", "Internet") ), by="MUNICÍPIO")
-
-auxiliar <- left_join(auxiliar, setNames(aggregate(dados_biblios$`Prefeitura comprou últimos 2 anos`, by= list(dados_biblios$Município), function(x)  ifelse(any(x=="Sim"), "Sim", "Não")), c("MUNICÍPIO", "Compras")), by="MUNICÍPIO")
+dados_biblios <- dados_biblios %>% mutate(faixa_acervo_min = sapply(dados_biblios$faixa_livros_milhares,
+                                                                    function(x) ifelse(length(grep("-", x))>0, strsplit(x, "[-]")[[1]][1], 
+                                                                                       ifelse(length(grep(">", x))>0, "51", 
+                                                                                              ifelse(length(grep("<", x))>0, "1", NA)))), .after="faixa_livros_milhares") %>%
+  mutate(faixa_acervo_max = sapply(dados_biblios$faixa_livros_milhares,
+                                   function(x) ifelse(length(grep("-", x))>0, strsplit(x, "[-]")[[1]][2], 
+                                                      ifelse(length(grep("<", x))>0, "1",
+                                                             ifelse(length(grep(">", x))>0, "51", NA)))), .after="faixa_livros_milhares")
+dados_biblios[, c("faixa_acervo_max", "faixa_acervo_min")] <- sapply(dados_biblios[, c("faixa_acervo_max", "faixa_acervo_min")], as.numeric)
+dados_biblios <- dados_biblios %>% mutate(acervo = apply(dados_biblios[c("quantos_livros_34", "faixa_acervo_min", "faixa_acervo_max")], 1, function(x) ifelse(is.na(x[1]), (((x[3]-x[2])/2)+x[2])*1000, x[1])), .after="faixa_livros_milhares")
 
 
-indicadores <- left_join(indicadores, auxiliar, by="MUNICÍPIO")
 
+#' Aqui será criada uma tabela auxiliar onde a unidade de análise é o municipío. Isso é necessário
+#' pois nos dados da secretaria, a unidade de análise é a biblioteca
+
+#' O primeiro passo é obter o número de bibliotecas por município
+auxiliar <- drop_na(dados_biblios %>% group_by(municipio) %>% summarise(num_bib = n()))
+colnames(auxiliar) <- c("municipio", "num_bib")
+
+#' Em seguida, é feita a união da tabela auxiliar com a tabela de códigos dos municípios. Essa união é feita
+#' de forma semelhante à anterior.
+auxiliar <- auxiliar %>% mutate(municipio = tolower(municipio)) # faz os nomes dos municípios ficarem em letras minúsculas
+auxiliar <- left_join(auxiliar, municipio_codigo, by="municipio")
+auxiliar <- auxiliar %>% mutate(IBGE7= as.numeric(unlist(apply(auxiliar[, c(1, 3)], 1,  function(x) ifelse(is.na(x[2]), municipio_codigo[which(stringdist(x[1], municipio_codigo$municipio, method="lv") <= diferenca_entre_nomes), 1], x[2])))))
+
+#' Verifica se algum município está sem código
+if(any(is.na(auxiliar$IBGE7))){
+  stop("Não foi possível encontrar o código para o(s) município(s): ")
+  auxiliar$municipio[which(is.na(auxiliar$IBGE7))]
+}
+
+#' Obtem a área de ocupação das bibliotecas, por município. Isso é feito da seguinte forma:
+#' - aggregate: soma as áreas de ocupação agrupadas por município
+#' - setNames: atribui nomes às colunas retornadas pela função aggregate, nesse caso, municipio e area 
+#' - left_join: faz a união da tabela retornada pela função aggregate à tabela auxiliar, de acordo com o município
+auxiliar <-  left_join(auxiliar, setNames(aggregate(dados_biblios$area_pela_faixa, by= list(dados_biblios$municipio), sum_), c("municipio", "area")), by="municipio")
+
+
+
+#' Obtém a classificação da área por faixa de ocupação
+auxiliar <- auxiliar %>% mutate(faixa_area = sapply(auxiliar[, c("area")], function(x) ifelse(is.na(x), NA,
+                                                                                              ifelse(x> 200, ">200", 
+                                                                                                     ifelse(x >= 161, "161 - 200", 
+                                                                                                            ifelse(x >= 131, "131 - 160", 
+                                                                                                                   ifelse(x >= 101, "101 - 130",
+                                                                                                                          ifelse(x >= 71, "71 - 100",  
+                                                                                                                                 ifelse(x >= 51, "51 - 70",
+                                                                                                                                        ifelse(x >= 31, "31 - 50", "<30"))))))))))
+
+#' Obtém a soma dos acervos das bibliotecas por município
+auxiliar <- left_join(auxiliar, setNames(aggregate(dados_biblios$acervo, by= list(dados_biblios$municipio), sum_), c("municipio", "acervo")), by="municipio")
+
+#' Obtém a classificação do acervo por faixa
+auxiliar <- auxiliar %>% mutate(faixa_acervo = sapply(auxiliar[, c("acervo")], function(x) ifelse(x > 50000, "acima de 50.000", 
+                                                                                                  ifelse(x >= 20001, "20.001 - 50.000", 
+                                                                                                         ifelse(x >= 10001, "10.001 - 20.000", 
+                                                                                                                ifelse(x >= 5001, "5.001 - 10.000",
+                                                                                                                       ifelse(x >= 3001, "3.001 - 5.000",
+                                                                                                                              ifelse(x >= 1001, "1.001 - 3.000", "até 1.000"))))))))
+
+#' Obtém a quantidade de leitores por mês, por município
+auxiliar <- left_join(auxiliar, setNames(aggregate(dados_biblios$leitores_por_mes, by= list(dados_biblios$municipio), sum_), c("municipio", "leitores")) , by="municipio")
+
+#' Obtém a média mensal de empréstimos, por município
+auxiliar <- left_join(auxiliar, setNames(aggregate(dados_biblios$media_mensal_emprestimo, by= list(dados_biblios$municipio), sum_), c("municipio", "media_emprestimo")), by="municipio")
+
+#' Obtém a informação se o município tem alguma biblioteca com computador com acesso à internet. Para isso, a função aggregate agrupa as bibliotecas por município. Em seguida,
+#' é verificado se algum das bibliotecas tem acesso. Se tiver, então o resultado é Sim. Caso não tenha nenhum um sim, então é verificado se há o valor Branco, que na verdade indica 
+#' que a informação não é conhecida. Nesse caso, o resultado é NA. 
+auxiliar <- left_join(auxiliar, setNames(aggregate(dados_biblios$pc_internet, by= list(dados_biblios$municipio), function(x)  ifelse(any(x=="Sim"), "Sim", 
+                                                                                                                                     ifelse(x=="Branco", as.numeric(NA), "Não"))), c("municipio", "internet") ), by="municipio")
+#' Obtém a informação sobre a compra de livros, por município
+auxiliar <- left_join(auxiliar, setNames(aggregate(dados_biblios$prefeitura_comprou_ultimos_2_anos, by= list(dados_biblios$municipio), function(x)  ifelse(any(x=="Sim"), "Sim", "Não")), c("municipio", "compras")), by="municipio")
+
+#' Agora será feita a união da tabela auxiliar com a tabela de indicadores, pelo código do IBGE
+indicadores <- left_join(indicadores, auxiliar, by="IBGE7")
+
+#' Atualiza os indicadores com base nas variáveis calculadas anteriormente. Em seguida, remove a coluna que não é mais necessária
 indicadores <- indicadores %>% mutate(C_AREABIB = indicadores$faixa_area) %>% select(-faixa_area)
-
 indicadores <- indicadores %>% mutate(C_ACERVOBIB = indicadores$faixa_acervo) %>% select(-faixa_acervo)
+indicadores <- indicadores %>% mutate(C_WEBBIB = indicadores$internet) %>% select(-internet)
+indicadores <- indicadores %>% mutate(C_COMPBIB = indicadores$compra) %>% select(-compras)
+indicadores <- indicadores %>% mutate(C_LEITMESBIB = indicadores$lei) %>% select(-leitores)
+indicadores <- indicadores %>% mutate(C_EMPMESBIB = indicadores$media_emprestimo) %>% select(-media_emprestimo)
+indicadores <- indicadores %>% mutate(C_NUMBIB = indicadores$num_bib) %>% select(-num_bib)
+indicadores <- indicadores %>% select(-c("area", "acervo", "municipio"))
 
-indicadores <- indicadores %>% mutate(C_WEBBIB = indicadores$Internet) %>% select(-Internet)
+#' Verifica se as variáveis binárias estão corretas
 
-indicadores <- indicadores %>% mutate(C_COMPBIB = indicadores$Compras) %>% select(-Compras)
 
-indicadores <- indicadores %>% mutate(C_LEITMESBIB = indicadores$Leitores) %>% select(-Leitores)
+variaveis_binarias <- c("C_MUSEU", "C_TEATRO", "C_CINEMA", "C_BIBLIOTECA", "C_CENTROC", "C_EQUIP", "C_BANDA", "C_WEBBIB", "C_COMPBIB", "C_LEGPAT", "C_ARQPUB")
 
-indicadores <- indicadores %>% mutate(C_EMPMESBIB = indicadores$`Média emprestimo`) %>% select(-`Média emprestimo`)
+for(var in c(1:length(variaveis_binarias))){
+  if(any(apply(indicadores[c("C_MUSEU")], 1, function(x) x %in% c("Sim", "Não", NA) ==  FALSE))){
+    stop(paste("Erro na variável binária ", variaveis_binarias[var]))
+  }
+}
 
-indicadores <- indicadores %>% mutate(C_NUMBIB = indicadores$`num bib`) %>% select(-`num bib`)
+write_xlsx(indicadores, "indicadores.xlsx", )
 
-indicadores <- indicadores %>% select(-c("Área", "Acervo"))
