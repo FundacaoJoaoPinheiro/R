@@ -277,6 +277,7 @@ indicadores <- indicadores %>% select(-c(somatorio_para_calculo_de_pontuacao_pel
 dados_biblios <- dados_biblios %>% janitor::clean_names()
 dados_biblios$municipio = tolower(dados_biblios$municipio)
 
+#' Extrai a informação sobre os limites da faixa de área de ocupação, criando duas novas colunas
 dados_biblios <- dados_biblios %>% mutate(faixa_area_de_ocupacao_min = sapply(dados_biblios$faixa_area_de_ocupacao,
                                                                               function(x) ifelse(length(grep("-", x))>0, strsplit(x, "[-]")[[1]][1], 
                                                                                                  ifelse(length(grep(">", x))>0, "201", 
@@ -287,23 +288,26 @@ dados_biblios <- dados_biblios %>% mutate(faixa_area_de_ocupacao_min = sapply(da
                                                                        ifelse(length(grep(">", x))>0, "201", NA)))), .after="faixa_area_de_ocupacao")
 #' Faz a conversão dos dados de caracter para númerico                       
 dados_biblios[, c("faixa_area_de_ocupacao_max", "faixa_area_de_ocupacao_min")] <- sapply(dados_biblios[, c("faixa_area_de_ocupacao_max", "faixa_area_de_ocupacao_min")], as.numeric)
+
+#' Obtém a área de ocupação por biblioteca da seguinte forma: Caso a área de ocupação tenha sido informada, ela é considerada. Caso a área não tenha sido informada, mas a faixa sim, então
+#' calcula-se a média da área de acordo com a faixa ((valor_maior - valor_menor)/2 + valor_menor)
 dados_biblios <- dados_biblios %>% mutate(area_pela_faixa= apply(dados_biblios[c("area_de_ocupacao_m2", "faixa_area_de_ocupacao_max", "faixa_area_de_ocupacao_min")], 1, function(x) ifelse(is.na(x[1]), (((x[2]-x[3])/2)+x[3]), x[1])), .after="faixa_area_de_ocupacao")
 
-a <- apply(dados_biblios[c("area_de_ocupacao_m2", "faixa_area_de_ocupacao_max", "faixa_area_de_ocupacao_min")], 1, function(x) ifelse(is.na(x[1]), (((x[2]-x[3])/2)+x[3]), x[1]))
-#(dados_biblios$faixa_area_de_ocupacao_max - dados_biblios$faixa_area_de_ocupacao_min)/2+dados_biblios$faixa_area_de_ocupacao_min, .after="faixa_area_de_ocupacao")
-
+#' Obtém os limites das faixas de acervo
 dados_biblios <- dados_biblios %>% mutate(faixa_acervo_min = sapply(dados_biblios$faixa_livros_milhares,
                                                                     function(x) ifelse(length(grep("-", x))>0, strsplit(x, "[-]")[[1]][1], 
                                                                                        ifelse(length(grep(">", x))>0, "51", 
                                                                                               ifelse(length(grep("<", x))>0, "1", NA)))), .after="faixa_livros_milhares") %>%
-  mutate(faixa_acervo_max = sapply(dados_biblios$faixa_livros_milhares,
-                                   function(x) ifelse(length(grep("-", x))>0, strsplit(x, "[-]")[[1]][2], 
+                                   mutate(faixa_acervo_max = sapply(dados_biblios$faixa_livros_milhares,
+                                              function(x) ifelse(length(grep("-", x))>0, strsplit(x, "[-]")[[1]][2], 
                                                       ifelse(length(grep("<", x))>0, "1",
                                                              ifelse(length(grep(">", x))>0, "51", NA)))), .after="faixa_livros_milhares")
+#' Converte os dados para números
 dados_biblios[, c("faixa_acervo_max", "faixa_acervo_min")] <- sapply(dados_biblios[, c("faixa_acervo_max", "faixa_acervo_min")], as.numeric)
+
+#' Obtém a quantidade de livros por biblioteca. Se o valor do acervo foi informado, então usa-se esse valor. Caso contrário, usa-se o valor médio
+#' da faixa de acervo
 dados_biblios <- dados_biblios %>% mutate(acervo = apply(dados_biblios[c("quantos_livros_34", "faixa_acervo_min", "faixa_acervo_max")], 1, function(x) ifelse(is.na(x[1]), (((x[3]-x[2])/2)+x[2])*1000, x[1])), .after="faixa_livros_milhares")
-
-
 
 #' Aqui será criada uma tabela auxiliar onde a unidade de análise é o municipío. Isso é necessário
 #' pois nos dados da secretaria, a unidade de análise é a biblioteca
@@ -325,7 +329,8 @@ if(any(is.na(auxiliar$IBGE7))){
 }
 
 #' Obtem a área de ocupação das bibliotecas, por município. Isso é feito da seguinte forma:
-#' - aggregate: soma as áreas de ocupação agrupadas por município
+#' - aggregate: soma as áreas de ocupação agrupadas por município (Observe que está sendo utilizada a função sum_. Ela é ligeiramente diferente pois retorna
+#'              NA caso todos os valores sejam NA ou o valor da soma caso um ou mais elementos sejam diferente de NA.)
 #' - setNames: atribui nomes às colunas retornadas pela função aggregate, nesse caso, municipio e area 
 #' - left_join: faz a união da tabela retornada pela função aggregate à tabela auxiliar, de acordo com o município
 auxiliar <-  left_join(auxiliar, setNames(aggregate(dados_biblios$area_pela_faixa, by= list(dados_biblios$municipio), sum_), c("municipio", "area")), by="municipio")
