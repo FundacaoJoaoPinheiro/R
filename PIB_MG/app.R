@@ -15,46 +15,58 @@ library(highcharter)
 library(tidyverse)
 library("xlsx")
 library("shinyjs")
-
+library(shinyBS)
+library(rvest)
 
 
 # Importação dos dados e pré-processamento ------------------------------------------------------------------------------
 
-#temp = tempfile(fileext = ".xlsx")
-#dataURL <- "http://fjp.mg.gov.br/wp-content/uploads/2020/09/Anexo-estatistico-PIB-MG-anual-2010-2018.xlsx"
-#download.file(dataURL, destfile=temp, mode='wb')
+temp = tempfile(fileext = ".xlsx")
+pag_fjp <- read_html("http://fjp.mg.gov.br/produto-interno-bruto-pib-de-minas-gerais/")
+url <- pag_fjp %>% html_element(xpath = "//div[@id='elementor-tab-content-1428']/ul/li[2]/a") %>% html_attr(name = 'href')
+download.file(url, destfile=temp, mode='wb')
 #file_tab1 <- read.xlsx(temp, sheet= 1)
-file_tab1 <- read.xlsx("H:\\FJP\\scripts\\Anexo-estatistico-PIB-MG-anual-2010-2018.xlsx", sheetIndex = 1)
-file_tab4 <- read.xlsx("H:\\FJP\\scripts\\Anexo-estatistico-PIB-MG-anual-2010-2018.xlsx", sheetIndex = 4)
-file_tab5 <- read.xlsx("H:\\FJP\\scripts\\Anexo-estatistico-PIB-MG-anual-2010-2018.xlsx", sheetIndex = 5)
-file_tab6 <- read.xlsx("H:\\FJP\\scripts\\Anexo-estatistico-PIB-MG-anual-2010-2018.xlsx", sheetIndex = 6)
-file_tab7 <- read.xlsx("H:\\FJP\\scripts\\Anexo-estatistico-PIB-MG-anual-2010-2018.xlsx", sheetIndex = 7)
-file_tab8 <- read.xlsx("H:\\FJP\\scripts\\Anexo-estatistico-PIB-MG-anual-2010-2018.xlsx", sheetIndex = 8)
-file_tab10 <- read.xlsx("H:\\FJP\\scripts\\Anexo-estatistico-PIB-MG-anual-2010-2018.xlsx", sheetIndex = 10)
+file_tab1 <- read.xlsx(temp, sheetIndex = 1)
+file_tab4 <- read.xlsx(temp, sheetIndex = 4)
+file_tab5 <- read.xlsx(temp, sheetIndex = 5)
+file_tab6 <- read.xlsx(temp, sheetIndex = 6)
+file_tab7 <- read.xlsx(temp, sheetIndex = 7)
+file_tab8 <- read.xlsx(temp, sheetIndex = 8)
+file_tab10 <- read.xlsx(temp, sheetIndex = 10)
+
+#file_tab1 <- read.xlsx("H:\\FJP\\scripts\\Anexo-estatistico-PIB-MG-anual-2010-2018.xlsx", sheetIndex = 1)
+#file_tab4 <- read.xlsx("H:\\FJP\\scripts\\Anexo-estatistico-PIB-MG-anual-2010-2018.xlsx", sheetIndex = 4)
+#file_tab5 <- read.xlsx("H:\\FJP\\scripts\\Anexo-estatistico-PIB-MG-anual-2010-2018.xlsx", sheetIndex = 5)
+#file_tab6 <- read.xlsx("H:\\FJP\\scripts\\Anexo-estatistico-PIB-MG-anual-2010-2018.xlsx", sheetIndex = 6)
+#file_tab7 <- read.xlsx("H:\\FJP\\scripts\\Anexo-estatistico-PIB-MG-anual-2010-2018.xlsx", sheetIndex = 7)
+#file_tab8 <- read.xlsx("H:\\FJP\\scripts\\Anexo-estatistico-PIB-MG-anual-2010-2018.xlsx", sheetIndex = 8)
+#file_tab10 <- read.xlsx("H:\\FJP\\scripts\\Anexo-estatistico-PIB-MG-anual-2010-2018.xlsx", sheetIndex = 10)
 
 
-contas_economicas <- file_tab1[c(7,8,10,17,18,19,20,21,11), c(1:10)]
+ultimo_ano <- file_tab1[4, ]
+ultimo_ano <- as.numeric(max(ultimo_ano[!is.na(ultimo_ano)]))
+
+contas_economicas <- file_tab1[c(7,8,10,17,18,19,20,21,11), c(1:(ultimo_ano-2010+2))]
 nomes <- c("Produção", "Impostos produtos", "Consumo Intermediário", "Remuneração", "Salários", "Contribuições", "Impostos produção", "Excedente", "Valor adicionado bruto")
 nomes_producao <- c("Produção", "Impostos produtos", "Consumo Intermediário", "Valor adicionado bruto")
 nomes_renda <- c("Remuneração", "Salários", "Contribuições", "Impostos produção", "Excedente", "Valor adicionado bruto")
 contas_economicas[, 1] <-  nomes
-colnames(contas_economicas)[c(1:10)] <- c("contas", as.character(c(2010:2018)))
+colnames(contas_economicas)[c(1:(ultimo_ano-2010+2))] <- c("contas", as.character(c(2010:ultimo_ano)))
 contas_economicas <- contas_economicas %>% gather(key = 'ano', value = 'valor', -contas)
 contas_economicas[, -1] <- lapply(contas_economicas[, -1], as.numeric) # make all columns numeric
 
 
-pib_percapita <- file_tab4[c(5,9,12), c(1:10)]
+pib_percapita <- file_tab4[c(5,9,12), c(1:(ultimo_ano-2010+2))]
 nomes <- c("PIB", "População", "PIB per capita")
 pib_percapita[, 1] <-  nomes
-colnames(pib_percapita)[c(1:10)] <- c("especificacao", as.character(c(2010:2018)))
+colnames(pib_percapita)[c(1:(ultimo_ano-2010+2))] <- c("especificacao", as.character(c(2010:ultimo_ano)))
 pib_percapita <- pib_percapita %>% gather(key = 'ano', value = 'valor', -especificacao)
 pib_percapita[, -1] <- lapply(pib_percapita[, -1], as.numeric) # make all columns numeric
 
-
-vbp_corrente <- file_tab5[c(7:27), c(1,2, 6, 10, 14, 18, 22, 26, 30, 34)]
-vbp_var_volume <- file_tab5[c(7:27), c(1, 3, 7, 11, 15, 19, 23, 27, 31)]
-vbp_var_preco <- file_tab5[c(7:27), c(1, 5, 9, 13, 17, 21, 25, 29, 33)]
-vbp_particip <- file_tab8[c(6:26), c(1:10)]
+vbp_corrente <- file_tab5[c(7:27), c(1, seq(2, length=(ultimo_ano-2010+1), by=4))] 
+vbp_var_volume <- file_tab5[c(7:27), c(1, seq(3, length=(ultimo_ano-2010), by=4))] 
+vbp_var_preco <- file_tab5[c(7:27), c(1, seq(5, length=(ultimo_ano-2010), by=4))]
+vbp_particip <- file_tab8[c(6:26), c(1:(ultimo_ano-2010+2))]
 setores <- c("Agropecuária",
            "Agricultura",
            "Pecuária",
@@ -87,12 +99,12 @@ aspectos2 <- c("Valor corrente" = 'vc', "Var. volume" = 'vv', "Var. preço" = 'v
 tiposGraficos <- c("Linha" = 'linha', "Barra"= 'barra', "Barra Empilhado" = 'barra_empilhado', "Pizza" = 'pizza')
 tiposGraficos2 <- c("Linha" = 'linha', "Barra"= 'barra')
 vbp_corrente[, 1] <-  setores
-colnames(vbp_corrente)[c(1:10)] <- c("setor", as.character(c(2010:2018)))
+colnames(vbp_corrente)[c(1:(ultimo_ano-2010+2))] <- c("setor", as.character(c(2010:ultimo_ano)))
 vbp_corrente <- vbp_corrente %>% gather(key = 'ano', value = 'valor', -setor)
 vbp_corrente[, -1] <- lapply(vbp_corrente[, -1], as.numeric) # make all columns numeric
 
 vbp_var_volume[, 1] <-  setores
-colnames(vbp_var_volume)[c(1:9)] <- c("setor", as.character(c(2011:2018)))
+colnames(vbp_var_volume)[c(1:(ultimo_ano-2010+1))] <- c("setor", as.character(c(2011:ultimo_ano)))
 vbp_var_volume <- vbp_var_volume %>% gather(key = 'ano', value = 'valor', -setor)
 vbp_var_volume[, -1] <- lapply(vbp_var_volume[, -1], as.numeric) # make all columns numeric
 aux <- data.frame(setores, 2010, NA)
@@ -100,7 +112,7 @@ names(aux) <- c("setor", "ano", "valor")
 vbp_var_volume <- rbind(aux, vbp_var_volume)
 
 vbp_var_preco[, 1] <-  setores
-colnames(vbp_var_preco)[c(1:9)] <- c("setor", as.character(c(2011:2018)))
+colnames(vbp_var_preco)[c(1:(ultimo_ano-2010+1))] <- c("setor", as.character(c(2011:ultimo_ano)))
 vbp_var_preco <- vbp_var_preco %>% gather(key = 'ano', value = 'valor', -setor)
 vbp_var_preco[, -1] <- lapply(vbp_var_preco[, -1], as.numeric) # make all columns numeric
 aux <- data.frame(setores, 2010, NA)
@@ -108,7 +120,7 @@ names(aux) <- c("setor", "ano", "valor")
 vbp_var_preco <- rbind(aux, vbp_var_preco)
 
 vbp_particip[, 1] <-  setores
-colnames(vbp_particip)[c(1:10)] <- c("setor", as.character(c(2010:2018)))
+colnames(vbp_particip)[c(1:(ultimo_ano-2010+2))] <- c("setor", as.character(c(2010:ultimo_ano)))
 vbp_particip <- vbp_particip %>% gather(key = 'ano', value = 'valor', -setor)
 vbp_particip[, -1] <- lapply(vbp_particip[, -1], as.numeric) # make all columns numeric
 
@@ -116,18 +128,18 @@ vbp <- cbind(vbp_corrente, vbp_var_volume[3], vbp_var_preco[3],  vbp_particip[, 
 colnames(vbp) <- c("setor", "ano", "corrente", "var_volume", "var_preco", "particip")
 
 
-ci_corrente <- file_tab6[c(7:27), c(1,2, 6, 10, 14, 18, 22, 26, 30, 34)]
-ci_var_volume <- file_tab6[c(7:27), c(1, 3, 7, 11, 15, 19, 23, 27, 31)]
-ci_var_preco <- file_tab6[c(7:27), c(1, 5, 9, 13, 17, 21, 25, 29, 33)]
-ci_particip <- file_tab8[c(6:26), c(1, 11:19)]
+ci_corrente <- file_tab6[c(7:27), c(1, seq(2, length=(ultimo_ano-2010+1), by=4))]
+ci_var_volume <- file_tab6[c(7:27), c(1, seq(3, length=(ultimo_ano-2010), by=4))]
+ci_var_preco <- file_tab6[c(7:27), c(1, seq(5, length=(ultimo_ano-2010), by=4))]
+ci_particip <- file_tab8[c(6:26), c(1, seq((ultimo_ano-2010+3), length=(ultimo_ano-2010+1), by=1))]
 
 ci_corrente[, 1] <-  setores
-colnames(ci_corrente)[c(1:10)] <- c("setor", as.character(c(2010:2018)))
+colnames(ci_corrente)[c(1:(ultimo_ano-2010+2))] <- c("setor", as.character(c(2010:ultimo_ano)))
 ci_corrente <- ci_corrente %>% gather(key = 'ano', value = 'valor', -setor)
 ci_corrente[, -1] <- lapply(ci_corrente[, -1], as.numeric) # make all columns numeric
 
 ci_var_volume[, 1] <-  setores
-colnames(ci_var_volume)[c(1:9)] <- c("setor", as.character(c(2011:2018)))
+colnames(ci_var_volume)[c(1:(ultimo_ano-2010+1))] <- c("setor", as.character(c(2011:ultimo_ano)))
 ci_var_volume <- ci_var_volume %>% gather(key = 'ano', value = 'valor', -setor)
 ci_var_volume[, -1] <- lapply(ci_var_volume[, -1], as.numeric) # make all columns numeric
 aux <- data.frame(setores, 2010, NA)
@@ -135,7 +147,7 @@ names(aux) <- c("setor", "ano", "valor")
 ci_var_volume <- rbind(aux, ci_var_volume)
 
 ci_var_preco[, 1] <-  setores
-colnames(ci_var_preco)[c(1:9)] <- c("setor", as.character(c(2011:2018)))
+colnames(ci_var_preco)[c(1:(ultimo_ano-2010+1))] <- c("setor", as.character(c(2011:ultimo_ano)))
 ci_var_preco <- ci_var_preco %>% gather(key = 'ano', value = 'valor', -setor)
 ci_var_preco[, -1] <- lapply(ci_var_preco[, -1], as.numeric) # make all columns numeric
 aux <- data.frame(setores, 2010, NA)
@@ -143,7 +155,7 @@ names(aux) <- c("setor", "ano", "valor")
 ci_var_preco <- rbind(aux, ci_var_preco)
 
 ci_particip[, 1] <-  setores
-colnames(ci_particip)[c(1:10)] <- c("setor", as.character(c(2010:2018)))
+colnames(ci_particip)[c(1:(ultimo_ano-2010+2))] <- c("setor", as.character(c(2010:ultimo_ano)))
 ci_particip <- ci_particip %>% gather(key = 'ano', value = 'valor', -setor)
 ci_particip[, -1] <- lapply(ci_particip[, -1], as.numeric) # make all columns numeric
 
@@ -151,19 +163,19 @@ ci <- cbind(ci_corrente, ci_var_volume[3], ci_var_preco[3],  ci_particip[, 3])
 colnames(ci) <- c("setor", "ano", "corrente", "var_volume", "var_preco", "particip")
 
 
-vab_corrente <- file_tab7[c(7:27), c(1,2, 6, 10, 14, 18, 22, 26, 30, 34)]
-vab_var_volume <- file_tab7[c(7:27), c(1, 3, 7, 11, 15, 19, 23, 27, 31)]
-vab_var_preco <- file_tab7[c(7:27), c(1, 5, 9, 13, 17, 21, 25, 29, 33)]
-vab_particip <- file_tab8[c(6:26), c(1, 20:28)]
-vab_particip_br <- file_tab10[c(6:26), c(1:10)]
+vab_corrente <- file_tab7[c(7:27), c(1, seq(2, length=(ultimo_ano-2010+1), by=4))]
+vab_var_volume <- file_tab7[c(7:27), c(1, seq(3, length=(ultimo_ano-2010), by=4))]
+vab_var_preco <- file_tab7[c(7:27), c(1, seq(5, length=(ultimo_ano-2010), by=4))]
+vab_particip <- file_tab8[c(6:26), c(1, seq((ultimo_ano-2010+2)*2, length=(ultimo_ano-2010+1), by=1))]
+vab_particip_br <- file_tab10[c(6:26), c(1:(ultimo_ano-2010+2))]
 
 vab_corrente[, 1] <-  setores
-colnames(vab_corrente)[c(1:10)] <- c("setor", as.character(c(2010:2018)))
+colnames(vab_corrente)[c(1:(ultimo_ano-2010+2))] <- c("setor", as.character(c(2010:ultimo_ano)))
 vab_corrente <- vab_corrente %>% gather(key = 'ano', value = 'valor', -setor)
 vab_corrente[, -1] <- lapply(vab_corrente[, -1], as.numeric) # make all columns numeric
 
 vab_var_volume[, 1] <-  setores
-colnames(vab_var_volume)[c(1:9)] <- c("setor", as.character(c(2011:2018)))
+colnames(vab_var_volume)[c(1:(ultimo_ano-2010+1))] <- c("setor", as.character(c(2011:ultimo_ano)))
 vab_var_volume <- vab_var_volume %>% gather(key = 'ano', value = 'valor', -setor)
 vab_var_volume[, -1] <- lapply(vab_var_volume[, -1], as.numeric) # make all columns numeric
 aux <- data.frame(setores, 2010, NA)
@@ -171,7 +183,7 @@ names(aux) <- c("setor", "ano", "valor")
 vab_var_volume <- rbind(aux, vab_var_volume)
 
 vab_var_preco[, 1] <-  setores
-colnames(vab_var_preco)[c(1:9)] <- c("setor", as.character(c(2011:2018)))
+colnames(vab_var_preco)[c(1:(ultimo_ano-2010+1))] <- c("setor", as.character(c(2011:ultimo_ano)))
 vab_var_preco <- vab_var_preco %>% gather(key = 'ano', value = 'valor', -setor)
 vab_var_preco[, -1] <- lapply(vab_var_preco[, -1], as.numeric) # make all columns numeric
 aux <- data.frame(setores, 2010, NA)
@@ -179,12 +191,12 @@ names(aux) <- c("setor", "ano", "valor")
 vab_var_preco <- rbind(aux, vab_var_preco)
 
 vab_particip[, 1] <-  setores
-colnames(vab_particip)[c(1:10)] <- c("setor", as.character(c(2010:2018)))
+colnames(vab_particip)[c(1:(ultimo_ano-2010+2))] <- c("setor", as.character(c(2010:ultimo_ano)))
 vab_particip <- vab_particip %>% gather(key = 'ano', value = 'valor', -setor)
 vab_particip[, -1] <- lapply(vab_particip[, -1], as.numeric) # make all columns numeric
 
 vab_particip_br[, 1] <-  setores
-colnames(vab_particip_br)[c(1:10)] <- c("setor", as.character(c(2010:2018)))
+colnames(vab_particip_br)[c(1:(ultimo_ano-2010+2))] <- c("setor", as.character(c(2010:ultimo_ano)))
 vab_particip_br <- vab_particip_br %>% gather(key = 'ano', value = 'valor', -setor)
 vab_particip_br[, -1] <- lapply(vab_particip_br[, -1], as.numeric) # make all columns numeric
 
@@ -268,17 +280,14 @@ loadingLogo <- function(href, src, loadingsrc, height = NULL, width = NULL, alt 
 
 # USER INTERFACE -------------------------------------------------------------------------------------
 ui <- dashboardPage(
-   
+  
     #Título
     header <- dashboardHeader(title =  loadingLogo('http://fjp.mg.gov.br/',
-                                                       'H://FJP//cripts//Shiny//PIB//logo_fjp2.png',
-                                                       'H://FJP//cripts//Shiny//PIB//loader.gif', 
-                                                       200,200)),
-                                      
-                                      
-                                     # tags$a(href='http://fjp.mg.gov.br/',
-                                      #           tags$img(src='H://FJP//cripts//Shiny//PIB//logo_fjp.png', )), 
-                                  #),      
+                                                                     'logo_fjp.png',
+                                                                     'loader.gif', 
+                                                                     40,40)),
+                              
+                              
     #Barra lateral    
     dashboardSidebar(
         sidebarMenu( id = "barra_lateral",
@@ -300,6 +309,34 @@ ui <- dashboardPage(
             
     #Corpo    
     dashboardBody(
+        #altera a cor do cabeçalho e coloca o título
+        tags$head(tags$style(HTML(
+            '.myClass { 
+        font-size: 20px;
+        line-height: 50px;
+        text-align: left;
+        font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+        padding: 0 15px;
+        overflow: hidden;
+        color: white;
+        }
+        '))),
+          tags$script(HTML('
+        $(document).ready(function() {
+          $("header").find("nav").append(\'<span class="myClass"> PIB MG </span>\');
+        })
+       ')),
+          
+        tags$head(tags$style(HTML('
+        /* logo */
+        .skin-blue .main-header .logo {
+                              background-color: #c3c3c3;
+                              }
+        /* logo when hovered */
+        .skin-blue .main-header .logo:hover {
+                              background-color: #c3c3c3;
+                              }'))),
+        
         tabItems(
             tabItem(tabName = 'contas_economicas',
                 fluidRow( 
@@ -314,7 +351,7 @@ ui <- dashboardPage(
                             box(
                                 status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
                                 radioButtons(inputId = "valor_absoluto_lineplot_prod",choices = c("Valores absolutos", "valores relativos"), label = NULL, inline = TRUE),
-                                sliderInput("anos_lineplot_prod", "Escolha o ano:", min=2010, max=2018, value=c(2010, 2018),animate=T)
+                                sliderInput("anos_lineplot_prod", "Escolha o ano:", min=2010, max=ultimo_ano, value=c(2010, ultimo_ano),animate=T)
                             )
                             
                         ),
@@ -324,7 +361,7 @@ ui <- dashboardPage(
                             fluidRow(box(highchartOutput('piePlot_prod'), height=400 ,width = 12)),#,background='white')),
                             box(
                                 status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
-                                sliderInput("anos_columplot_prod", "Escolha o ano:", min=2010, max=2018, value=c(2010, 2018),animate=T)
+                                sliderInput("anos_columplot_prod", "Escolha o ano:", min=2010, max=ultimo_ano, value=c(2010, ultimo_ano),animate=T)
                             )
                         )
                     ),
@@ -344,7 +381,7 @@ ui <- dashboardPage(
                             fluidRow(box(highchartOutput('linePlot_renda'), height=400,width = 12)),#,background='white')),
                             box(
                                 status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
-                                sliderInput("anos_lineplot_renda", "Escolha o ano:", min=2010, max=2018, value=c(2010, 2018),animate=T)
+                                sliderInput("anos_lineplot_renda", "Escolha o ano:", min=2010, max=ultimo_ano, value=c(2010, ultimo_ano),animate=T)
                             )
                         ),
                         box(
@@ -353,7 +390,7 @@ ui <- dashboardPage(
                             fluidRow(box(highchartOutput('piePlot_renda'), height=400 ,width = 12)),#,background='white')),
                             box(
                                 status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
-                                sliderInput("anos_columnplot_renda", "Escolha o ano:", min=2010, max=2018, value=c(2010, 2018),animate=T)
+                                sliderInput("anos_columnplot_renda", "Escolha o ano:", min=2010, max=ultimo_ano, value=c(2010, ultimo_ano),animate=T)
                             )
                         )
                     )
@@ -371,7 +408,7 @@ ui <- dashboardPage(
                             box(
                                 status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
                                 radioButtons(inputId = "tipo_graf_lineplot_pib_percapita8",choices = c("Linha", "Barra"), label = NULL, inline = TRUE),
-                                sliderInput("anos_lineplot_pib_percapita8", "Escolha o ano:", min=2010, max=2018, value=c(2010, 2018),animate=T)
+                                sliderInput("anos_lineplot_pib_percapita8", "Escolha o ano:", min=2010, max=ultimo_ano, value=c(2010, ultimo_ano),animate=T)
                             )
                             
                         ),
@@ -389,7 +426,7 @@ ui <- dashboardPage(
                             box(
                                 status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
                                 radioButtons(inputId = "tipo_graf_lineplot_pib_percapita1",choices = c("Linha", "Barra"), label = NULL, inline = TRUE),
-                                sliderInput("anos_lineplot_pib_percapita1", "Escolha o ano:", min=2010, max=2018, value=c(2010, 2018),animate=T)
+                                sliderInput("anos_lineplot_pib_percapita1", "Escolha o ano:", min=2010, max=ultimo_ano, value=c(2010, ultimo_ano),animate=T)
                             )
                             
                         ),
@@ -407,7 +444,7 @@ ui <- dashboardPage(
                             box(
                                 status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
                                 radioButtons(inputId = "tipo_graf_lineplot_pib_percapita2",choices = c("Linha", "Barra"), label = NULL, inline = TRUE),
-                                sliderInput("anos_lineplot_pib_percapita2", "Escolha o ano:", min=2010, max=2018, value=c(2010, 2018),animate=T)
+                                sliderInput("anos_lineplot_pib_percapita2", "Escolha o ano:", min=2010, max=ultimo_ano, value=c(2010, ultimo_ano),animate=T)
                             )
                             
                         ),
@@ -425,7 +462,7 @@ ui <- dashboardPage(
                             box(
                                 status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
                                 radioButtons(inputId = "tipo_graf_lineplot_pib_percapita3",choices = c("Linha", "Barra"), label = NULL, inline = TRUE),
-                                sliderInput("anos_lineplot_pib_percapita3", "Escolha o ano:", min=2010, max=2018, value=c(2010, 2018),animate=T)
+                                sliderInput("anos_lineplot_pib_percapita3", "Escolha o ano:", min=2010, max=ultimo_ano, value=c(2010, ultimo_ano),animate=T)
                             )
                             
                         ),
@@ -483,7 +520,7 @@ ui <- dashboardPage(
                     fluidRow(
                         box(
                             status = "info", solidHeader = FALSE, width = 3, collapsed = FALSE, collapsible = TRUE,
-                            sliderInput("anos_lineplot_pib_percapita7", "Escolha o ano:", min=2010, max=2018, value=c(2010, 2018),animate=T)
+                            sliderInput("anos_lineplot_pib_percapita7", "Escolha o ano:", min=2010, max=ultimo_ano, value=c(2010, ultimo_ano),animate=T)
                         )
                     )
                     
@@ -533,8 +570,8 @@ ui <- dashboardPage(
                                     ),
                                     box(
                                         status = "warning", solidHeader = FALSE, width = 6, collapsible = FALSE,
-                                        sliderInput("anos_resultados_aspecto_fixo", "Escolha o ano:", min=2010, max=2018, value=c(2010, 2018),animate=T),
-                                        sliderInput("anos_resultados_aspecto_fixo_pizza", "Escolha o ano:", min=2010, max=2018, value=c(2018),animate=T)
+                                        sliderInput("anos_resultados_aspecto_fixo", "Escolha o ano:", min=2010, max=ultimo_ano, value=c(2010, ultimo_ano),animate=T),
+                                        sliderInput("anos_resultados_aspecto_fixo_pizza", "Escolha o ano:", min=2010, max=ultimo_ano, value=c(ultimo_ano),animate=T)
                                     ),
                                     
                                 )        
@@ -577,7 +614,7 @@ ui <- dashboardPage(
                                          ),
                                          box(
                                              status = "warning", solidHeader = FALSE, width = 6, collapsible = FALSE,
-                                             sliderInput("anos_resultados_setor_fixo", "Escolha o ano:", min=2010, max=2018, value=c(2010, 2018),animate=T),
+                                             sliderInput("anos_resultados_setor_fixo", "Escolha o ano:", min=2010, max=ultimo_ano, value=c(2010, ultimo_ano),animate=T),
                                              
                                          ),
                                          
@@ -589,7 +626,7 @@ ui <- dashboardPage(
         )
        
     ),
-                
+      
                
     shinyjs::useShinyjs(),           
              
@@ -606,284 +643,7 @@ server <- function(input, output, session) {
    
     #read_excel("H:\\FJP\\scripts\\Anexo-estatistico-PIB-MG-anual-2010-2018.xlsx")
     
-    output$plot_vbp_ci_vab_setor_fixo <- renderHighchart({
-        
-        anos <- c(input$anos_resultados_setor_fixo[1], input$anos_resultados_setor_fixo[2])
-        
-        h <- highchart() %>%
-            hc_exporting(enabled = T, fallbackToExportServer = F, menuItems = export) %>%
-            hc_xAxis(title = list(text = "Ano"), allowDecimals = FALSE)
-        
-        if(input$aspectos_setor_fixo == 'vc'){
-            
-            h <- h %>%
-                hc_title(text = list("Valor Corrente - MG")) %>%
-                hc_yAxis(title = list(text = "Valor corrente (1.000.000 R$)")) %>%
-                hc_tooltip(crosshairs = TRUE,
-                           borderWidth = 5,
-                           sort = FALSE,
-                           table = TRUE, 
-                           headerFormat = 'Ano: {point.x}<br>',
-                           pointFormat = "{series.name}: {point.y:.1f} mi R$ <br>")
-            
-            if(input$tipo_grafico_setor_fixo == "barra"){
-                h <- h %>% hc_chart(type = "column")
-            }
-            
-            if(input$area_ou_setor_setor_fixo == "Setores"){
-                if(!is_empty(input$tipo_resultado_2)){
-                    ds <- lapply(input$tipo_resultado_2, function(x){
-                        d <- subset(valor_corrente, setor %in% input$spec_setores_setor_fixo & resultado %in% x & (ano >= anos[1] & ano <= anos[2]))
-                        data = data.frame(x = d$ano,
-                                          y = d$valor)
-                        
-                    })
-                
-                    for (k in 1:length(ds)) {
-                        h <- h %>%
-                            hc_add_series(ds[[k]], name = input$tipo_resultado_2[k])
-                    } 
-                    h <- h %>% hc_subtitle(text = input$spec_setores_setor_fixo)
-                }
-            }
-            else{
-                if(!is_empty(input$tipo_resultado_2)){
-                    ds <- lapply(input$tipo_resultado_2, function(x){
-                        d <- subset(valor_corrente, setor %in% input$spec_areas_setor_fixo & resultado %in% x & (ano >= anos[1] & ano <= anos[2]))
-                        data = data.frame(x = d$ano,
-                                          y = d$valor)
-                        
-                    })
-                    for (k in 1:length(ds)) {
-                        h <- h %>%
-                            hc_add_series(ds[[k]], name = input$tipo_resultado_2[k])
-                        
-                    }
-                    h <- h %>% hc_subtitle(text = input$spec_areas_setor_fixo)
-                    
-                }
-            }
-            
-            h
-        }
-        else if(input$aspectos_setor_fixo == 'vv'){
-            
-            h <- h %>%
-                hc_title(text = list("Variação de Volume - MG")) %>%
-                hc_yAxis(title = list(text = "Variação Volume (%)")) %>%
-                hc_tooltip(crosshairs = TRUE,
-                           borderWidth = 5,
-                           sort = FALSE,
-                           table = TRUE, 
-                           headerFormat = 'Ano: {point.x}<br>',
-                           pointFormat = "{series.name}: {point.y:.1f} mi R$ <br>")
-            
-            if(input$tipo_grafico_setor_fixo == "barra"){
-                h <- h %>% hc_chart(type = "column")
-            }
-            
-            if(input$area_ou_setor_setor_fixo == "Setores"){
-                if(!is_empty(input$tipo_resultado_2)){
-                    ds <- lapply(input$tipo_resultado_2, function(x){
-                        d <- subset(var_volume, setor %in% input$spec_setores_setor_fixo & resultado %in% x & (ano >= anos[1] & ano <= anos[2]))
-                        data = data.frame(x = d$ano,
-                                          y = d$valor)
-                        
-                    })
-                    
-                    for (k in 1:length(ds)) {
-                        h <- h %>%
-                            hc_add_series(ds[[k]], name = input$tipo_resultado_2[k])
-                    } 
-                    h <- h %>% hc_subtitle(text = input$spec_setores_setor_fixo)
-                }
-            }
-            else{
-                if(!is_empty(input$tipo_resultado_2)){
-                    ds <- lapply(input$tipo_resultado_2, function(x){
-                        d <- subset(var_volume, setor %in% input$spec_areas_setor_fixo & resultado %in% x & (ano >= anos[1] & ano <= anos[2]))
-                        data = data.frame(x = d$ano,
-                                          y = d$valor)
-                        
-                    })
-                    for (k in 1:length(ds)) {
-                        h <- h %>%
-                            hc_add_series(ds[[k]], name = input$tipo_resultado_2[k])
-                        
-                    }
-                    h <- h %>% hc_subtitle(text = input$spec_areas_setor_fixo)
-                    
-                }
-            }
-            
-            h 
-        }
-        else if(input$aspectos_setor_fixo == 'vp'){
-            
-            h <- h %>%
-                hc_title(text = list("Variação de Preço - MG")) %>%
-                hc_yAxis(title = list(text = "Variação Preço (%)")) %>%
-                hc_tooltip(crosshairs = TRUE,
-                           borderWidth = 5,
-                           sort = FALSE,
-                           table = TRUE, 
-                           headerFormat = 'Ano: {point.x}<br>',
-                           pointFormat = "{series.name}: {point.y:.1f} mi R$ <br>")
-            
-            if(input$tipo_grafico_setor_fixo == "barra"){
-                h <- h %>% hc_chart(type = "column")
-            }
-            
-            if(input$area_ou_setor_setor_fixo == "Setores"){
-                if(!is_empty(input$tipo_resultado_2)){
-                    ds <- lapply(input$tipo_resultado_2, function(x){
-                        d <- subset(var_preco, setor %in% input$spec_setores_setor_fixo & resultado %in% x & (ano >= anos[1] & ano <= anos[2]))
-                        data = data.frame(x = d$ano,
-                                          y = d$valor)
-                        
-                    })
-                    
-                    for (k in 1:length(ds)) {
-                        h <- h %>%
-                            hc_add_series(ds[[k]], name = input$tipo_resultado_2[k])
-                    } 
-                    h <- h %>% hc_subtitle(text = input$spec_setores_setor_fixo)
-                }
-            }
-            else{
-                if(!is_empty(input$tipo_resultado_2)){
-                    ds <- lapply(input$tipo_resultado_2, function(x){
-                        d <- subset(var_preco, setor %in% input$spec_areas_setor_fixo & resultado %in% x & (ano >= anos[1] & ano <= anos[2]))
-                        data = data.frame(x = d$ano,
-                                          y = d$valor)
-                        
-                    })
-                    for (k in 1:length(ds)) {
-                        h <- h %>%
-                            hc_add_series(ds[[k]], name = input$tipo_resultado_2[k])
-                        
-                    }
-                    h <- h %>% hc_subtitle(text = input$spec_areas_setor_fixo)
-                    
-                }
-            }
-            
-            h 
-            
-            
-        }
-        else if(input$aspectos_setor_fixo == 'pmg'){
-            
-            h <- h %>%
-                hc_title(text = list("Participação do Valor Corrente - MG")) %>%
-                hc_yAxis(title = list(text = "Participação (%)")) %>%
-                hc_tooltip(crosshairs = TRUE,
-                           borderWidth = 5,
-                           sort = FALSE,
-                           table = TRUE, 
-                           headerFormat = 'Ano: {point.x}<br>',
-                           pointFormat = "{series.name}: {point.y:.1f} mi R$ <br>")
-            
-            if(input$tipo_grafico_setor_fixo == "barra"){
-                h <- h %>% hc_chart(type = "column")
-            }
-            
-            if(input$area_ou_setor_setor_fixo == "Setores"){
-                if(!is_empty(input$tipo_resultado_2)){
-                    ds <- lapply(input$tipo_resultado_2, function(x){
-                        d <- subset(participacao_mg, setor %in% input$spec_setores_setor_fixo & resultado %in% x & (ano >= anos[1] & ano <= anos[2]))
-                        data = data.frame(x = d$ano,
-                                          y = d$valor)
-                        
-                    })
-                    
-                    for (k in 1:length(ds)) {
-                        h <- h %>%
-                            hc_add_series(ds[[k]], name = input$tipo_resultado_2[k])
-                    } 
-                    h <- h %>% hc_subtitle(text = input$spec_setores_setor_fixo)
-                }
-            }
-            else{
-                if(!is_empty(input$tipo_resultado_2)){
-                    ds <- lapply(input$tipo_resultado_2, function(x){
-                        d <- subset(participacao_mg, setor %in% input$spec_areas_setor_fixo & resultado %in% x & (ano >= anos[1] & ano <= anos[2]))
-                        data = data.frame(x = d$ano,
-                                          y = d$valor)
-                        
-                    })
-                    for (k in 1:length(ds)) {
-                        h <- h %>%
-                            hc_add_series(ds[[k]], name = input$tipo_resultado_2[k])
-                        
-                    }
-                    h <- h %>% hc_subtitle(text = input$spec_areas_setor_fixo)
-                    
-                }
-            }
-            
-            h 
-            
-            
-        }
-        else if(input$aspectos_setor_fixo == 'pbr'){
-            
-            h <- h %>%
-                hc_title(text = list("Participação do Valor Corrente - Brasil")) %>%
-                hc_yAxis(title = list(text = "Participação (%)")) %>%
-                hc_tooltip(crosshairs = TRUE,
-                           borderWidth = 5,
-                           sort = FALSE,
-                           table = TRUE, 
-                           headerFormat = 'Ano: {point.x}<br>',
-                           pointFormat = "{series.name}: {point.y:.1f} mi R$ <br>")
-            
-            if(input$tipo_grafico_setor_fixo == "barra"){
-                h <- h %>% hc_chart(type = "column")
-            }
-            
-            if(input$area_ou_setor_setor_fixo == "Setores"){
-                if(!is_empty(input$tipo_resultado_2)){
-                    ds <- lapply(input$tipo_resultado_2, function(x){
-                        d <- subset(participacao_br, setor %in% input$spec_setores_setor_fixo & resultado %in% x & (ano >= anos[1] & ano <= anos[2]))
-                        data = data.frame(x = d$ano,
-                                          y = d$valor)
-                        
-                    })
-                    
-                    for (k in 1:length(ds)) {
-                        h <- h %>%
-                            hc_add_series(ds[[k]], name = input$tipo_resultado_2[k])
-                    } 
-                    h <- h %>% hc_subtitle(text = input$spec_setores_setor_fixo)
-                }
-            }
-            else{
-                if(!is_empty(input$tipo_resultado_2)){
-                    ds <- lapply(input$tipo_resultado_2, function(x){
-                        d <- subset(participacao_br, setor %in% input$spec_areas_setor_fixo & resultado %in% x & (ano >= anos[1] & ano <= anos[2]))
-                        data = data.frame(x = d$ano,
-                                          y = d$valor)
-                        
-                    })
-                    for (k in 1:length(ds)) {
-                        h <- h %>%
-                            hc_add_series(ds[[k]], name = input$tipo_resultado_2[k])
-                        
-                    }
-                    h <- h %>% hc_subtitle(text = input$spec_areas_setor_fixo)
-                    
-                }
-            }
-            
-            h 
-            
-            
-        }
-        
-    })
-    
-    
+   
     
     #desabilita a opção de Participação das atividades no VAB do Brasil caso VAB não seja selecionado
     observeEvent(input$tipo_resultado, {
@@ -1305,7 +1065,7 @@ server <- function(input, output, session) {
             })
             
             hc <- highchart()%>%
-                hc_xAxis(categories = c(2010: 2018), title = list(text = "Ano")) %>%
+                hc_xAxis(categories = c(2010: ultimo_ano), title = list(text = "Ano")) %>%
                 hc_yAxis_multiples(list(title = list(text = "PIB (1000000 R$)"), opposite = FALSE, showEmpty= FALSE),
                                    list(title = list(text = "PIB per capita (R$)"),opposite = FALSE, showEmpty= FALSE),
                                    list(title = list(text = "População"), opposite = TRUE, showEmpty= FALSE )) %>%
@@ -1476,7 +1236,7 @@ server <- function(input, output, session) {
                     }
                     if(input$aspectos_aspecto_fixo == "vv"){
                         ds <- lapply(input$spec_areas_aspecto_fixo, function(x){
-                            d <- subset(vbp, setor %in% x & (ano >= 2011 & ano <= 2018))
+                            d <- subset(vbp, setor %in% x & (ano >= 2011 & ano <= ultimo_ano))
                             data = data.frame(x = d$ano,
                                               y = d$var_volume)
                             
@@ -1486,7 +1246,7 @@ server <- function(input, output, session) {
                     }
                     if(input$aspectos_aspecto_fixo == "vp"){
                         ds <- lapply(input$spec_areas_aspecto_fixo, function(x){
-                            d <- subset(vbp, setor %in% x & (ano >= 2011 & ano <= 2018))
+                            d <- subset(vbp, setor %in% x & (ano >= 2011 & ano <= ultimo_ano))
                             data = data.frame(x = d$ano,
                                               y = d$var_preco)
                             
@@ -1707,7 +1467,7 @@ server <- function(input, output, session) {
                     }
                     if(input$aspectos_aspecto_fixo == "vv"){
                         ds <- lapply(input$spec_areas_aspecto_fixo, function(x){
-                            d <- subset(ci, setor %in% x & (ano >= 2011 & ano <= 2018))
+                            d <- subset(ci, setor %in% x & (ano >= 2011 & ano <= ultimo_ano))
                             data = data.frame(x = d$ano,
                                               y = d$var_volume)
                             
@@ -1717,7 +1477,7 @@ server <- function(input, output, session) {
                     }
                     if(input$aspectos_aspecto_fixo == "vp"){
                         ds <- lapply(input$spec_areas_aspecto_fixo, function(x){
-                            d <- subset(ci, setor %in% x & (ano >= 2011 & ano <= 2018))
+                            d <- subset(ci, setor %in% x & (ano >= 2011 & ano <= ultimo_ano))
                             data = data.frame(x = d$ano,
                                               y = d$var_preco)
                             
@@ -1947,7 +1707,7 @@ server <- function(input, output, session) {
                     }
                     if(input$aspectos_aspecto_fixo == "vv"){
                         ds <- lapply(input$spec_areas_aspecto_fixo, function(x){
-                            d <- subset(vab, setor %in% x & (ano >= 2011 & ano <= 2018))
+                            d <- subset(vab, setor %in% x & (ano >= 2011 & ano <= ultimo_ano))
                             data = data.frame(x = d$ano,
                                               y = d$var_volume)
                             
@@ -1957,7 +1717,7 @@ server <- function(input, output, session) {
                     }
                     if(input$aspectos_aspecto_fixo == "vp"){
                         ds <- lapply(input$spec_areas_aspecto_fixo, function(x){
-                            d <- subset(vab, setor %in% x & (ano >= 2011 & ano <= 2018))
+                            d <- subset(vab, setor %in% x & (ano >= 2011 & ano <= ultimo_ano))
                             data = data.frame(x = d$ano,
                                               y = d$var_preco)
                             
@@ -2053,6 +1813,282 @@ server <- function(input, output, session) {
         }
     })
     
+    output$plot_vbp_ci_vab_setor_fixo <- renderHighchart({
+        
+        anos <- c(input$anos_resultados_setor_fixo[1], input$anos_resultados_setor_fixo[2])
+        
+        h <- highchart() %>%
+            hc_exporting(enabled = T, fallbackToExportServer = F, menuItems = export) %>%
+            hc_xAxis(title = list(text = "Ano"), allowDecimals = FALSE)
+        
+        if(input$aspectos_setor_fixo == 'vc'){
+            
+            h <- h %>%
+                hc_title(text = list("Valor Corrente - MG")) %>%
+                hc_yAxis(title = list(text = "Valor corrente (1.000.000 R$)")) %>%
+                hc_tooltip(crosshairs = TRUE,
+                           borderWidth = 5,
+                           sort = FALSE,
+                           table = TRUE, 
+                           headerFormat = 'Ano: {point.x}<br>',
+                           pointFormat = "{series.name}: {point.y:.1f} mi R$ <br>")
+            
+            if(input$tipo_grafico_setor_fixo == "barra"){
+                h <- h %>% hc_chart(type = "column")
+            }
+            
+            if(input$area_ou_setor_setor_fixo == "Setores"){
+                if(!is_empty(input$tipo_resultado_2)){
+                    ds <- lapply(input$tipo_resultado_2, function(x){
+                        d <- subset(valor_corrente, setor %in% input$spec_setores_setor_fixo & resultado %in% x & (ano >= anos[1] & ano <= anos[2]))
+                        data = data.frame(x = d$ano,
+                                          y = d$valor)
+                        
+                    })
+                    
+                    for (k in 1:length(ds)) {
+                        h <- h %>%
+                            hc_add_series(ds[[k]], name = input$tipo_resultado_2[k])
+                    } 
+                    h <- h %>% hc_subtitle(text = input$spec_setores_setor_fixo)
+                }
+            }
+            else{
+                if(!is_empty(input$tipo_resultado_2)){
+                    ds <- lapply(input$tipo_resultado_2, function(x){
+                        d <- subset(valor_corrente, setor %in% input$spec_areas_setor_fixo & resultado %in% x & (ano >= anos[1] & ano <= anos[2]))
+                        data = data.frame(x = d$ano,
+                                          y = d$valor)
+                        
+                    })
+                    for (k in 1:length(ds)) {
+                        h <- h %>%
+                            hc_add_series(ds[[k]], name = input$tipo_resultado_2[k])
+                        
+                    }
+                    h <- h %>% hc_subtitle(text = input$spec_areas_setor_fixo)
+                    
+                }
+            }
+            
+            h
+        }
+        else if(input$aspectos_setor_fixo == 'vv'){
+            
+            h <- h %>%
+                hc_title(text = list("Variação de Volume - MG")) %>%
+                hc_yAxis(title = list(text = "Variação Volume (%)")) %>%
+                hc_tooltip(crosshairs = TRUE,
+                           borderWidth = 5,
+                           sort = FALSE,
+                           table = TRUE, 
+                           headerFormat = 'Ano: {point.x}<br>',
+                           pointFormat = "{series.name}: {point.y:.1f} mi R$ <br>")
+            
+            if(input$tipo_grafico_setor_fixo == "barra"){
+                h <- h %>% hc_chart(type = "column")
+            }
+            
+            if(input$area_ou_setor_setor_fixo == "Setores"){
+                if(!is_empty(input$tipo_resultado_2)){
+                    ds <- lapply(input$tipo_resultado_2, function(x){
+                        d <- subset(var_volume, setor %in% input$spec_setores_setor_fixo & resultado %in% x & (ano >= anos[1] & ano <= anos[2]))
+                        data = data.frame(x = d$ano,
+                                          y = d$valor)
+                        
+                    })
+                    
+                    for (k in 1:length(ds)) {
+                        h <- h %>%
+                            hc_add_series(ds[[k]], name = input$tipo_resultado_2[k])
+                    } 
+                    h <- h %>% hc_subtitle(text = input$spec_setores_setor_fixo)
+                }
+            }
+            else{
+                if(!is_empty(input$tipo_resultado_2)){
+                    ds <- lapply(input$tipo_resultado_2, function(x){
+                        d <- subset(var_volume, setor %in% input$spec_areas_setor_fixo & resultado %in% x & (ano >= anos[1] & ano <= anos[2]))
+                        data = data.frame(x = d$ano,
+                                          y = d$valor)
+                        
+                    })
+                    for (k in 1:length(ds)) {
+                        h <- h %>%
+                            hc_add_series(ds[[k]], name = input$tipo_resultado_2[k])
+                        
+                    }
+                    h <- h %>% hc_subtitle(text = input$spec_areas_setor_fixo)
+                    
+                }
+            }
+            
+            h 
+        }
+        else if(input$aspectos_setor_fixo == 'vp'){
+            
+            h <- h %>%
+                hc_title(text = list("Variação de Preço - MG")) %>%
+                hc_yAxis(title = list(text = "Variação Preço (%)")) %>%
+                hc_tooltip(crosshairs = TRUE,
+                           borderWidth = 5,
+                           sort = FALSE,
+                           table = TRUE, 
+                           headerFormat = 'Ano: {point.x}<br>',
+                           pointFormat = "{series.name}: {point.y:.1f} mi R$ <br>")
+            
+            if(input$tipo_grafico_setor_fixo == "barra"){
+                h <- h %>% hc_chart(type = "column")
+            }
+            
+            if(input$area_ou_setor_setor_fixo == "Setores"){
+                if(!is_empty(input$tipo_resultado_2)){
+                    ds <- lapply(input$tipo_resultado_2, function(x){
+                        d <- subset(var_preco, setor %in% input$spec_setores_setor_fixo & resultado %in% x & (ano >= anos[1] & ano <= anos[2]))
+                        data = data.frame(x = d$ano,
+                                          y = d$valor)
+                        
+                    })
+                    
+                    for (k in 1:length(ds)) {
+                        h <- h %>%
+                            hc_add_series(ds[[k]], name = input$tipo_resultado_2[k])
+                    } 
+                    h <- h %>% hc_subtitle(text = input$spec_setores_setor_fixo)
+                }
+            }
+            else{
+                if(!is_empty(input$tipo_resultado_2)){
+                    ds <- lapply(input$tipo_resultado_2, function(x){
+                        d <- subset(var_preco, setor %in% input$spec_areas_setor_fixo & resultado %in% x & (ano >= anos[1] & ano <= anos[2]))
+                        data = data.frame(x = d$ano,
+                                          y = d$valor)
+                        
+                    })
+                    for (k in 1:length(ds)) {
+                        h <- h %>%
+                            hc_add_series(ds[[k]], name = input$tipo_resultado_2[k])
+                        
+                    }
+                    h <- h %>% hc_subtitle(text = input$spec_areas_setor_fixo)
+                    
+                }
+            }
+            
+            h 
+            
+            
+        }
+        else if(input$aspectos_setor_fixo == 'pmg'){
+            
+            h <- h %>%
+                hc_title(text = list("Participação do Valor Corrente - MG")) %>%
+                hc_yAxis(title = list(text = "Participação (%)")) %>%
+                hc_tooltip(crosshairs = TRUE,
+                           borderWidth = 5,
+                           sort = FALSE,
+                           table = TRUE, 
+                           headerFormat = 'Ano: {point.x}<br>',
+                           pointFormat = "{series.name}: {point.y:.1f} mi R$ <br>")
+            
+            if(input$tipo_grafico_setor_fixo == "barra"){
+                h <- h %>% hc_chart(type = "column")
+            }
+            
+            if(input$area_ou_setor_setor_fixo == "Setores"){
+                if(!is_empty(input$tipo_resultado_2)){
+                    ds <- lapply(input$tipo_resultado_2, function(x){
+                        d <- subset(participacao_mg, setor %in% input$spec_setores_setor_fixo & resultado %in% x & (ano >= anos[1] & ano <= anos[2]))
+                        data = data.frame(x = d$ano,
+                                          y = d$valor)
+                        
+                    })
+                    
+                    for (k in 1:length(ds)) {
+                        h <- h %>%
+                            hc_add_series(ds[[k]], name = input$tipo_resultado_2[k])
+                    } 
+                    h <- h %>% hc_subtitle(text = input$spec_setores_setor_fixo)
+                }
+            }
+            else{
+                if(!is_empty(input$tipo_resultado_2)){
+                    ds <- lapply(input$tipo_resultado_2, function(x){
+                        d <- subset(participacao_mg, setor %in% input$spec_areas_setor_fixo & resultado %in% x & (ano >= anos[1] & ano <= anos[2]))
+                        data = data.frame(x = d$ano,
+                                          y = d$valor)
+                        
+                    })
+                    for (k in 1:length(ds)) {
+                        h <- h %>%
+                            hc_add_series(ds[[k]], name = input$tipo_resultado_2[k])
+                        
+                    }
+                    h <- h %>% hc_subtitle(text = input$spec_areas_setor_fixo)
+                    
+                }
+            }
+            
+            h 
+            
+            
+        }
+        else if(input$aspectos_setor_fixo == 'pbr'){
+            
+            h <- h %>%
+                hc_title(text = list("Participação do Valor Corrente - Brasil")) %>%
+                hc_yAxis(title = list(text = "Participação (%)")) %>%
+                hc_tooltip(crosshairs = TRUE,
+                           borderWidth = 5,
+                           sort = FALSE,
+                           table = TRUE, 
+                           headerFormat = 'Ano: {point.x}<br>',
+                           pointFormat = "{series.name}: {point.y:.1f} mi R$ <br>")
+            
+            if(input$tipo_grafico_setor_fixo == "barra"){
+                h <- h %>% hc_chart(type = "column")
+            }
+            
+            if(input$area_ou_setor_setor_fixo == "Setores"){
+                if(!is_empty(input$tipo_resultado_2)){
+                    ds <- lapply(input$tipo_resultado_2, function(x){
+                        d <- subset(participacao_br, setor %in% input$spec_setores_setor_fixo & resultado %in% x & (ano >= anos[1] & ano <= anos[2]))
+                        data = data.frame(x = d$ano,
+                                          y = d$valor)
+                        
+                    })
+                    
+                    for (k in 1:length(ds)) {
+                        h <- h %>%
+                            hc_add_series(ds[[k]], name = input$tipo_resultado_2[k])
+                    } 
+                    h <- h %>% hc_subtitle(text = input$spec_setores_setor_fixo)
+                }
+            }
+            else{
+                if(!is_empty(input$tipo_resultado_2)){
+                    ds <- lapply(input$tipo_resultado_2, function(x){
+                        d <- subset(participacao_br, setor %in% input$spec_areas_setor_fixo & resultado %in% x & (ano >= anos[1] & ano <= anos[2]))
+                        data = data.frame(x = d$ano,
+                                          y = d$valor)
+                        
+                    })
+                    for (k in 1:length(ds)) {
+                        h <- h %>%
+                            hc_add_series(ds[[k]], name = input$tipo_resultado_2[k])
+                        
+                    }
+                    h <- h %>% hc_subtitle(text = input$spec_areas_setor_fixo)
+                    
+                }
+            }
+            
+            h 
+            
+            
+        }
+        
+    })
     
     
 }
