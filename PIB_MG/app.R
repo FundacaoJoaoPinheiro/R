@@ -47,9 +47,9 @@ ultimo_ano <- file_tab1[4, ]
 ultimo_ano <- as.numeric(max(ultimo_ano[!is.na(ultimo_ano)]))
 
 contas_economicas <- file_tab1[c(7,8,10,17,18,19,20,21,11), c(1:(ultimo_ano-2010+2))]
-nomes <- c("Produção", "Impostos produtos", "Consumo Intermediário", "Remuneração", "Salários", "Contribuições", "Impostos produção", "Excedente", "Valor adicionado bruto")
-nomes_producao <- c("Produção", "Impostos produtos", "Consumo Intermediário", "Valor adicionado bruto")
-nomes_renda <- c("Remuneração", "Salários", "Contribuições", "Impostos produção", "Excedente", "Valor adicionado bruto")
+nomes <- c("Produção", "Impostos produtos", "Consumo Intermediário", "Remuneração", "Salários", "Contribuições", "Impostos produção", "Excedente", "PIB")
+nomes_producao <- c("Produção", "Impostos produtos", "Consumo Intermediário", "PIB")
+nomes_renda <- c("Remuneração", "Salários", "Contribuições", "Impostos produção", "Excedente", "PIB")
 contas_economicas[, 1] <-  nomes
 colnames(contas_economicas)[c(1:(ultimo_ano-2010+2))] <- c("contas", as.character(c(2010:ultimo_ano)))
 contas_economicas <- contas_economicas %>% gather(key = 'ano', value = 'valor', -contas)
@@ -94,6 +94,8 @@ area_index <- c(1, 5, 10)
 setor <- setores[setor_index]
 area <- setores[area_index]
 
+espec_prod <- c('Produção', 'Impostos produtos', 'Consumo Intermediário', 'PIB')
+espec_renda <- c('Salários', 'Contribuições', 'Impostos produção', 'Excedente', 'PIB')
 tipoResutados <- c("Valor Bruto da Produção" = 'VBP', "Consumo Intermediário" = 'CI', "Valor Adicionado Bruto" = 'VAB')
 aspectos2 <- c("Valor corrente" = 'vc', "Var. volume" = 'vv', "Var. preço" = 'vp', "Part. valor corrente em MG" = 'pmg' , "Part. valor corrente no Brasil" = 'pbr')
 tiposGraficos <- c("Linha" = 'linha', "Barra"= 'barra', "Barra Empilhado" = 'barra_empilhado', "Pizza" = 'pizza')
@@ -293,17 +295,10 @@ ui <- dashboardPage(
         sidebarMenu( id = "barra_lateral",
             menuItem("Contas Econômicas", tabName = "contas_economicas"), 
             menuItem("PIB per capita", tabName = "pib_per_capita"),
-            menuItem("PIB per capita2", tabName = "pib_per_capita2"),
             menuItem("Resultados", tabName = "resultados")
-        ), 
+        ) 
         
-        conditionalPanel(
-            condition = "input.barra_lateral == 'contas_economicas'",  
-            checkboxGroupInput("espec_prod", "Ótica da Produção", c('Produção', 'Impostos produtos', 'Consumo Intermediário', 'Valor adicionado bruto'), 
-                               selected = c('Produção', 'Impostos produtos', 'Consumo Intermediário', 'Valor adicionado bruto')),
-            checkboxGroupInput("espec_renda", "Ótica da Renda", c("Salários", "Contribuições", "Impostos produção", "Excedente", "Valor adicionado bruto"), 
-                               selected =  c("Salários", "Contribuições", "Impostos produção", "Excedente", "Valor adicionado bruto"))
-        )
+  
         
     ),
             
@@ -340,6 +335,27 @@ ui <- dashboardPage(
         tabItems(
             tabItem(tabName = 'contas_economicas',
                 fluidRow( 
+                  box(
+                    title = "PIB segundo a ótica da Produção e da Renda", status = "primary", solidHeader = TRUE,
+                    width = 10,
+                    collapsible = FALSE,
+                    box(
+                      title = NULL, status = "success", solidHeader = FALSE, width = 12,
+                      collapsible = FALSE,
+                      fluidRow(box(highchartOutput('comp_prod_renda'), height=400,width = 12)),#,background='white')),
+                      #box(
+                      #  status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
+                      #  sliderInput("anos_lineplot_prod", "Escolha o ano:", min=2010, max=ultimo_ano, value=c(2010, ultimo_ano),animate=T)
+                      #)
+                      
+                    )
+                  ),
+                  box(
+                    title = "Informações",  status = "primary", solidHeader = TRUE, width = 2
+                  )
+                  
+                ),    
+                fluidRow( 
                     box(
                         title = "Ótica da Produção", status = "primary", solidHeader = TRUE,
                         width = 10,
@@ -350,7 +366,6 @@ ui <- dashboardPage(
                             fluidRow(box(highchartOutput('linePlot_prod'), height=400,width = 12)),#,background='white')),
                             box(
                                 status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
-                                radioButtons(inputId = "valor_absoluto_lineplot_prod",choices = c("Valores absolutos", "valores relativos"), label = NULL, inline = TRUE),
                                 sliderInput("anos_lineplot_prod", "Escolha o ano:", min=2010, max=ultimo_ano, value=c(2010, ultimo_ano),animate=T)
                             )
                             
@@ -364,11 +379,7 @@ ui <- dashboardPage(
                                 sliderInput("anos_columplot_prod", "Escolha o ano:", min=2010, max=ultimo_ano, value=c(2010, ultimo_ano),animate=T)
                             )
                         )
-                    ),
-                    box(
-                        title = "Informações",  status = "primary", solidHeader = TRUE, width = 2
                     )
-                    
                 ),
                 fluidRow( 
                     box(
@@ -398,135 +409,129 @@ ui <- dashboardPage(
             ),
             tabItem(tabName = 'pib_per_capita',
                 fluidRow( 
-                    box(
-                        title = "PIB", status = "primary", solidHeader = TRUE,
-                        width = 10,
-                        box(
-                            title = NULL, status = "success", solidHeader = FALSE, width = 12,
-                            collapsible = FALSE,
-                            fluidRow(box(highchartOutput('linePlot_pib_percapita8'), height=400,width = 12)),#,background='white')),
-                            box(
-                                status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
-                                radioButtons(inputId = "tipo_graf_lineplot_pib_percapita8",choices = c("Linha", "Barra"), label = NULL, inline = TRUE),
-                                sliderInput("anos_lineplot_pib_percapita8", "Escolha o ano:", min=2010, max=ultimo_ano, value=c(2010, ultimo_ano),animate=T)
-                            )
-                            
+                    tabBox(
+                        title = NULL, width = 12,
+                        id = "tab_opcoes_pib_per_capta", height = "250px",
+                        tabPanel("Gráficos lado a lado", 
+                           fluidRow( 
+                             box(
+                               title = "PIB", status = "primary", solidHeader = TRUE,
+                               width = 4,
+                               box(
+                                 title = NULL, status = "success", solidHeader = FALSE, width = 12,
+                                 collapsible = FALSE,
+                                 fluidRow(box(highchartOutput('linePlot_pib_percapita4'), height=400,width = 12)),#,background='white')),
+                               ),
+                             ),
+                             box(
+                               title = "População", status = "primary", solidHeader = TRUE,
+                               width = 4,
+                               box(
+                                 title = NULL, status = "success", solidHeader = FALSE, width = 12,
+                                 collapsible = FALSE,
+                                 fluidRow(box(highchartOutput('linePlot_pib_percapita5'), height=400,width = 12)),#,background='white')),
+                               ),
+                             ),
+                             box(
+                               title = "PIB per capita", status = "primary", solidHeader = TRUE,
+                               width = 4,
+                               box(
+                                 title = NULL, status = "success", solidHeader = FALSE, width = 12,
+                                 collapsible = FALSE,
+                                 fluidRow(box(highchartOutput('linePlot_pib_percapita6'), height=400,width = 12)),#,background='white')),
+                               )
+                             ),
+                             fluidRow(
+                               box(
+                                 status = "info", solidHeader = FALSE, width = 6, collapsed = FALSE, collapsible = FALSE,
+                                 sliderInput("anos_lineplot_pib_percapita7", "Escolha o ano:", min=2010, max=ultimo_ano, value=c(2010, ultimo_ano),animate=T)
+                               ), 
+                               box(
+                                 status = "info", solidHeader = FALSE, width = 3, collapsed = FALSE, collapsible = FALSE,
+                                 radioButtons(inputId = "tipo_graf_lineplot_pib_percapita", choices = c("Linha", "Barra"), label = "Escolha o tipo de gráfico:", inline = TRUE)
+                               )
+                             )
+                           )
                         ),
-                        
-                    )
-                ), 
-                fluidRow( 
-                    box(
-                        title = "PIB", status = "primary", solidHeader = TRUE,
-                        width = 10,
-                        box(
-                            title = NULL, status = "success", solidHeader = FALSE, width = 12,
-                            collapsible = FALSE,
-                            fluidRow(box(highchartOutput('linePlot_pib_percapita1'), height=400,width = 12)),#,background='white')),
-                            box(
-                                status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
-                                radioButtons(inputId = "tipo_graf_lineplot_pib_percapita1",choices = c("Linha", "Barra"), label = NULL, inline = TRUE),
-                                sliderInput("anos_lineplot_pib_percapita1", "Escolha o ano:", min=2010, max=ultimo_ano, value=c(2010, ultimo_ano),animate=T)
-                            )
-                            
+                        tabPanel("Gráfico único",
+                           fluidRow( 
+                             box(
+                               title = "PIB", status = "primary", solidHeader = TRUE,
+                               width = 10,
+                               box(
+                                 title = NULL, status = "success", solidHeader = FALSE, width = 12,
+                                 collapsible = FALSE,
+                                 fluidRow(box(highchartOutput('linePlot_pib_percapita8'), height=400,width = 12)),#,background='white')),
+                                 box(
+                                   status = "info", solidHeader = FALSE, width = 12, collapsed = FALSE, collapsible = TRUE,
+                                   sliderInput("anos_lineplot_pib_percapita8", "Escolha o ano:", min=2010, max=ultimo_ano, value=c(2010, ultimo_ano),animate=T)
+                                 )
+                               ),
+                             )
+                           ),        
                         ),
-                               
-                    )
-                ), 
-                fluidRow( 
-                    box(
-                        title = "População", status = "primary", solidHeader = TRUE,
-                        width = 10,
-                        box(
-                            title = NULL, status = "success", solidHeader = FALSE, width = 12,
-                            collapsible = FALSE,
-                            fluidRow(box(highchartOutput('linePlot_pib_percapita2'), height=400,width = 12)),#,background='white')),
+                        tabPanel("Um gráfico por linha",
+                           fluidRow( 
+                             box(
+                               title = "PIB", status = "primary", solidHeader = TRUE,
+                               width = 10,
+                               box(
+                                 title = NULL, status = "success", solidHeader = FALSE, width = 12,
+                                 collapsible = FALSE,
+                                 fluidRow(box(highchartOutput('linePlot_pib_percapita1'), height=400,width = 12)),#,background='white')),
+                                 box(
+                                   status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
+                                   radioButtons(inputId = "tipo_graf_lineplot_pib_percapita1",choices = c("Linha", "Barra"), label = NULL, inline = TRUE),
+                                   sliderInput("anos_lineplot_pib_percapita1", "Escolha o ano:", min=2010, max=ultimo_ano, value=c(2010, ultimo_ano),animate=T)
+                                 )
+                               ),
+                             )
+                           ), 
+                           fluidRow( 
+                             box(
+                               title = "População", status = "primary", solidHeader = TRUE,
+                               width = 10,
+                               box(
+                                 title = NULL, status = "success", solidHeader = FALSE, width = 12,
+                                 collapsible = FALSE,
+                                 fluidRow(box(highchartOutput('linePlot_pib_percapita2'), height=400,width = 12)),#,background='white')),
+                                 box(
+                                   status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
+                                   radioButtons(inputId = "tipo_graf_lineplot_pib_percapita2",choices = c("Linha", "Barra"), label = NULL, inline = TRUE),
+                                   sliderInput("anos_lineplot_pib_percapita2", "Escolha o ano:", min=2010, max=ultimo_ano, value=c(2010, ultimo_ano),animate=T)
+                                 )
+                               ),
+                             )
+                           ),
+                           fluidRow( 
+                             box(
+                               title = "PIB per capita", status = "primary", solidHeader = TRUE,
+                               width = 10,
+                               box(
+                                 title = NULL, status = "success", solidHeader = FALSE, width = 12,
+                                 collapsible = FALSE,
+                                 fluidRow(box(highchartOutput('linePlot_pib_percapita3'), height=400,width = 12)),#,background='white')),
+                                 box(
+                                   status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
+                                   radioButtons(inputId = "tipo_graf_lineplot_pib_percapita3",choices = c("Linha", "Barra"), label = NULL, inline = TRUE),
+                                   sliderInput("anos_lineplot_pib_percapita3", "Escolha o ano:", min=2010, max=ultimo_ano, value=c(2010, ultimo_ano),animate=T)
+                                 )
+                               ),
+                             )
+                           )     
+                       ),
+                       tabPanel("Informações",
+                          fluidRow( 
                             box(
-                                status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
-                                radioButtons(inputId = "tipo_graf_lineplot_pib_percapita2",choices = c("Linha", "Barra"), label = NULL, inline = TRUE),
-                                sliderInput("anos_lineplot_pib_percapita2", "Escolha o ano:", min=2010, max=ultimo_ano, value=c(2010, ultimo_ano),animate=T)
+                              title = "PIB", status = "primary", solidHeader = TRUE,
+                              width = 10,
                             )
-                            
-                        ),
-                        
-                    )
-                ),
-                fluidRow( 
-                    box(
-                        title = "PIB per capita", status = "primary", solidHeader = TRUE,
-                        width = 10,
-                        box(
-                            title = NULL, status = "success", solidHeader = FALSE, width = 12,
-                            collapsible = FALSE,
-                            fluidRow(box(highchartOutput('linePlot_pib_percapita3'), height=400,width = 12)),#,background='white')),
-                            box(
-                                status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
-                                radioButtons(inputId = "tipo_graf_lineplot_pib_percapita3",choices = c("Linha", "Barra"), label = NULL, inline = TRUE),
-                                sliderInput("anos_lineplot_pib_percapita3", "Escolha o ano:", min=2010, max=ultimo_ano, value=c(2010, ultimo_ano),animate=T)
-                            )
-                            
-                        ),
-                        
+                          )
+                       )
                     )
                 )
             ),
-            tabItem(tabName = 'pib_per_capita2',
-                fluidRow( 
-                    box(
-                        title = "PIB", status = "primary", solidHeader = TRUE,
-                        width = 4,
-                        box(
-                            title = NULL, status = "success", solidHeader = FALSE, width = 12,
-                            collapsible = FALSE,
-                            fluidRow(box(highchartOutput('linePlot_pib_percapita4'), height=400,width = 12)),#,background='white')),
-                            box(
-                                status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
-                                radioButtons(inputId = "tipo_graf_lineplot_pib_percapita4",choices = c("Linha", "Barra"), label = NULL, inline = TRUE)
-                            )
-                            
-                        ),
-                        
-                    ), 
-                    box(
-                        title = "População", status = "primary", solidHeader = TRUE,
-                        width = 4,
-                        box(
-                            title = NULL, status = "success", solidHeader = FALSE, width = 12,
-                            collapsible = FALSE,
-                            fluidRow(box(highchartOutput('linePlot_pib_percapita5'), height=400,width = 12)),#,background='white')),
-                            box(
-                                status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
-                                radioButtons(inputId = "tipo_graf_lineplot_pib_percapita5",choices = c("Linha", "Barra"), label = NULL, inline = TRUE)
-                            )
-                            
-                        ),
-                        
-                    ), 
-                    box(
-                        title = "PIB per capita", status = "primary", solidHeader = TRUE,
-                        width = 4,
-                        box(
-                            title = NULL, status = "success", solidHeader = FALSE, width = 12,
-                            collapsible = FALSE,
-                            fluidRow(box(highchartOutput('linePlot_pib_percapita6'), height=400,width = 12)),#,background='white')),
-                            box(
-                                status = "info", solidHeader = FALSE, width = 12, collapsed = TRUE, collapsible = TRUE,
-                                radioButtons(inputId = "tipo_graf_lineplot_pib_percapita6",choices = c("Linha", "Barra"), label = NULL, inline = TRUE)
-                            )
-                            
-                        )
-                        
-                    ),
-                    fluidRow(
-                        box(
-                            status = "info", solidHeader = FALSE, width = 3, collapsed = FALSE, collapsible = TRUE,
-                            sliderInput("anos_lineplot_pib_percapita7", "Escolha o ano:", min=2010, max=ultimo_ano, value=c(2010, ultimo_ano),animate=T)
-                        )
-                    )
                     
-                ) 
-                    
-            ),
             tabItem(tabName = 'resultados',
                     fluidRow( 
                         tabBox(
@@ -723,54 +728,92 @@ server <- function(input, output, session) {
     output$titulo2<-renderText("Ótica da Renda")
     output$linePlot_prod <- renderHighchart({
         if(input$barra_lateral == 'contas_economicas'){
-            if(!is_empty(input$espec_prod)){
-                h <- highchart() %>% 
-                    hc_size(width = 600, height = 400) %>%
-                    hc_xAxis(title = list(text = "Ano"), allowDecimals = FALSE) %>%
-                    hc_exporting(enabled = T, fallbackToExportServer = F, 
-                                 menuItems = export)   
+            
+                #Contas é uma coluna da tabela contas_economicas
+              
+            h <- highchart() %>% 
+                hc_size(width = 600, height = 400) %>%
+                hc_xAxis(title = list(text = "Ano"), allowDecimals = FALSE) %>%
+                hc_exporting(enabled = T, fallbackToExportServer = F, 
+                             menuItems = export)   
+          
                 
-                if(input$valor_absoluto_lineplot_prod == "Valores absolutos"){
-                    ds <- lapply(input$espec_prod, function(x){
-                        
-                        d <- subset(contas_economicas, contas %in% x & (ano >= input$anos_lineplot_prod[1] & ano <= input$anos_lineplot_prod[2]))
-                        data = data.frame(x = d$ano,
-                                          y = d$valor)
-                        
-                    })
-                    h <- h %>% hc_yAxis(title = list(text = "Valor a preços correntes (1.000.000 R$) "))  %>%
-                        hc_title(text = list("Título do Gráfico"))
-                }
-                else{
-                    new_df <- contas_economicas
-                    prod <- new_df[new_df$contas == 'Produção', 'valor']
-                    imp_prod <- new_df[new_df$contas == 'Impostos produtos', 'valor']
-                    cons_inter <- new_df[new_df$contas == 'Consumo Intermediário', 'valor']
-                    valor_adic <- new_df[new_df$contas == 'Valor adicionado bruto', 'valor']
-                    new_df[new_df$contas == 'Produção', 'valor'] <- prod*100/(prod+imp_prod)
-                    new_df[new_df$contas == 'Impostos produtos', 'valor'] <- imp_prod*100/(prod+imp_prod)
-                    new_df[new_df$contas == 'Consumo Intermediário', 'valor'] <- cons_inter*100/(cons_inter+valor_adic)
-                    new_df[new_df$contas == 'Valor adicionado bruto', 'valor'] <- valor_adic*100/(cons_inter+valor_adic)
-                    
-                    ds <- lapply(input$espec_prod, function(x){
-                        d <- subset(new_df, contas %in% x & (ano >= input$anos_lineplot_prod[1] & ano <= input$anos_lineplot_prod[2]))
-                        data = data.frame(x = d$ano,
-                                          y = d$valor)
-                        
-                    })
-                    h <- h %>% hc_yAxis(title = list(text = "Valor percentual ")) 
-                    
-                }
+                ds <- lapply(espec_prod, function(x){
+                    d <- subset(contas_economicas, contas %in% x & (ano >= input$anos_lineplot_prod[1] & ano <= input$anos_lineplot_prod[2]))
+                    data = data.frame(x = d$ano,
+                                      y = d$valor)
+                })   
                 
-                for (k in 1:length(ds)) {
-                    h <- h %>%
-                        hc_add_series(ds[[k]], name = input$espec_prod[k])
-                }
-                h 
+                
+                h <- h %>% hc_yAxis(title = list(text = "Valor a preços correntes (1.000.000 R$) "))  %>%
+                    hc_title(text = list("Contas da Econômicas - ótica da produção"))
+            
+            for (k in 1:length(ds)) {
+                h <- h %>%
+                    hc_add_series(ds[[k]], name = espec_prod[k])
             }
+            h 
+           
         }
             
         
+    })
+    
+    output$comp_prod_renda <- renderHighchart({
+      if(input$barra_lateral == 'contas_economicas'){
+        h <-highchart() %>% 
+          hc_chart(type = "column") %>%
+          hc_plotOptions(column = list(stacking = "normal")) %>%
+          hc_xAxis(categories = c(input$anos_columplot_prod[1] : input$anos_columplot_prod[2]), title = list(text = "Ano")) %>%
+          hc_yAxis(title = list(text = "Valor a preços correntes (1.000.000 R$) ")) %>%
+          hc_title(text = list("Composição do PIB - ótica da produção")) %>%
+          hc_add_series(name= nomes_producao[1],
+                        data = subset(contas_economicas, contas %in% nomes_producao[1] & (ano >= input$anos_columplot_prod[1] & ano <= input$anos_columplot_prod[2]))$valor,
+                        stack = "Produção", color = '#800000') %>%
+          hc_add_series(name=nomes_producao[2],
+                        data = subset(contas_economicas, contas %in% nomes_producao[2] & (ano >= input$anos_columplot_prod[1] & ano <= input$anos_columplot_prod[2]))$valor,
+                        stack = "Produção", color = '#FF0000') %>%
+          hc_add_series(name=nomes_producao[3],
+                        data = subset(contas_economicas, contas %in% nomes_producao[3] & (ano >= input$anos_columplot_prod[1] & ano <= input$anos_columplot_prod[2]))$valor,
+                        stack = "PIB_prod", color = '#CD5C5C') %>%
+          hc_add_series(name= "PIB produção",
+                        data = subset(contas_economicas, contas %in% nomes_producao[4] & (ano >= input$anos_columplot_prod[1] & ano <= input$anos_columplot_prod[2]))$valor,
+                        stack = "PIB_prod", color = '#FA8072') %>%
+          hc_add_series(name="PIB renda",
+                        data = subset(contas_economicas, contas %in% nomes_renda[6] & (ano >= input$anos_columnplot_renda[1] & ano <= input$anos_columnplot_renda[2]))$valor,
+                        stack = "PIB_renda", color = '#8A2BE2' ) %>%
+          hc_add_series(name= nomes_renda[2],
+                        data = subset(contas_economicas, contas %in% nomes_renda[2] & (ano >= input$anos_columnplot_renda[1] & ano <= input$anos_columnplot_renda[2]))$valor,
+                        stack = "Salarios", color = '#000080') %>%
+          hc_add_series(name= nomes_renda[3],
+                        data = subset(contas_economicas, contas %in% nomes_renda[3] & (ano >= input$anos_columnplot_renda[1] & ano <= input$anos_columnplot_renda[2]))$valor,
+                        stack = "Salarios", color = '#0000FF') %>%
+          hc_add_series(name=nomes_renda[4],
+                        data = subset(contas_economicas, contas %in% nomes_renda[4] & (ano >= input$anos_columnplot_renda[1] & ano <= input$anos_columnplot_renda[2]))$valor,
+                        stack = "Salarios", color = '#7B68EE') %>%
+          hc_add_series(name=nomes_renda[5],
+                        data = subset(contas_economicas, contas %in% nomes_renda[5] & (ano >= input$anos_columnplot_renda[1] & ano <= input$anos_columnplot_renda[2]))$valor,
+                        stack = "Salarios", color = '#00BFFF') %>%
+          hc_tooltip(crosshairs = TRUE, formatter= JS(paste0 ('function () {
+                  var string = "";
+                  if(this.series.name == "Produção" || this.series.name == "Impostos produtos" || this.series.name == "Consumo Intermediário" || this.series.name == "PIB produção"){
+                    string += "<br>Ótica da produção </br>";
+                  } 
+                  else if(this.series.name == "PIB renda" || this.series.name == "Salários" || this.series.name == "Contribuições" || this.series.name == "Impostos produção" || this.series.name == "Excedente"){
+                    string += "<br>Ótica da renda </br>";
+                  } 
+                  string += this.series.name + ": <b>" + Highcharts.numberFormat(this.y, 1) + " mi R$ </b> em " + this.x
+                  
+                  return string;
+                }'))) %>%
+          hc_exporting(
+            enabled = TRUE, # always enabled
+            filename = "custom-file-name"
+          )
+        #hc_add_theme(hc_theme_ft())
+        h
+        
+      }
     })
     
     output$piePlot_prod <- renderHighchart({
@@ -780,6 +823,7 @@ server <- function(input, output, session) {
                 hc_plotOptions(column = list(stacking = "normal")) %>%
                 hc_xAxis(categories = c(input$anos_columplot_prod[1] : input$anos_columplot_prod[2]), title = list(text = "Ano")) %>%
                 hc_yAxis(title = list(text = "Valor a preços correntes (1.000.000 R$) ")) %>%
+                hc_title(text = list("Composição do PIB - ótica da produção")) %>%
                 hc_add_series(name= nomes_producao[1],
                               data = subset(contas_economicas, contas %in% nomes_producao[1] & (ano >= input$anos_columplot_prod[1] & ano <= input$anos_columplot_prod[2]))$valor,
                               stack = "Produção") %>%
@@ -804,25 +848,28 @@ server <- function(input, output, session) {
     
     output$linePlot_renda <- renderHighchart({
         if(input$barra_lateral == 'contas_economicas'){
-            if(!is_empty(input$espec_renda)){
-                ds <- lapply(input$espec_renda, function(x){
-                    d <- subset(contas_economicas, contas %in% x & (ano >= input$anos_lineplot_renda[1] & ano <= input$anos_lineplot_renda[2]))
-                    data = data.frame(x = d$ano,
-                                      y = d$valor)
-                    
-                })
-                h <- highchart() %>% 
-                    hc_size(width = 600, height = 400) %>%
-                    hc_yAxis(title = list(text = "Valor a preços correntes (1.000.000 R$) ")) %>%
-                    hc_xAxis(title = list(text = "Ano"), allowDecimals = FALSE) %>%
-                    hc_exporting(enabled = T, fallbackToExportServer = F, 
-                                 menuItems = export)   
-                for (k in 1:length(ds)) {
-                    h <- h %>%
-                        hc_add_series(ds[[k]], name = input$espec_renda[k])
-                }
-                h
-            }
+            
+              ds <- lapply(espec_renda, function(x){
+                  d <- subset(contas_economicas, contas %in% x & (ano >= input$anos_lineplot_renda[1] & ano <= input$anos_lineplot_renda[2]))
+                  data = data.frame(x = d$ano,
+                                    y = d$valor)
+                  
+                  
+              })
+              
+              h <- highchart() %>% 
+                  hc_size(width = 600, height = 400) %>%
+                  hc_yAxis(title = list(text = "Valor a preços correntes (1.000.000 R$) ")) %>%
+                  hc_title(text = list("Contas da Econômicas - ótica da renda")) %>%
+                  hc_xAxis(title = list(text = "Ano"), allowDecimals = FALSE) %>%
+                  hc_exporting(enabled = T, fallbackToExportServer = F, 
+                               menuItems = export)   
+              for (k in 1:length(ds)) {
+                  h <- h %>%
+                      hc_add_series(ds[[k]], name = espec_renda[k])
+              }
+              h
+            
         }
     })
     output$piePlot_renda <- renderHighchart({
@@ -832,6 +879,7 @@ server <- function(input, output, session) {
                 hc_plotOptions(column = list(stacking = "normal")) %>%
                 hc_xAxis(categories = c(input$anos_columnplot_renda[1] : input$anos_columnplot_renda[2]), title = list(text = "Ano")) %>%
                 hc_yAxis(title = list(text = "Valor a preços correntes (1.000.000 R$) ")) %>%
+                hc_title(text = list("Composição - ótica da renda")) %>%
                 hc_add_series(name= nomes_renda[2],
                               data = subset(contas_economicas, contas %in% nomes_renda[2] & (ano >= input$anos_columnplot_renda[1] & ano <= input$anos_columnplot_renda[2]))$valor,
                               stack = "Produção") %>%
@@ -861,224 +909,223 @@ server <- function(input, output, session) {
     ## PIB per capita --------------------------------------------------------------------------------
     
     output$linePlot_pib_percapita1 <- renderHighchart({
-        if(input$barra_lateral == 'pib_per_capita'){
-            ds <- lapply(c("PIB"), function(x){
-                d <- subset(pib_percapita, especificacao %in% x & (ano >= input$anos_lineplot_pib_percapita1[1] & ano <= input$anos_lineplot_pib_percapita1[2]))
-                data = data.frame(x = d$ano,
-                                  y = d$valor)
-                
-            })
-    
-            h <- highchart() %>% 
-                #hc_size(width = 600, height = 400) %>%
-                hc_yAxis(title = list(text = "Valor a preços correntes (1.000.000 R$) ")) %>%
-                hc_title(text = list("PIB")) %>%
-                hc_exporting(enabled = T, fallbackToExportServer = F, 
-                             menuItems = export) 
-            if(input$tipo_graf_lineplot_pib_percapita1 == "Linha"){
-                h <- h %>%
-                hc_xAxis(title = list(text = "Ano"), allowDecimals = FALSE)
-            }
-            else{
-                h <- h %>% hc_chart(type = "column") %>%
-                hc_plotOptions(column = list(stacking = "normal")) %>%
-                hc_xAxis(categories = c(input$anos_lineplot_pib_percapita1[1] : input$anos_lineplot_pib_percapita1[2]), title = list(text = "Ano"))
-            }
-            h <- h %>% hc_add_series(ds[[1]], name = c('PIB'))
+       
+        ds <- lapply(c("PIB"), function(x){
+            d <- subset(pib_percapita, especificacao %in% x & (ano >= input$anos_lineplot_pib_percapita1[1] & ano <= input$anos_lineplot_pib_percapita1[2]))
+            data = data.frame(x = d$ano,
+                              y = d$valor)
             
-            h
-            
+        })
+
+        h <- highchart() %>% 
+            #hc_size(width = 600, height = 400) %>%
+            hc_yAxis(title = list(text = "Valor a preços correntes (1.000.000 R$) ")) %>%
+            hc_title(text = list("PIB")) %>%
+            hc_exporting(enabled = T, fallbackToExportServer = F, 
+                         menuItems = export) 
+        if(input$tipo_graf_lineplot_pib_percapita1 == "Linha"){
+            h <- h %>%
+            hc_xAxis(title = list(text = "Ano"), allowDecimals = FALSE)
         }
+        else{
+            h <- h %>% hc_chart(type = "column") %>%
+            hc_plotOptions(column = list(stacking = "normal")) %>%
+            hc_xAxis(categories = c(input$anos_lineplot_pib_percapita1[1] : input$anos_lineplot_pib_percapita1[2]), title = list(text = "Ano"))
+        }
+        h <- h %>% hc_add_series(ds[[1]], name = c('PIB'))
+        
+        h
+            
+        
     })
     
     output$linePlot_pib_percapita2 <- renderHighchart({
-        if(input$barra_lateral == 'pib_per_capita'){
-            ds <- lapply(c("População"), function(x){
-                d <- subset(pib_percapita, especificacao %in% x & (ano >= input$anos_lineplot_pib_percapita2[1] & ano <= input$anos_lineplot_pib_percapita2[2]))
-                data = data.frame(x = d$ano,
-                                  y = d$valor)
-                
-            })
+        ds <- lapply(c("População"), function(x){
+            d <- subset(pib_percapita, especificacao %in% x & (ano >= input$anos_lineplot_pib_percapita2[1] & ano <= input$anos_lineplot_pib_percapita2[2]))
+            data = data.frame(x = d$ano,
+                              y = d$valor)
             
-            h <- highchart() %>% 
-                #hc_size(width = 600, height = 400) %>%
-                hc_yAxis(title = list(text = "População residente (1000 hab) ")) %>%
-                hc_title(text = list("População")) %>%
-                hc_exporting(enabled = T, fallbackToExportServer = F, 
-                         menuItems = export) 
-               
-            
-            if(input$tipo_graf_lineplot_pib_percapita2 == "Linha"){
-                h <- h %>%
-                    hc_xAxis(title = list(text = "Ano"), allowDecimals = FALSE)
-            }
-            else{
-                h <- h %>% hc_chart(type = "column") %>%
-                    hc_plotOptions(column = list(stacking = "normal")) %>%
-                    hc_xAxis(categories = c(input$anos_lineplot_pib_percapita2[1] : input$anos_lineplot_pib_percapita2[2]), title = list(text = "Ano"))
-            }
-            h <- h %>% hc_add_series(ds[[1]], name = c('População'))
-            
-            h
-            
+        })
+        
+        h <- highchart() %>% 
+            #hc_size(width = 600, height = 400) %>%
+            hc_yAxis(title = list(text = "População residente (1000 hab) ")) %>%
+            hc_title(text = list("População")) %>%
+            hc_exporting(enabled = T, fallbackToExportServer = F, 
+                     menuItems = export) 
+           
+        
+        if(input$tipo_graf_lineplot_pib_percapita2 == "Linha"){
+            h <- h %>%
+                hc_xAxis(title = list(text = "Ano"), allowDecimals = FALSE)
         }
+        else{
+            h <- h %>% hc_chart(type = "column") %>%
+                hc_plotOptions(column = list(stacking = "normal")) %>%
+                hc_xAxis(categories = c(input$anos_lineplot_pib_percapita2[1] : input$anos_lineplot_pib_percapita2[2]), title = list(text = "Ano"))
+        }
+        h <- h %>% hc_add_series(ds[[1]], name = c('População'))
+        
+          h
     })
     
     output$linePlot_pib_percapita3 <- renderHighchart({
-        if(input$barra_lateral == 'pib_per_capita'){
-            ds <- lapply(c("PIB per capita"), function(x){
-                d <- subset(pib_percapita, especificacao %in% x & (ano >= input$anos_lineplot_pib_percapita3[1] & ano <= input$anos_lineplot_pib_percapita3[2]))
-                data = data.frame(x = d$ano,
-                                  y = d$valor)
-                
-            })
+
+        ds <- lapply(c("PIB per capita"), function(x){
+            d <- subset(pib_percapita, especificacao %in% x & (ano >= input$anos_lineplot_pib_percapita3[1] & ano <= input$anos_lineplot_pib_percapita3[2]))
+            data = data.frame(x = d$ano,
+                              y = d$valor)
             
-            h <- highchart() %>% 
-                #hc_size(width = 600, height = 400) %>%
-                hc_yAxis(title = list(text = "Valor a preços correntes (R$) ")) %>%
-                hc_title(text = list("PIB per capita")) %>%
-                hc_exporting(enabled = T, fallbackToExportServer = F, 
-                             menuItems = export) 
-            
-            
-            if(input$tipo_graf_lineplot_pib_percapita3 == "Linha"){
-                h <- h %>%
-                    hc_xAxis(title = list(text = "Ano"), allowDecimals = FALSE)
-            }
-            else{
-                h <- h %>% hc_chart(type = "column") %>%
-                    hc_plotOptions(column = list(stacking = "normal")) %>%
-                    hc_xAxis(categories = c(input$anos_lineplot_pib_percapita3[1] : input$anos_lineplot_pib_percapita3[2]), title = list(text = "Ano"))
-            }
-            h <- h %>% hc_add_series(ds[[1]], name = c('PIB per capita'))
-            
-            h
-            
+        })
+        
+        h <- highchart() %>% 
+            #hc_size(width = 600, height = 400) %>%
+            hc_yAxis(title = list(text = "Valor a preços correntes (R$) ")) %>%
+            hc_title(text = list("PIB per capita")) %>%
+            hc_exporting(enabled = T, fallbackToExportServer = F, 
+                         menuItems = export) 
+        
+        
+        if(input$tipo_graf_lineplot_pib_percapita3 == "Linha"){
+            h <- h %>%
+                hc_xAxis(title = list(text = "Ano"), allowDecimals = FALSE)
         }
+        else{
+            h <- h %>% hc_chart(type = "column") %>%
+                hc_plotOptions(column = list(stacking = "normal")) %>%
+                hc_xAxis(categories = c(input$anos_lineplot_pib_percapita3[1] : input$anos_lineplot_pib_percapita3[2]), title = list(text = "Ano"))
+        }
+        h <- h %>% hc_add_series(ds[[1]], name = c('PIB per capita'))
+        
+        h
+          
+        
     })
     
     output$linePlot_pib_percapita4 <- renderHighchart({
-        if(input$barra_lateral == 'pib_per_capita2'){
-            ds <- lapply(c("PIB"), function(x){
-                d <- subset(pib_percapita, especificacao %in% x & (ano >= input$anos_lineplot_pib_percapita7[1] & ano <= input$anos_lineplot_pib_percapita7[2]))
-                data = data.frame(x = d$ano,
-                                  y = d$valor)
-                
-            })
+      
+        ds <- lapply(c("PIB"), function(x){
+            d <- subset(pib_percapita, especificacao %in% x & (ano >= input$anos_lineplot_pib_percapita7[1] & ano <= input$anos_lineplot_pib_percapita7[2]))
+            data = data.frame(x = d$ano,
+                              y = d$valor)
             
-            h <- highchart() %>% 
-                #hc_size(width = 600, height = 400) %>%
-                hc_yAxis(title = list(text = "Valor a preços correntes (1.000.000 R$) ")) %>%
-                hc_title(text = list("PIB")) %>%
-                hc_exporting(enabled = T, fallbackToExportServer = F, 
-                             menuItems = export) 
-            if(input$tipo_graf_lineplot_pib_percapita4 == "Linha"){
-                h <- h %>%
-                    hc_xAxis(title = list(text = "Ano"), allowDecimals = FALSE)
-            }
-            else{
-                h <- h %>% hc_chart(type = "column") %>%
-                    hc_plotOptions(column = list(stacking = "normal")) %>%
-                    hc_xAxis(categories = c(input$anos_lineplot_pib_percapita7[1] : input$anos_lineplot_pib_percapita7[2]), title = list(text = "Ano"))
-            }
-            h <- h %>% hc_add_series(ds[[1]], name = c('PIB'))
-            
-            h
-            
+        })
+        
+        h <- highchart() %>% 
+            #hc_size(width = 600, height = 400) %>%
+            hc_yAxis(title = list(text = "Valor a preços correntes (1.000.000 R$) ")) %>%
+            hc_title(text = list("PIB")) %>%
+            hc_exporting(enabled = T, fallbackToExportServer = F, 
+                         menuItems = export) 
+        if(input$tipo_graf_lineplot_pib_percapita == "Linha"){
+            h <- h %>%
+                hc_xAxis(title = list(text = "Ano"), allowDecimals = FALSE)
         }
+        else{
+            h <- h %>% hc_chart(type = "column") %>%
+                hc_plotOptions(column = list(stacking = "normal")) %>%
+                hc_xAxis(categories = c(input$anos_lineplot_pib_percapita7[1] : input$anos_lineplot_pib_percapita7[2]), title = list(text = "Ano"))
+        }
+        h <- h %>% hc_add_series(ds[[1]], name = c('PIB'))
+        
+        h
+            
+        
     })
     
     output$linePlot_pib_percapita5 <- renderHighchart({
-        if(input$barra_lateral == 'pib_per_capita2'){
-            ds <- lapply(c("População"), function(x){
-                d <- subset(pib_percapita, especificacao %in% x & (ano >= input$anos_lineplot_pib_percapita7[1] & ano <= input$anos_lineplot_pib_percapita7[2]))
-                data = data.frame(x = d$ano,
-                                  y = d$valor)
-                
-            })
+        
+        ds <- lapply(c("População"), function(x){
+            d <- subset(pib_percapita, especificacao %in% x & (ano >= input$anos_lineplot_pib_percapita7[1] & ano <= input$anos_lineplot_pib_percapita7[2]))
+            data = data.frame(x = d$ano,
+                              y = d$valor)
             
-            h <- highchart() %>% 
-                #hc_size(width = 600, height = 400) %>%
-                hc_yAxis(title = list(text = "População residente (1000 hab) ")) %>%
-                hc_title(text = list("População")) %>%
-                hc_exporting(enabled = T, fallbackToExportServer = F, 
-                             menuItems = export) 
-            
-            
-            if(input$tipo_graf_lineplot_pib_percapita5 == "Linha"){
-                h <- h %>%
-                    hc_xAxis(title = list(text = "Ano"), allowDecimals = FALSE)
-            }
-            else{
-                h <- h %>% hc_chart(type = "column") %>%
-                    hc_plotOptions(column = list(stacking = "normal")) %>%
-                    hc_xAxis(categories = c(input$anos_lineplot_pib_percapita7[1] : input$anos_lineplot_pib_percapita7[2]), title = list(text = "Ano"))
-            }
-            h <- h %>% hc_add_series(ds[[1]], name = c('População'))
-            
-            h
-            
+        })
+        
+        h <- highchart() %>% 
+            #hc_size(width = 600, height = 400) %>%
+            hc_yAxis(title = list(text = "População residente (1000 hab) ")) %>%
+            hc_title(text = list("População")) %>%
+            hc_exporting(enabled = T, fallbackToExportServer = F, 
+                         menuItems = export) 
+        
+        
+        if(input$tipo_graf_lineplot_pib_percapita == "Linha"){
+            h <- h %>%
+                hc_xAxis(title = list(text = "Ano"), allowDecimals = FALSE)
         }
+        else{
+            h <- h %>% hc_chart(type = "column") %>%
+                hc_plotOptions(column = list(stacking = "normal")) %>%
+                hc_xAxis(categories = c(input$anos_lineplot_pib_percapita7[1] : input$anos_lineplot_pib_percapita7[2]), title = list(text = "Ano"))
+        }
+        h <- h %>% hc_add_series(ds[[1]], name = c('População'))
+        
+        h
+            
+        
     })
     
     output$linePlot_pib_percapita6 <- renderHighchart({
-        if(input$barra_lateral == 'pib_per_capita2'){
-            ds <- lapply(c("PIB per capita"), function(x){
-                d <- subset(pib_percapita, especificacao %in% x & (ano >= input$anos_lineplot_pib_percapita7[1] & ano <= input$anos_lineplot_pib_percapita7[2]))
-                data = data.frame(x = d$ano,
-                                  y = d$valor)
-                
-            })
+        
+        ds <- lapply(c("PIB per capita"), function(x){
+            d <- subset(pib_percapita, especificacao %in% x & (ano >= input$anos_lineplot_pib_percapita7[1] & ano <= input$anos_lineplot_pib_percapita7[2]))
+            data = data.frame(x = d$ano,
+                              y = d$valor)
             
-            h <- highchart() %>% 
-                #hc_size(width = 600, height = 400) %>%
-                hc_yAxis(title = list(text = "Valor a preços correntes (R$) ")) %>%
-                hc_title(text = list("PIB per capita")) %>%
-                hc_exporting(enabled = T, fallbackToExportServer = F, 
-                             menuItems = export) 
-            
-            
-            if(input$tipo_graf_lineplot_pib_percapita6 == "Linha"){
-                h <- h %>%
-                    hc_xAxis(title = list(text = "Ano"), allowDecimals = FALSE)
-            }
-            else{
-                h <- h %>% hc_chart(type = "column") %>%
-                    hc_plotOptions(column = list(stacking = "normal")) %>%
-                    hc_xAxis(categories = c(input$anos_lineplot_pib_percapita7[1] : input$anos_lineplot_pib_percapita7[2]), title = list(text = "Ano"))
-            }
-            h <- h %>% hc_add_series(ds[[1]], name = c('PIB per capita'))
-            
-            h
-            
+        })
+        
+        h <- highchart() %>% 
+            #hc_size(width = 600, height = 400) %>%
+            hc_yAxis(title = list(text = "Valor a preços correntes (R$) ")) %>%
+            hc_title(text = list("PIB per capita")) %>%
+            hc_exporting(enabled = T, fallbackToExportServer = F, 
+                         menuItems = export) 
+        
+        
+        if(input$tipo_graf_lineplot_pib_percapita == "Linha"){
+            h <- h %>%
+                hc_xAxis(title = list(text = "Ano"), allowDecimals = FALSE)
         }
+        else{
+            h <- h %>% hc_chart(type = "column") %>%
+                hc_plotOptions(column = list(stacking = "normal")) %>%
+                hc_xAxis(categories = c(input$anos_lineplot_pib_percapita7[1] : input$anos_lineplot_pib_percapita7[2]), title = list(text = "Ano"))
+        }
+        h <- h %>% hc_add_series(ds[[1]], name = c('PIB per capita'))
+        
+        h
+            
+        
     })
     
     output$linePlot_pib_percapita8 <- renderHighchart({
-        if(input$barra_lateral == 'pib_per_capita'){
-            espec <- c("PIB","PIB per capita", "População")
-            ds <- lapply(espec, function(x){
-                d <- subset(pib_percapita, especificacao %in% x & (ano >= input$anos_lineplot_pib_percapita8[1] & ano <= input$anos_lineplot_pib_percapita8[2]))
-                data = data.frame(x = d$ano,
-                                  y = d$valor)
-                
-            })
+        
+        espec <- c("PIB","PIB per capita", "População")
+        ds <- lapply(espec, function(x){
+            d <- subset(pib_percapita, especificacao %in% x & (ano >= input$anos_lineplot_pib_percapita8[1] & ano <= input$anos_lineplot_pib_percapita8[2]))
+            data = data.frame(x = d$ano,
+                              y = d$valor)
             
-            hc <- highchart()%>%
-                hc_xAxis(categories = c(2010: ultimo_ano), title = list(text = "Ano")) %>%
-                hc_yAxis_multiples(list(title = list(text = "PIB (1000000 R$)"), opposite = FALSE, showEmpty= FALSE),
-                                   list(title = list(text = "PIB per capita (R$)"),opposite = FALSE, showEmpty= FALSE),
-                                   list(title = list(text = "População"), opposite = TRUE, showEmpty= FALSE )) %>%
-                hc_plotOptions(column = list(stacking = "normal")) %>%
-                hc_add_series(ds[[3]],type="column", name=espec[3], yAxis=2) %>%
-                hc_add_series(ds[[1]],type="line", name=espec[1], yAxis=0) %>%
-                hc_add_series(ds[[2]],type="line", name=espec[2], yAxis=1) %>%
-                hc_tooltip(crosshairs = TRUE,
-                           borderWidth = 5,
-                           sort = FALSE,
-                           table = TRUE)
-            hc
-        }
+        })
+        
+        hc <- highchart()%>%
+            hc_xAxis(categories = c(2010: ultimo_ano), title = list(text = "Ano")) %>%
+            hc_yAxis_multiples(list(title = list(text = "PIB (1000000 R$)"), opposite = FALSE, showEmpty= FALSE),
+                               list(title = list(text = "PIB per capita (R$)"),opposite = FALSE, showEmpty= FALSE),
+                               list(title = list(text = "População"), opposite = TRUE, showEmpty= FALSE )) %>%
+            hc_plotOptions(column = list(stacking = "normal")) %>%
+            hc_add_series(ds[[3]],type="column", name=espec[3], yAxis=2) %>%
+            hc_add_series(ds[[1]],type="line", name=espec[1], yAxis=0) %>%
+            hc_add_series(ds[[2]],type="line", name=espec[2], yAxis=1) %>%
+            hc_tooltip(crosshairs = TRUE,
+                       borderWidth = 5,
+                       sort = FALSE,
+                       table = TRUE) %>%
+            hc_exporting(enabled = T, fallbackToExportServer = F, 
+                         menuItems = export) 
+        hc
+        
     })
     
 ## Resultados -----------------------------------------------------------------------------    
