@@ -40,7 +40,7 @@ ano_dados = 2021
 #' 
 #' Aqui é realizada a leitura dos arquivos em formato .xlsx. Os arquivos deverão estar na mesma pasta em que o 
 #' script está salvo.
-dados_imrs <- as_tibble(readxl::read_excel("IMRS2021 - BASE ESPORTE.xlsx", sheet = 1))
+dados_imrs <- as_tibble(readxl::read_excel("IMRS2021 - BASE ESPORTE.xlsx", sheet = 1, col_types = c("numeric", "numeric", "numeric", "numeric", "text", "numeric", "text", "numeric", "numeric", "numeric", "text", "text", "text" )))
 dados_icms <- as_tibble(readxl::read_excel("Dados_Basicos_Esporte_2022.xlsx", sheet = 1))
 dados_quadra <- as_tibble(readxl::read_excel("Quadras.xlsx", sheet = 1))
 dados_munic <- as_tibble(readxl::read_excel("Base Suplemento Esporte MUNIC 2016.xls", sheet = 2))
@@ -83,7 +83,8 @@ indicadores[, 5:13] <- NA # seleciona todas as linhas e colunas de 5 a 13 e atri
 
 #' Cálculo do indicador: dado as cidades que tem conselho de esportes (primeira linha), dividir a pontuação pelos pesos
 indicadores <- indicadores %>% mutate(L_PROGE =  if_else_(indicadores$conselho_de_esportes=="SIM",
-                                                          round(indicadores$pontuacao_municipio_soma_das_atividades_do_municipio/indicadores$peso_da_rcl, digits = 2), NA))
+                                                         if_else_(is.na(indicadores$pontuacao_municipio_soma_das_atividades_do_municipio), 0, 
+                                                                  if_else_(is.na(indicadores$pontuacao_municipio_soma_das_atividades_do_municipio/indicadores$peso_da_rcl), 0, indicadores$pontuacao_municipio_soma_das_atividades_do_municipio/indicadores$peso_da_rcl)), 0))
 
 indicadores <- indicadores %>% mutate(L_CONSESP = indicadores$conselho_de_esportes)
 
@@ -95,7 +96,7 @@ indicadores$L_CONSESP = case_when(indicadores$L_CONSESP == "SIM" ~ "Sim",
 #' Default do R é apresentar números em notação cinentífica, aqui eliminamos essa possibilidade.
 options(scipen = 9999999)
 indicadores <- indicadores %>% mutate(L_ILRHE =  if_else_(indicadores$conselho_de_esportes=="SIM",
-                                                          round(indicadores$pontuacao_municipio_soma_das_atividades_do_municipio/indicadores$soma_pontuacao_municipios_mg, digits = 3), NA))
+                                                          if_else_(is.na(indicadores$pontuacao_municipio_soma_das_atividades_do_municipio), 0, (indicadores$pontuacao_municipio_soma_das_atividades_do_municipio/indicadores$soma_pontuacao_municipios_mg)*100), 0))
 #' Remove as colunas que não são mais necessárias
 indicadores <- indicadores %>% select(-c(14:22))
 
@@ -141,8 +142,16 @@ colnames(dados_munic_conv) <- c("IBGE7", "S57")
 indicadores <- merge(indicadores, dados_munic_conv, by = "IBGE7")
 
 #' Obtém o indicador
-indicadores <- indicadores %>% mutate(L_CONVESP = indicadores$S57) %>%
+#' *Observação*: para realizar a leitura a partir da MUNIC, basta descomentar as próximas duas linhas.
+#indicadores <- indicadores %>% mutate(L_CONVESP = indicadores$S57) %>%
+#                               select(-S57)
+
+#' Caso deseje preencher o indicador com Não, basta descomentar as duas linhas seguintes.
+indicadores <- indicadores %>% mutate(L_CONVESP = "Não") %>%
                                select(-S57)
+
+#' Por fim, se desejar deixar os valores em branco, basta descomentar a linha a seguir
+#indicadores <- indicadores %>% select(-S57)
 
 #' Filtra os dados para os municípios de Minas Gerais
 dados_munic_equip <- dados_munic_equip %>% subset(substr(dados_munic_equip$S1, 1, 2) == "31") %>% #seleciona as linhas cujos códigos 
@@ -180,13 +189,16 @@ colnames(dados_quadra) <- c("IBGE7", "pquadras")
 indicadores <- merge(indicadores, dados_quadra, by= "IBGE7")
 
 #' Atualiza o indicador
-indicadores <- indicadores %>% mutate(L_ESPESC = round(indicadores$pquadras, digits = 2)) %>%
+indicadores <- indicadores %>% mutate(L_ESPESC = indicadores$pquadras) %>%
                                select(-pquadras)
-
-
 
 #' Juntando a base original com os indicadores
 dados_imrs <- rbind(dados_imrs, indicadores) 
+
+#' Ajusta o número de casas decimais
+dados_imrs <- dados_imrs %>% mutate(L_PROGE = round(L_PROGE, digits = 2)) %>%
+                             mutate(L_ESPESC = round(L_ESPESC, digits = 2)) %>%
+                             mutate(L_ILRHE = round(L_ILRHE, digits = 3))
 
 #' Exportando a base. O arquivo gerado terá o mesmo nome do arquivo com os dados do IMRS, porém com
 #' o ano atualizado.
