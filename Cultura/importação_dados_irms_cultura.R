@@ -356,7 +356,7 @@ indicadores <- indicadores %>% mutate(C_COMPBIB = indicadores$compra) %>% select
 indicadores <- indicadores %>% mutate(C_LEITMESBIB = indicadores$leitores) %>% select(-leitores)
 indicadores <- indicadores %>% mutate(C_EMPMESBIB = indicadores$media_emprestimo) %>% select(-media_emprestimo)
 indicadores <- indicadores %>% mutate(C_NUMBIB = indicadores$num_bib) %>% select(-num_bib)
-indicadores <- indicadores %>% select(-c("area", "acervo", "municipio", "IBGE6"))
+indicadores <- indicadores %>% select(-c("area", "acervo", "municipio"))
 
 #' Verifica se as variáveis binárias estão corretas
 
