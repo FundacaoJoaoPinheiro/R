@@ -343,6 +343,8 @@ Ir na guia Console e digitar o seguinte comando:
 Isso torna a página completamente editável. No entanto, as modificações
 desaparecem quando a página é atualizada.
 
+Ou seja, o print de uma tela não é nada confiável. Até as mensagens de Whatsapp e emails podem ser alteradas.
+
 #### Visualização de senhas
 
 Se você se esqueceu de alguma senha e ela está salva no navegador, basta
