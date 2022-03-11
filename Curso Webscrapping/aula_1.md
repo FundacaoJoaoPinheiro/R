@@ -133,7 +133,8 @@ o atributo `src` para especificarmos a URL da imagem.
 
 ### Classes e ID
 
--   O **id** é um atributo para especificar um único elemento;
+-   O **id** é um atributo para especificar um único elemento e dar
+    características específicas a ele;
 -   A **class** é um atributo para definir diferentes elementos com o
     mesmo nome class. Isso é útil quando queremos dar as mesmas
     características, como fonte, cor e tamanho, para vários elementos de
@@ -288,6 +289,14 @@ aplicar a propriedade que define o tamanho da caixa.
     </body>
     </head>
     </html>
+
+### Hierarquia
+
+Os elementos HTML possuem uma hierarquia entre si. Conhecer a relação
+entre os elementos pode ser útil para realizar a busca de um elemento
+dentro do HTML.
+
+![Alt text](H:/FJP\Curso%20webscrapping/hierarquia_html.jpg)
 
 ## XML
 
