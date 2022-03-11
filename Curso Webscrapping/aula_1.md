@@ -296,7 +296,8 @@ Os elementos HTML possuem uma hierarquia entre si. Conhecer a relação
 entre os elementos pode ser útil para realizar a busca de um elemento
 dentro do HTML.
 
-![Alt text](H:/FJP\Curso%20webscrapping/hierarquia_html.jpg)
+![hierarquia_html](https://user-images.githubusercontent.com/12836843/157909848-57e2a67f-01a0-4193-9b83-4a7ba78be9fe.jpg)
+
 
 ## XML
 
