@@ -313,7 +313,7 @@ pagina <- xml2::read_html(url)
 
 * https://canaltech.com.br/seguranca/o-que-e-web-scraping/
 * https://www.zyte.com/learn/what-is-web-scraping/
-* https://ubc-library-rc.github.io/intro-web-scraping/content/understanding-a-website.html#:~:text=Web%20scraping%20tools%20use%20a,are%20usually%20easier%20to%20scrape.
+* https://ubc-library-rc.github.io/intro-web-scraping/content/understanding-a-website.html
 * https://betterprogramming.pub/understanding-html-basics-for-web-scraping-ae351ee0b3f9
 * https://www.w3schools.com/xml/xml_whatis.asp
 * https://www.w3schools.com/css/css_intro.asp
