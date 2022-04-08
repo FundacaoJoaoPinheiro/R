@@ -102,7 +102,7 @@ E se quisermos navegar até a segunda página de resultados?
 
 Alguns sites proibem o uso de ferramentas automatizadas, ou **robôs**,
 tal como o webscrapping. Para descobrir se um site permite ou não o uso
-de webscrapping, é só procurar pelo arquivo `robots.text`. Exemplo:
+de webscrapping, é só procurar pelo arquivo `robots.txt`. Exemplo:
 
     http://fjp.mg.gov.br/robots.txt
 
