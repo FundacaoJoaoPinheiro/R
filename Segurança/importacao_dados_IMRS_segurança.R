@@ -34,7 +34,7 @@ if (any(pacotes_instalados == FALSE)) {
 lapply(pacotes, library, character.only=TRUE)
 
 #' Busca a função que faz a extração dos dados do datasus diretamente do github
-source("https://gist.githubusercontent.com/michelrodrigo/c19a28180ee0aa4d589eddbf7038b413/raw/b0cc8c7aba5b674b3a051b5f8e60d110b4136e10/sim_obt10_mun_mg.R")
+source("https://gist.githubusercontent.com/michelrodrigo/c19a28180ee0aa4d589eddbf7038b413/raw/b0cc8c7aba5b674b3a051b5f8e60d110b4136e10/sim_obt10_mun_mg.R", encoding = "UTF-8")
 
 #' Ano (o ano relativo aos dados)
 ano_dados <- 2020
@@ -43,6 +43,7 @@ dados_preliminares <- FALSE
 #' Realiza a leitura dos arquivos excel 
 dados_pop <- as_tibble(readxl::read_excel("IMRS2021 - BASE DEMOGRAFIA 2000 a 2020.xlsx", sheet =1))
 dados_imrs <- as_tibble(readxl::read_excel("IMRS2021 - BASE SEGURANCA.xlsx", sheet =1))
+dados_sejusp <- as_tibble(read.csv("Banco Crimes Violentos - Atualizado Dezembro 2021.csv", sep = ";" ))
 
 #' Cria uma cópia dos indicadores do último ano disponível no imrs em seguida atualiza o ano e os valores dos indicadores
 indicadores <- dados_imrs |> subset(ANO == ano_dados)
@@ -221,23 +222,7 @@ dados[, c(3, 4)] <- sapply(dados[, c(3, 4)], as.numeric)
 indicadores <- indicadores |> merge(dados[, c(3, 4)], by="IBGE6") |>  mutate(P_HOMMULHER_SIM = Total) |> select(-c("Total"))
 
 
-#' ## Extração dos dados SEJUSP
-
-#' Obtém os dados disponiveis na página de dados abertos
-pag_sejusp <- read_html("http://www.seguranca.mg.gov.br/2018-08-22-13-39-06/dados-abertos")
-url <- pag_sejusp %>% html_element(xpath = "//a[preceding-sibling::*[text()[contains(., '2012 a 2017')]]]") %>% html_attr(name = 'href')
-url <- paste0("http://www.seguranca.mg.gov.br", url)
-p <- curlGetHeaders(url)
-status <- attr(p, "status")
-if(status == 503){
-  stop("Dados da SEJUSP não disponíveis")
-}else if(status == 200){
-  # apesar de termos obtido uma resposta, ela pode ser uma resposta indicando um erro. A seguir tentaremos ler os dados
-  p <- read_html(url)
-}
-
-
-#dados_sejusp <- as_tibble(read.csv("Banco Crimes Violentos - Atualizado Dezembro 2021.csv", sep = ";" ))
+#' ## Extração e manipulação dos dados SEJUSP 
 
 dados_sejusp <- dados_sejusp |> janitor::clean_names()
 
