@@ -34,7 +34,8 @@ if (any(pacotes_instalados == FALSE)) {
 lapply(pacotes, library, character.only=TRUE)
 
 #' Busca a função que faz a extração dos dados do datasus diretamente do github
-source("https://gist.githubusercontent.com/michelrodrigo/c19a28180ee0aa4d589eddbf7038b413/raw/b0cc8c7aba5b674b3a051b5f8e60d110b4136e10/sim_obt10_mun_mg.R", encoding = "UTF-8")
+source("https://gist.githubusercontent.com/michelrodrigo/c19a28180ee0aa4d589eddbf7038b413/raw/9ce5c84c905ee0207e5381020cc147c7d6c65112/sim_obt10_mun_mg.R", encoding = "UTF-8")
+        
 
 #' Ano (o ano relativo aos dados)
 ano_dados <- 2020
@@ -155,7 +156,7 @@ dados <- sim_obt10_mun_mg(dados_preliminares,
                           grande_grupo_cid10 = "X85-Y09 Agressões",
                           periodo = ano_dados,
                           coluna = "Ano do Óbito",
-                          cor_raca = "Branca")
+                          cor_raca = "branca")
 dados <- dados |> mutate(IBGE6 = apply(dados, 1, function(x) substr(x["Município"], 1, 6) ))
 dados[, c(3, 4)] <- sapply(dados[, c(3, 4)], as.numeric)
 
