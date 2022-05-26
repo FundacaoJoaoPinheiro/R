@@ -18,12 +18,15 @@ library("shinyjs")
 library(shinyBS)
 library(rvest)
 
+#dir <- dirname(rstudioapi::getActiveDocumentContext()$path)
+#setwd(dir)
+
 
 # Importação dos dados e pré-processamento ------------------------------------------------------------------------------
 
 temp = tempfile(fileext = ".xlsx")
 pag_fjp <- read_html("http://fjp.mg.gov.br/produto-interno-bruto-pib-de-minas-gerais/")
-url <- pag_fjp %>% html_element(xpath = "//div[@id='elementor-tab-content-1428']/ul/li[2]/a") %>% html_attr(name = 'href')
+url <- pag_fjp |> html_element(xpath = "//a[contains(text(), 'Base')]/../../../*/div[@id='elementor-tab-content-1429']/*/li[2]/a") |> html_attr(name = 'href')
 download.file(url, destfile=temp, mode='wb')
 #file_tab1 <- read.xlsx(temp, sheet= 1)
 file_tab1 <- read.xlsx(temp, sheetIndex = 1)
