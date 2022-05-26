@@ -132,53 +132,64 @@ sim_obt10_mun_mg <- function(preliminares = FALSE, linha = "Munic\u00edpio", col
   
   grande_grupo_cid10.df <- suppressWarnings(data.frame(id = page |> rvest::html_nodes("#S7 option") |> rvest::html_text() |> trimws(),
                                                        value = page |> rvest::html_nodes("#S7 option") |> rvest::html_attr("value")))
-  
+  grande_grupo_cid10.df$id <- tolower(grande_grupo_cid10.df$id)
   
   grupo_cid10.df <- suppressWarnings(data.frame(id = page |> rvest::html_nodes("#S8 option") |> rvest::html_text() |> readr::parse_number(),
                                                 value = page |> rvest::html_nodes("#S8 option") |> rvest::html_attr("value")))
   
   categoria_cid10.df <- data.frame(id = page |> rvest::html_nodes("#S9 option") |> rvest::html_text() |> trimws(),
                                    value = page |> rvest::html_nodes("#S9 option") |> rvest::html_attr("value"))
+  categoria_cid10.df$id <- tolower(categoria_cid10.df$id)
   
   faixa_etaria.df <- data.frame(id = page |> rvest::html_nodes("#S10 option") |> rvest::html_text() |> trimws(),
                                 value = page |> rvest::html_nodes("#S10 option") |> rvest::html_attr("value"))
   faixa_etaria.df[] <- lapply(faixa_etaria.df, as.character)
+  faixa_etaria.df$id <- tolower(faixa_etaria.df$id)
   
   faixa_etaria_ops.df <- data.frame(id = page |> rvest::html_nodes("#S11 option") |> rvest::html_text() |> trimws(),
                                     value = page |> rvest::html_nodes("#S11 option") |> rvest::html_attr("value"))
   faixa_etaria_ops.df[] <- lapply(faixa_etaria_ops.df, as.character)
+  faixa_etaria_ops.df$id <- tolower(faixa_etaria_ops.df$id)
   
   faixa_etaria_det.df <- data.frame(id = page |> rvest::html_nodes("#S12 option") |> rvest::html_text() |> trimws(),
                                     value = page |> rvest::html_nodes("#S12 option") |> rvest::html_attr("value"))
   faixa_etaria_det.df[] <- lapply(faixa_etaria_det.df, as.character)
+  faixa_etaria_det.df$id <- tolower(faixa_etaria_det.df$id)
   
   faixa_etaria_menor1a.df <- data.frame(id = page |> rvest::html_nodes("#S13 option") |> rvest::html_text() |> trimws(),
                                         value = page |> rvest::html_nodes("#S13 option") |> rvest::html_attr("value"))
   faixa_etaria_menor1a.df[] <- lapply(faixa_etaria_menor1a.df, as.character)
+  faixa_etaria_menor1a.df$id <- tolower(faixa_etaria_menor1a.df$id)
   
   sexo.df <- data.frame(id = page |> rvest::html_nodes("#S14 option") |> rvest::html_text() |> trimws(),
                         value = page |> rvest::html_nodes("#S14 option") |> rvest::html_attr("value"))
   sexo.df[] <- lapply(sexo.df, as.character)
+  sexo.df$id <- tolower(sexo.df$id)
   
   cor_raca.df <- data.frame(id = page |> rvest::html_nodes("#S15 option") |> rvest::html_text() |> trimws(),
                             value = page |> rvest::html_nodes("#S15 option") |> rvest::html_attr("value"))
   cor_raca.df[] <- lapply(cor_raca.df, as.character)
+  cor_raca.df$id <- tolower(cor_raca.df$id)
   
   escolaridade.df <- data.frame(id = page |> rvest::html_nodes("#S16 option") |> rvest::html_text() |> trimws(),
                                 value = page |> rvest::html_nodes("#S16 option") |> rvest::html_attr("value"))
   escolaridade.df[] <- lapply(escolaridade.df, as.character)
+  escolaridade.df$id <- tolower(escolaridade.df$id)
   
   estado_civil.df <- data.frame(id = page |> rvest::html_nodes("#S17 option") |> rvest::html_text() |> trimws(),
                                 value = page |> rvest::html_nodes("#S17 option") |> rvest::html_attr("value"))
   estado_civil.df[] <- lapply(estado_civil.df, as.character)
+  estado_civil.df$id <- tolower(estado_civil.df$id)
   
   local_ocorrencia.df <- data.frame(id = page |> rvest::html_nodes("#S18 option") |> rvest::html_text() |> trimws(),
                                     value = page |> rvest::html_nodes("#S18 option") |> rvest::html_attr("value"))
   local_ocorrencia.df[] <- lapply(local_ocorrencia.df, as.character)
+  local_ocorrencia.df$id <- tolower(local_ocorrencia.df$id)
   
   acid_trabalho.df <- data.frame(id = page |> rvest::html_nodes("#S19 option") |> rvest::html_text() |> trimws(),
                                  value = page |> rvest::html_nodes("#S19 option") |> rvest::html_attr("value"))
   acid_trabalho.df[] <- lapply(local_ocorrencia.df, as.character)
+  acid_trabalho.df$id <- tolower(acid_trabalho.df$id)
   
   municipios.df$id[1] <- regiao_de_saudecir.df$id[1] <- macrorregiao_de_saude.df$id[1] <- divisao_administ_estadual.df$id[1] <- microrregiao_ibge.df$id[1] <- "all"
   ride.df$id[1] <- grande_grupo_cid10.df$id[1] <- grupo_cid10.df$id[1] <- categoria_cid10.df$id[1] <- "all"
@@ -293,6 +304,7 @@ sim_obt10_mun_mg <- function(preliminares = FALSE, linha = "Munic\u00edpio", col
     
   }
   
+  grande_grupo_cid10 <- tolower(grande_grupo_cid10)
   if (any(grande_grupo_cid10 != "all")) {
     
     grande_grupo_cid10 <- as.character(grande_grupo_cid10)
@@ -309,6 +321,7 @@ sim_obt10_mun_mg <- function(preliminares = FALSE, linha = "Munic\u00edpio", col
     
   }
   
+  categoria_cid10 <- tolower(categoria_cid10)
   if (any(categoria_cid10 != "all")) {
     
     categoria_cid10 <- as.character(categoria_cid10)
@@ -317,6 +330,7 @@ sim_obt10_mun_mg <- function(preliminares = FALSE, linha = "Munic\u00edpio", col
     
   }
   
+  faixa_etaria <- tolower(faixa_etaria)
   if (any(faixa_etaria != "all")) {
     
     if (!(all(faixa_etaria %in% faixa_etaria.df$id))) {
@@ -333,6 +347,7 @@ sim_obt10_mun_mg <- function(preliminares = FALSE, linha = "Munic\u00edpio", col
     
   }
   
+  faixa_etaria_ops <- tolower(faixa_etaria_ops)
   if (any(faixa_etaria_ops != "all")) {
     
     if (!(all(faixa_etaria_ops %in% faixa_etaria_ops.df$id))) {
@@ -349,6 +364,7 @@ sim_obt10_mun_mg <- function(preliminares = FALSE, linha = "Munic\u00edpio", col
     
   }
   
+  faixa_etaria_det <- tolower(faixa_etaria_det)
   if (any(faixa_etaria_det != "all")) {
     
     if (!(all(faixa_etaria_det %in% faixa_etaria_det.df$id))) {
@@ -365,6 +381,7 @@ sim_obt10_mun_mg <- function(preliminares = FALSE, linha = "Munic\u00edpio", col
     
   }
   
+  faixa_etaria_menor1a <- tolower(faixa_etaria_menor1a)
   if (any(faixa_etaria_menor1a != "all")) {
     
     if (!(all(faixa_etaria_menor1a %in% faixa_etaria_menor1a.df$id))) {
@@ -381,6 +398,7 @@ sim_obt10_mun_mg <- function(preliminares = FALSE, linha = "Munic\u00edpio", col
     
   }
   
+  sexo <- tolower(sexo)
   if (any(sexo != "all")) {
     
     if (!(all(sexo %in% sexo.df$id))) {
@@ -397,6 +415,7 @@ sim_obt10_mun_mg <- function(preliminares = FALSE, linha = "Munic\u00edpio", col
     
   }
   
+  cor_raca <- tolower(cor_raca)
   if (any(cor_raca != "all")) {
     
     if (!(all(cor_raca %in% cor_raca.df$id))) {
@@ -413,6 +432,7 @@ sim_obt10_mun_mg <- function(preliminares = FALSE, linha = "Munic\u00edpio", col
     
   }
   
+  escolaridade <- tolower(escolaridade)
   if (any(escolaridade != "all")) {
     
     if (!(all(escolaridade %in% escolaridade.df$id))) {
@@ -429,6 +449,7 @@ sim_obt10_mun_mg <- function(preliminares = FALSE, linha = "Munic\u00edpio", col
     
   }
   
+  estado_civil <- tolower(estado_civil)
   if (any(estado_civil != "all")) {
     
     if (!(all(estado_civil %in% estado_civil.df$id))) {
@@ -445,11 +466,12 @@ sim_obt10_mun_mg <- function(preliminares = FALSE, linha = "Munic\u00edpio", col
     
   }
   
+  acid_trabalho <- tolower(acid_trabalho)
   if (any(acid_trabalho != "all")) {
     
     if (!(all(acid_trabalho %in% acid_trabalho$id))) {
       
-      local_ocorrencia <- as.character(acid_trabalho)
+      acid_trabalho <- as.character(acid_trabalho)
       
       if (!(all(acid_trabalho %in% acid_trabalho.df$value))) {
         
@@ -461,6 +483,7 @@ sim_obt10_mun_mg <- function(preliminares = FALSE, linha = "Munic\u00edpio", col
     
   }
   
+  local_ocorrencia <- tolower(local_ocorrencia)
   if (any(local_ocorrencia != "all")) {
     
     if (!(all(local_ocorrencia %in% local_ocorrencia.df$id))) {
@@ -630,14 +653,16 @@ sim_obt10_mun_mg <- function(preliminares = FALSE, linha = "Munic\u00edpio", col
   
   form_data <- gsub("\\\\u00", "%", form_data)
   
-  #form_data <- "Linha=Munic%EDpio&Coluna=Ano_do_%D3bito&Incremento=%D3bitos_p%2FOcorr%EAnc&Arquivos=extmg20.dbf&pesqmes1=Digite+o+texto+e+ache+f%E1cil&SMunic%EDpio=TODAS_AS_CATEGORIAS__&pesqmes2=Digite+o+texto+e+ache+f%E1cil&SRegi%E3o_de_Sa%FAde_%28CIR%29=TODAS_AS_CATEGORIAS__&pesqmes3=Digite+o+texto+e+ache+f%E1cil&SMacrorregi%E3o_de_Sa%FAde=TODAS_AS_CATEGORIAS__&pesqmes4=Digite+o+texto+e+ache+f%E1cil&SDivis%E3o_administ_estadual=TODAS_AS_CATEGORIAS__&pesqmes5=Digite+o+texto+e+ache+f%E1cil&SMicrorregi%E3o_IBGE=TODAS_AS_CATEGORIAS__&SRegi%E3o_Metropolitana_-_RIDE=TODAS_AS_CATEGORIAS__&SGrande_Grupo_CID10=3&pesqmes8=Digite+o+texto+e+ache+f%E1cil&SGrupo_CID10=TODAS_AS_CATEGORIAS__&pesqmes9=Digite+o+texto+e+ache+f%E1cil&SCategoria_CID10=TODAS_AS_CATEGORIAS__&pesqmes10=Digite+o+texto+e+ache+f%E1cil&SFaixa_Et%E1ria=TODAS_AS_CATEGORIAS__&pesqmes11=Digite+o+texto+e+ache+f%E1cil&SFaixa_Et%E1ria_OPS=TODAS_AS_CATEGORIAS__&pesqmes12=Digite+o+texto+e+ache+f%E1cil&SFaixa_Et%E1ria_det=TODAS_AS_CATEGORIAS__&SFx.Et%E1ria_Menor_1A=TODAS_AS_CATEGORIAS__&SSexo=TODAS_AS_CATEGORIAS__&SCor%2Fra%E7a=TODAS_AS_CATEGORIAS__&SEscolaridade=TODAS_AS_CATEGORIAS__&SEstado_civil=TODAS_AS_CATEGORIAS__&SLocal_ocorr%EAncia=TODAS_AS_CATEGORIAS__&SAcid._Trabalho=TODAS_AS_CATEGORIAS__&zeradas=exibirlz&formato=table&mostre=Mostra"
+  
   
   ##### REQUEST FORM AND DATA WRANGLING ####
-  if(preliminares){
+  
+  if (preliminares){
     url <- "http://tabnet.datasus.gov.br/cgi/tabcgi.exe?sim/cnv/pext10mg.def"
   }else{
     url <- "http://tabnet.datasus.gov.br/cgi/tabcgi.exe?sim/cnv/ext10mg.def"
   }
+  
   site <- httr::POST(url = url,
                      body = form_data)
   
