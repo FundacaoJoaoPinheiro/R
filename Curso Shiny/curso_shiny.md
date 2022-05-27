@@ -161,7 +161,9 @@ Shiny:
     runExample("11_timer")      # temporizador automatizado
 
 A [galeria do Shiny](https://shiny.rstudio.com/gallery) também provê
-vários exemplos.
+vários exemplos. Além disso, não se esqueça de consultar o [Cheatsheet
+do
+Shiny](https://raw.githubusercontent.com/rstudio/cheatsheets/main/shiny.pdf).
 
 # Unidade 2 - Construindo a interface de usuário
 
@@ -336,12 +338,12 @@ Para adicionar imagens à sua `ui`, use a função `img`. Para isso, você
 deve passar o nome do arquivo da imagem como argumento do parâmetro
 `src`, como a seguir:
 
-    img(src = "imagens/logo_fjp.png")
+    img(src = "logo_fjp.png")
 
 Você também pode incluir outros parâmetros do HTML para modificar a
 imagem, como altura e largura (os números referem-se aos pixels):
 
-    img(src = "imagens/logo_fjp.png", height = 72, width = 72)
+    img(src = "logo_fjp.png", height = 72, width = 72)
 
 A função `img` procura pelos arquivos em local específico. Seu arquivo
 tem que necessariamente estar dentro de uma pasta chamada `www` no mesmo
