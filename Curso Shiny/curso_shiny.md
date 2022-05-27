@@ -33,9 +33,11 @@ Os aplicativos Shiny são contidos em um único script chamado `app.R`. O
 script `app.R` fica em um diretório (por exemplo `novo_diretorio`) e o
 aplicativo pode ser executado com `runApp("novo_diretorio")`.
 
-O script `app.R` tem três componentes: \* Um objeto interface de usuário
-(*user interface*); \* Uma função server; \* Uma chamada da função
-`shinyApp`.
+O script `app.R` tem três componentes:
+
+-   Um objeto interface de usuário (*user interface*);
+-   Uma função server;
+-   Uma chamada da função `shinyApp`.
 
 O objeto interface de usuário (`ui`) controla o layout a aparência do
 aplicativo. A função `server` contém as instruções que o computador deve
@@ -901,7 +903,7 @@ colocando a função `tableOutput` na `ui`.
 
     library(shiny)
     library(shinydashboard)
-    library(xlsx)
+    library(readxl)
 
     dados <- read_excel("dados_curso1.xlsx") 
     dados <- dados |> subset(ANO %in% c(2019, 2020))
@@ -931,7 +933,7 @@ interface mais amigável. Dentre eles está o `rhandsontable`.
 
     library(shiny)
     library(shinydashboard)
-    library(xlsx)
+    library(readxl)
     library(rhandsontable)
 
     dados <- read_excel("dados_curso1.xlsx") 
@@ -963,7 +965,7 @@ colunas serão exibidas.
 
     library(shiny)
     library(shinydashboard)
-    library(xlsx)
+    library(readxl)
     library(rhandsontable)
 
     dados <- read_excel("dados_curso1.xlsx") 
@@ -997,7 +999,7 @@ normalmente. Caso contrário, o expressão não é avaliada.
 
     library(shiny)
     library(shinydashboard)
-    library(xlsx)
+    library(readxl)
     library(rhandsontable)
 
     dados <- read_excel("dados_curso1.xlsx") 
