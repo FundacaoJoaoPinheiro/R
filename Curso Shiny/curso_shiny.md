@@ -39,7 +39,7 @@ O script `app.R` tem três componentes:
 -   Uma função server;
 -   Uma chamada da função `shinyApp`.
 
-O objeto interface de usuário (`ui`) controla o layout a aparência do
+O objeto interface de usuário (`ui`) controla o layout e a aparência do
 aplicativo. A função `server` contém as instruções que o computador deve
 executar para construir o aplicativo. Finalmente, a função `shinyApp`
 cria o aplicativo Shiny usando o par `ui` e `server`.
@@ -161,7 +161,7 @@ Shiny:
     runExample("11_timer")      # temporizador automatizado
 
 A [galeria do Shiny](https://shiny.rstudio.com/gallery) também provê
-vários exemplos. Além disso, a
+vários exemplos.
 
 # Unidade 2 - Construindo a interface de usuário
 
@@ -336,12 +336,12 @@ Para adicionar imagens à sua `ui`, use a função `img`. Para isso, você
 deve passar o nome do arquivo da imagem como argumento do parâmetro
 `src`, como a seguir:
 
-    img(src = "logo_fjp.png")
+    img(src = "imagens/logo_fjp.png")
 
 Você também pode incluir outros parâmetros do HTML para modificar a
 imagem, como altura e largura (os números referem-se aos pixels):
 
-    img(src = "logo_fjp.png", height = 72, width = 72)
+    img(src = "imagens/logo_fjp.png", height = 72, width = 72)
 
 A função `img` procura pelos arquivos em local específico. Seu arquivo
 tem que necessariamente estar dentro de uma pasta chamada `www` no mesmo
@@ -356,7 +356,7 @@ navegador pode precisar.
 Usando as funções apresentadas, crie um aplicativo com os seguintes
 elementos:
 
-<img src="exe1.png">
+<img src="imagens/exe1.png">
 
 Observe que você deve associar a palavra aqui com o endereço da
 plataforma do IMRS. Além disso, associe o logo da FJP com o endereço do
@@ -433,11 +433,11 @@ atribuído ao criar as opções do menu. Observe no exemplo:
 Continuando o aplicativo do exercício 1, crie um menu com 3 opções
 conforme as imagens a seguir:
 
-<img src="exe2a.png">
+<img src="imagens/exe2a.png">
 
-<img src="exe2b.png">
+<img src="imagens/exe2b.png">
 
-<img src="exe2c.png">
+<img src="imagens/exe2c.png">
 
 ## Adicionando abas
 
@@ -486,9 +486,9 @@ representa a largura máxima.
 Continuando o exercício 2, crie um `tabBox` dentro do menu Indicadores,
 como mostrado nas imagens a seguir:
 
-<img src="exe3a.png">
+<img src="imagens/exe3a.png">
 
-<img src="exe3b.png">
+<img src="imagens/exe3b.png">
 
 # Unidade 3 - Adicionando ferramentas de controle
 
@@ -708,19 +708,19 @@ modificações:
     que só aparecem caso a primeira opção do menu esteja selecionada,
     como mostram as figuras abaixo.
 
-<img src="exe4a.png">
+<img src="imagens/exe4a.png">
 
-<img src="exe4b.png">
+<img src="imagens/exe4b.png">
 
-<img src="exe4c.png">
+<img src="imagens/exe4c.png">
 
-<img src="exe4d.png">
+<img src="imagens/exe4d.png">
 
 2.  A seleção do ano usará um widget `selectInput` se a aba selecionada
     for a de Tabela. Caso a aba Gráfico seja selecionada, a seleção do
     ano deverá usar um widget `sliderInput`:
 
-<img src="exe4e.png">
+<img src="imagens/exe4e.png">
 
 # Unidade 4 - Exibindo saídas reativas
 
@@ -1057,6 +1057,6 @@ devem ser exibidas para os municípios e anos selecionados.
 
 Ao final, seu dashboard deve ser parecido com o da figura a seguir.
 
-<img src="exe5a.png">
+<img src="imagens/exe5a.png">
 
 <https://shiny.rstudio.com/tutorial/written-tutorial/lesson2/>
