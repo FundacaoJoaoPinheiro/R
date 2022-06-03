@@ -310,7 +310,7 @@ Execute o código a seguir para ver o resultado do uso das tags:
                        h5("Fifth level title"),
                        h6("Sixth level title"),
                        p("p creates a paragraph of text."),
-                       p("A new p() command starts a new paragraph. Supply a style attribute to change the format of the entire paragraph.", style = "font-family: 'times'; font-si16pt"),
+                       p("A new p() command starts a new paragraph. Supply a style attribute to change the format of the entire paragraph.", style = "font-family: 'times'; font-size: 16pt"),
                        strong("strong() makes bold text."),
                        em("em() creates italicized (i.e, emphasized) text."),
                        br(),
@@ -441,57 +441,6 @@ conforme as imagens a seguir:
 
 <img src="imagens/exe2c.png">
 
-## Adicionando abas
-
-Além de criar um menu com diferentes opções, ainda é possível criar uma
-caixa com abas dentro de cada uma das opções do menu. Essas abas podem
-ser usadas para exibir diferentes informações. Para isso, basta usa-se a
-função `tabBox` dentro da função `tabItem`, como mostrado a seguir. Para
-criar cada aba, usa-se a função `tabPanel`.
-
-    library(shiny)
-    library(shinydashboard)
-
-    ui <-  dashboardPage(
-        dashboardHeader(title = "IMRS Demografia"),
-        
-        dashboardSidebar(sidebarMenu(id = 'barra_lateral',
-                                     menuItem("Opção 1", tabName = 'opcao1'),
-                                     menuItem("Opção 2", tabName = 'opcao2')
-        )
-        ),
-        
-        dashboardBody(tabItems(tabItem(tabName = 'opcao1', 
-                                       tabBox(id = 'tab_aba1_aba2',
-                                              tabPanel(title = "Aba 1", "Conteúdo da aba 1 da primeira opção do menu"),
-                                              tabPanel(title = "Aba 2", "Conteúdo da aba 2 da primeira opção do menu")
-                                              )
-                                        ),
-                               tabItem(tabName = 'opcao2', "Conteúdo da opção 2")
-                               )
-                     )
-        
-        )
-
-    server <- function(input, output) {
-        
-    }
-
-    shinyApp(ui = ui, server = server)
-
-Observe que a largura do `tabBox` pode ser ajustada com o parâmetro
-`width`, dentro da função `tabBox`. Lembre-se que 12 é o número que
-representa a largura máxima.
-
-## Exercício 3
-
-Continuando o exercício 2, crie um `tabBox` dentro do menu Indicadores,
-como mostrado nas imagens a seguir:
-
-<img src="imagens/exe3a.png">
-
-<img src="imagens/exe3b.png">
-
 # Unidade 3 - Adicionando ferramentas de controle
 
 As ferramentas de controle, conhecidas como *widgets*, são elementos web
@@ -520,7 +469,7 @@ padrão são:
 -   `textInput`
 
 Lembre-se de consultar a [Cheatsheet do
-Shiny](https://raw.githubusercontent.com/rstudio/cheatsheets/main/shiny.pdf)
+Shiny](https://raw.githubusercontent.com/rstudio/cheatsheets/main/shiny.pdf).
 
 ## Adicionando os widgets
 
@@ -611,6 +560,697 @@ Shiny](https://shiny.rstudio.com/gallery/widget-gallery.html).
 
     shinyApp(ui = ui, server = server)
 
+## Mais configurações de layout
+
+Existem três funções que ao combiná-las permitem elaborar `ui` mais
+complexas. Suponha que desejamos acrescentar dois widgets lado a lado na
+`ui`. Para isso usamos as seguintes funções:
+
+-   `fluidRow`: Cria uma linha dentro de uma página. Essa linha é
+    ajustável de acordo com a largura da janela do aplicativo.
+-   `column`: Cria uma coluna para ser usada dentro de um `fluiRow`.
+    Essa função tem um parâmetro obrigatório `width`, que deve ser um
+    número entre 1 e 12. Note que a largura de uma linha é 12. Assim, a
+    soma das larguras de todas as colunas na linha não deve exceder
+    a 12.
+-   `box`: Cria uma caixa que é usada para se colocar o conteúdo da
+    interface de usuário.
+
+Observe como essas funções são utilizadas para se colocar dois widgets
+lado a lado:
+
+    library(shiny)
+    library(shinydashboard)
+
+
+    ui <-  dashboardPage(
+        dashboardHeader(title = "Widgets"),
+        
+        dashboardSidebar(),
+        
+        dashboardBody(fluidRow(
+           
+            column(width = 6,
+                   numericInput(inputId = 'input1', 
+                                label = "Selecione:",
+                                value = 0,
+                                min = 0,
+                                max = 10)),
+            column(width = 6,
+                   sliderInput(inputId = 'input2',
+                               label = "Escolha:",
+                               min = 0,
+                               max = 100,
+                               value = 5))
+        )
+        )
+    )
+
+    server <- function(input, output) {
+        
+    }
+
+    shinyApp(ui = ui, server = server)
+
+A função `box` possibilita que tenhamos mais controle sobre os elementos
+da interface:
+
+    library(shiny)
+    library(shinydashboard)
+
+
+    ui <-  dashboardPage(
+        dashboardHeader(title = "Widgets"),
+        
+        dashboardSidebar(),
+        
+        dashboardBody(fluidRow(
+            box(width = 12,
+                title = "Controles",
+                solidHeader = TRUE,
+                collapsible = TRUE, 
+                status = 'danger',
+                column(width = 6,
+                       numericInput(inputId = 'input1', 
+                                    label = "Selecione:",
+                                    value = 0,
+                                    min = 0,
+                                    max = 10)),
+                column(width = 6,
+                       sliderInput(inputId = 'input2',
+                                   label = "Escolha:",
+                                   min = 0,
+                                   max = 100,
+                                   value = 5)))
+        )
+        )
+    )
+
+    server <- function(input, output) {
+        
+    }
+
+    shinyApp(ui = ui, server = server)
+
+## Exercício 3
+
+A partir do aplicativo desenvolvido no Exercício 2, faça as seguintes
+modificações:
+
+1.  Crie um menu adicional, de modo que o aplicativo fique com a
+    seguinte aparência:
+
+<img src="imagens/exe6a.png">
+
+2.  Coloque dois widgets `selectInput`, de acordo com as figuras abaixo:
+
+<img src="imagens/exe6b.png">
+
+<img src="imagens/exe6c.png">
+
+# Unidade 4 - Exibindo saídas reativas
+
+O Shiny provê uma família de funções que transformam objetos em R em uma
+saída para a interface de usuário. Cada função cria um tipo de saída
+específico. Alguns exemplos:
+
+-   dataTableOutput: DataTable
+-   htmlOutput: HTML puro
+-   imageOutput: imagens
+-   plotOutput: gráficos
+-   tableOutput: tabela
+-   textOutput: texto
+-   uiOutput: HTML puro
+-   verbatimTextOutput: texto
+
+As saídas são adicionadas na `ui` da mesma forma em que adicionamos os
+elementos HTML e widgets. Observe o exemplo a seguir:
+
+    library(shiny)
+    library(shinydashboard)
+
+    ui <-  dashboardPage(
+        dashboardHeader(title = "Teste"),
+        
+        dashboardSidebar(),
+        
+        
+        dashboardBody(selectInput(inputId = 'seletor1', choices = c("A", "B", "C"), label = "Selecione"),
+                      textOutput(outputId = 'texto'))
+        
+    )
+
+    server <- function(input, output) {
+        
+    }
+
+    shinyApp(ui = ui, server = server)
+
+O código acima ainda não é reativo à seleção do usuário. Observe que a
+função `textOutput` recebe um argumento, uma cadeia de caracteres. Cada
+uma das funções de saída requerem um único argumento, uma cadeia de
+caracteres que o Shiny usará como nome do seu elemento reativo. Os
+usuários não verão esse nome, mas você irá usá-lo a seguir. Ao adicionar
+uma função de saída na `ui`, estamos indicando onde queremos exibir a
+saída na interface.
+
+Agora temos que prover o código em R que irá construir o objeto. Faremos
+isso adicionando o código na função `server`. A função `server` tem um
+papel especial dentro do Shiny: ela constrói uma lista de objetos
+chamados de `output` que contem todo o código necessário para atualizar
+os objetos em R do seu aplicativo.
+
+Para criar um elemento nessa lista, basta definir um elemento `output`
+dentro da função `server` como mostrado a seguir. O nome do elemento
+deve ser igual ao nome da função de saída que você criou na `ui`.
+
+    server <- function(input, output) {
+        
+        output$texto <- renderText({
+            "Variável selecionada: "
+        })
+        
+    }
+
+Cada elemento da lista `output` deve conter uma das funções `render` do
+Shiny. Essas funções capturam um expressão em R e realizam algum
+processamento. Você deve usar a função `render` que corresponde ao tipo
+de objeto de saída que você está construindo:
+
+-   renderDataTable: DataTable
+-   renderImage: imagens (arquivos ou link)
+-   renderPlot: gráficos
+-   renderPrint: qualquer saída gerada por uma função `print`
+-   renderTable: data frame, matriz ou outra estrutura de tabela
+-   renderText: cadeias de caracteres
+-   renderUI: HTML ou tag do Shiny
+
+Cada função `render` recebe um único argumento: uma expressão em R
+delimitada por `{}`. A expressão pode ser um simples linha de texto ou
+ela pode conter várias linhas de código.
+
+Pense nessa expressão em R como um conjunto de instruções que você dá ao
+Shiny que será armazenado para depois. O Shiny irá executar todas essas
+funções ao iniciar a execução do aplicativo e depois sempre que for
+necessário para atualizar algum elemento.
+
+Para que isso funcione, sua expressão deve retornar o tipo de objeto
+correspondente ao tipo de saída que você deseja.
+
+Executando o código a seguir, você verá que o texto “Variável
+selecionada:” será exibido no painel principal. Entretanto, o texto não
+será reativo. Ou seja, ele não irá mudar mesmo se você alterar o valor
+dos widgets de controle.
+
+Podemos fazer o texto ser reativo dizendo o Shiny para usar o valor de
+um widget quando construir o texto.
+
+    library(shiny)
+    library(shinydashboard)
+
+    ui <-  dashboardPage(
+        dashboardHeader(title = "Teste"),
+        
+        dashboardSidebar(),
+        
+        
+        dashboardBody(selectInput(inputId = 'seletor1', choices = c("A", "B", "C"), label = "Selecione"),
+                      textOutput(outputId = 'texto'))
+        
+    )
+
+    server <- function(input, output) {
+        output$texto <- renderText({
+            "Variável selecionada: "
+        })
+    }
+
+    shinyApp(ui = ui, server = server)
+
+Perceba que a função `server` recebe dois argumentos: `input` e
+`output`. Já vimos que `output` é uma espécie de lista que armazena
+instruções para construir os elementos em R no aplicativo. `input`
+também é um objeto tipo lista. Ele armazena os valores atuais de todos
+os widgets do seu aplicativo. Esses valores são salvos com o nome que
+você deu aos widgets na sua `ui`.
+
+Por exemplo, nosso último aplicativo tem um widget chamado de
+`seletor1`. O valor desse widget está salvo com o nome `input$seletor1`.
+
+O Shiny fará um objeto ser reativo se o objeto usa um valor da lista
+`input`. Por exemplo, a função `server` a seguir cria um objeto de texto
+reativo ao chamar o valor do widget `selectInput` para construir o
+texto.
+
+    library(shiny)
+    library(shinydashboard)
+
+    ui <-  dashboardPage(
+        dashboardHeader(title = "Teste"),
+        
+        dashboardSidebar(),
+        
+        
+        dashboardBody(selectInput(inputId = 'seletor1', choices = c("A", "B", "C"), label = "Selecione"),
+                      textOutput(outputId = "texto"))
+        
+    )
+
+    server <- function(input, output) {
+        
+        output$texto <- renderText({
+            paste("Variável selecionada: ", input$seletor1)
+        })
+        
+    }
+
+    shinyApp(ui = ui, server = server)
+
+O Shiny irá identificar quais saídas dependem de qual widget. Quando o
+usuário alterar o valor de um widget, o Shiny irá reconstruir todas as
+saídas que dependem daquele widget, usando o novo valor. Essa é forma de
+criar reatividade no Shiny, conectando valores de `input` aos objetos em
+`output`. O Shiny irá cuidar de todos os outros detalhes.
+
+## Adicionando uma tabela ao dashboard
+
+Para adicionar uma tabela ao dashboard, primeiro temos que obter os
+dados. No momento, iremos ler os dados a partir de um arquivo excel, que
+está disponível no
+[github](https://github.com/FundacaoJoaoPinheiro/R/blob/main/Curso%20Shiny/dados_curso1.xlsx).
+Baixe o arquivo e salve-o na mesma pasta onde está o arquivo `app.R`.
+
+Para usar os dados disponíveis no arquivo dentro do aplicativo, vamos
+colocar as funções relativas à importação fora da função `server`. Desse
+forma, o arquivo será importado apenas uma vez, quando for inicializado.
+
+Em seguida, podemos exibir os dados em uma tabela. Isso é feito
+colocando a função `tableOutput` na `ui`.
+
+    library(shiny)
+    library(shinydashboard)
+    library(readxl)
+    library(tidyverse)
+
+    #dir <- dirname(rstudioapi::getActiveDocumentContext()$path)
+    #setwd(dir)
+
+    dados <- read_excel("dados_curso1.xlsx") 
+    dados <- dados |> subset(ANO %in% c(2019, 2020))
+
+    ui <-  dashboardPage(
+        dashboardHeader(title = "Teste"),
+        
+        dashboardSidebar(),
+        
+        
+        dashboardBody(tableOutput("tabela"))
+        
+    )
+
+    server <- function(input, output) {
+        
+        output$tabela <- renderTable({
+            dados
+        })
+        
+    }
+
+    shinyApp(ui = ui, server = server)
+
+A forma em que essa tabela é exibida, usando as funções `tableOutput` e
+`renderTable` não é a mais amigável, principalmente para tabelas
+grandes. Existem outras opções que possibilitam exibir tabelas com uma
+interface mais amigável. Dentre elas está `dataTableOutput`.
+
+    library(shiny)
+    library(shinydashboard)
+    library(readxl)
+    library(tidyverse)
+
+    dados <- read_excel("dados_curso1.xlsx") 
+    dados <- dados |> subset(ANO %in% c(2019, 2020))
+
+    ui <-  dashboardPage(
+        dashboardHeader(title = "Teste"),
+        
+        dashboardSidebar(),
+        
+        
+        dashboardBody(dataTableOutput("tabela"))
+        
+    )
+
+    server <- function(input, output) {
+        
+        output$tabela <- renderDataTable({
+            dados
+        })
+        
+    }
+
+    shinyApp(ui = ui, server = server)
+
+Podemos escolher os dados que serão exibidos na tabela usando widgets.
+Por exemplo, o código a seguir permite que o usuário escolha quais
+colunas serão exibidas.
+
+    library(shiny)
+    library(shinydashboard)
+    library(readxl)
+    library(tidyverse)
+
+
+    dados <- read_excel("dados_curso1.xlsx") 
+    dados <- dados |> subset(ANO %in% c(2019, 2020)) |> select(-1)
+
+    ui <-  dashboardPage(
+        dashboardHeader(title = "Teste"),
+        
+        dashboardSidebar(),
+        
+        
+        dashboardBody(selectInput(inputId = 'colunas', label = "Escolha as colunas", choices = colnames(dados)),
+            dataTableOutput("tabela"))
+        
+    )
+
+    server <- function(input, output) {
+        
+        output$tabela <- renderDataTable({
+            dados |> select(input$colunas)
+        })
+    }
+
+    shinyApp(ui = ui, server = server)
+
+Podemos ainda pedir para o usuário escolher as colunas a serem exibidas
+e para quais municípios os dados serão exibidos. Observe o uso da função
+`req`. Essa função verifica se os valores estão disponíveis para serem
+usados em alguma expressão. Caso estejam, as expressões são avaliadas
+normalmente. Caso contrário, o expressão não é avaliada.
+
+    library(shiny)
+    library(shinydashboard)
+    library(readxl)
+    library(tidyverse)
+
+
+    dados <- read_excel("dados_curso1.xlsx") 
+    dados <- dados |> subset(ANO %in% c(2019, 2020)) |> select(-1)
+
+    ui <-  dashboardPage(
+        dashboardHeader(title = "Teste"),
+        
+        dashboardSidebar(),
+        
+        
+        dashboardBody(selectInput(inputId = 'municipios', 
+                                  label = "Escolha os municípios", 
+                                  choices = unique(dados$MUNICÍPIO),
+                                  multiple = TRUE),
+            selectInput(inputId = 'colunas', 
+                        label = "Escolha as colunas", 
+                        choices = colnames(dados[-1])),
+            dataTableOutput("tabela"))
+        
+    )
+
+    server <- function(input, output) {
+        
+        output$tabela <- renderDataTable({
+            req(input$municipios)
+            dados |> select(c("MUNICÍPIO", input$colunas)) |> subset(MUNICÍPIO %in% input$municipios)
+        })
+        
+    }
+
+    shinyApp(ui = ui, server = server)
+
+## Exercício 4
+
+Agora iremos adicionar uma tabela ao aplicativo que fizemos no exercício
+3. Para isso, faça as seguintes modificações:
+
+1 - Leia o arquivo “dados\_curso1.xlsx” no seu aplicativo. Lembre-se de
+carregar as bibliotecas necessárias.
+
+2 - Coloque um `dataTableOutput` no menu correspondente à tabela.
+
+3 - Atualize o `selectInput` dos municípios de modo que as opções sejam
+todos os municípios de Minas Gerais. Permita que o usuário selecione
+vários municípios. Configure a seleção inicial para vazio.
+
+4 - Crie um `selectInput` ao lado do anterior, que permita ao usuário
+selecionar quais indicadores ele deseja visualizar. As opções serão:
+AREA, D\_POPTA, HOMEMTOT, MULHERTOT. Permita que o usuário selecione
+mais de uma opção.
+
+5 - Atualize o `selectInput` dos anos de modo que as opções sejam todos
+os anos disponíveis na tabela dados. Permita que o usuário escolha mais
+de um ano.
+
+6 - Na função `server`, adicione um elemento `renderDataTable` e escreva
+uma expressão de modo que a tabela a ser exibida no dashboard tenha as
+colunas **Municípios** e **Ano** fixas e as demais serão exibidas de
+acordo com a seleção do indicador. As linhas devem ser exibidas para os
+municípios e anos selecionados.
+
+Ao final, seu dashboard deve ser parecido com o da figura a seguir.
+
+<img src="imagens/exe7a.png">
+
+## Adicionando um gráfico
+
+Para adicionar um gráfico ao aplicativo, usamos a função `plotOutput` na
+interface e a função `renderPlot` dentro da função `server`. A função
+`renderPlot` é capaz de plotar gráficos simples e gráficos do pacote
+`ggplot2`. Para ver exemplos de gráficos usando o ggplot, consulte a
+[galeria de exemplos de gráfico do R](https://r-graph-gallery.com/).
+
+Outra opção para plotar gráficos que tem uma aparência mais amigável é o
+pacote `highcharter`. No entanto, antes de plotar o gráfico, temos que
+preparar os dados. Suponha que desejamos visualizar no gráfico a
+evolução ano a ano de um determinado indicador, para um ou mais
+municípios. Nesse caso podemos ter os anos no eixo x, o valor do
+indicador no eixo y e uma linha para cada município. Para fazer esse
+tipo de gráfico, o pacote `highcharter` precisa que os dados estejam
+organizados da seguinte forma: os dados de cada município devem compor
+uma tabela com duas colunas, x e y. Esses dados são chamados de séries.
+Se tivermos mais de uma série, ou seja, mais de um município, teremos
+então uma tabela com as colunas x e y para cada município.
+
+Para facilitar o entendimento de como construir as séries, vamos começar
+a partir do seguinte trecho de código:
+
+    dados_selecionados <- dados |>  
+                        subset(MUNICÍPIO %in% input$municipios & (ANO >= input$ano_grafico[1]) & (ANO <= input$ano_grafico[2])) |>  
+                        select(c(MUNICÍPIO, ANO, input$indicadores)) 
+
+Os trechos de código a seguir criam uma lista de séries, ou seja, uma
+lista em que cada elemento é uma tabela com colunas x e y. Cada elemento
+corresponde a um dos municípios selecionados.
+
+Usando o `for`:
+
+    dados_final <- list()
+            for(i in c(1:length(input$municipios))){
+                dados_selecionados <- dados |>  
+                    subset(MUNICÍPIO %in% input$municipios[i] & (ANO >= input$ano_grafico[1]) & (ANO <= input$ano_grafico[2])) |>  
+                    select(c(MUNICÍPIO, ANO, input$indicadores)) 
+                colnames(dados_selecionados) <- c("MUNICÍPIO", "ANO", "INDICADOR")
+                
+                
+                dados_final[[i]] <- data.frame(x = dados_selecionados$ANO, 
+                                                y = dados_selecionados$INDICADOR)
+            }
+
+Usando a função `lapply`:
+
+     dados_final <- lapply(input$municipios, function(x){
+                dados_selecionados <- dados |>  
+                    subset(MUNICÍPIO %in% x & (ANO >= input$ano_grafico[1]) & (ANO <= input$ano_grafico[2])) |>  
+                    select(c(MUNICÍPIO, ANO, input$indicadores)) 
+                colnames(dados_selecionados) <- c("MUNICÍPIO", "ANO", "INDICADOR")
+                
+                dados <- data.frame(x = dados_selecionados$ANO, 
+                                    y = dados_selecionados$INDICADOR)
+                
+                
+
+Depois de prapararmos os dados, podemos montar o gráfico. Observe o
+exemplo a seguir:
+
+    library(shiny)
+    library(shinydashboard)
+    library(readxl)
+    library(highcharter)
+
+
+    dados <- read_excel("dados_curso1.xlsx") 
+    dados <- dados |> select(-1)
+
+    #função para exportação de imagens
+    export <- list(
+      list(text="PNG",
+           onclick=JS("function () {
+                    this.exportChartLocal(); }")),
+      list(text="JPEG",
+           onclick=JS("function () {
+                    this.exportChartLocal({ type: 'image/jpeg' }); }"))
+      
+    )
+
+    ui <-  dashboardPage(
+        dashboardHeader(title = "IMRS Demografia"),
+        
+        dashboardSidebar(),
+        
+        
+        
+        dashboardBody(fluidRow(
+            box(width = 12,
+                column(width = 4,
+                       selectInput(inputId = 'municipios',
+                                   label = "Escolha o município:",
+                                   choices = unique(dados$MUNICÍPIO),
+                                   multiple = TRUE,
+                                   selected = NULL)),
+                column(width = 4,
+                       selectInput(inputId = 'indicadores',
+                                   label = "Escolha o indicador",
+                                   choices = c("AREA", "D_POPTA", "HOMEMTOT", "MULHERTOT"),
+                                   multiple = FALSE,
+                                   selected = NULL)),
+                column(width = 4,
+                       sliderInput(inputId = 'ano_grafico',
+                                   label = "Escolha o ano:",
+                                   min = 2000,
+                                   max = 2020,
+                                   value = c(2000, 2020)
+                                   )))),
+            
+            highchartOutput(outputId ='grafico'))
+        
+    )
+
+    server <- function(input, output) {
+        
+        output$grafico <- renderHighchart({
+            
+            req(input$municipios)
+            req(input$indicadores)
+            
+            dados_final <- lapply(input$municipios, function(x){
+                dados_selecionados <- dados |>  
+                    subset(MUNICÍPIO %in% x & (ANO >= input$ano_grafico[1]) & (ANO <= input$ano_grafico[2])) |>  
+                    select(c(MUNICÍPIO, ANO, input$indicadores)) 
+                colnames(dados_selecionados) <- c("MUNICÍPIO", "ANO", "INDICADOR")
+                
+                dados <- data.frame(x = dados_selecionados$ANO, 
+                                    y = dados_selecionados$INDICADOR)
+           
+            })  
+            
+            h <- highchart() |>
+                hc_size(width = 600, height = 400) |>
+                hc_xAxis(title = list(text = "Ano"), allowDecimals = FALSE) |>
+                hc_exporting(enabled = T, fallbackToExportServer = F, 
+                             menuItems = export)  |>
+                hc_chart(type = "line") |>
+                hc_yAxis(title = list(text = "Valor do indicador ")) |>
+                hc_title(text = paste("Indicador: ", input$indicadores))
+            
+            
+            for (k in 1:length(dados_final)) {
+                h <- h |> 
+                    hc_add_series(data = dados_final[[k]], name = input$municipios[k])
+            }
+            
+            h
+            
+        })
+        
+    }
+
+    shinyApp(ui = ui, server = server)
+
+Mais detalhes sobre o uso de gráficos com o pacote highchart em R podem
+ser encontrado
+[aqui](https://www.highcharts.com/blog/tutorials/highcharts-for-r-users/).
+Outros exemplos de gráficos com o pacote `highchart` podem ser
+encontrados [aqui](https://www.highcharts.com/demo) .
+
+## Exercício 5
+
+Agora iremos adicionar um gráfico ao aplicativo que fizemos no exercício
+4. Para isso, faça as seguintes modificações:
+
+1 - Assim como foi feito para o menu Tabela, coloque os 3 widgets lado a
+lado, como mostrado a seguir. Observe que agora a seleção do ano é feita
+por um `sliderInput`. Não se esqueça de atribuir nomes (`inputId`)
+diferentes para os widgets do menu Tabela e do menu Gráfico. Faça com
+que o usuário só consiga selecionar um único indicador para ser exibido.
+Faça com que a seleção inicial do indicador seja D\_POPTA.
+
+<img src="imagens/exe8a.png">
+
+2 - Coloque um `highchartOutput` abaixo dos widgets. Coloque o gráfico
+dentro de um `box`
+
+<img src="imagens/exe8b.png">
+
+## Adicionando abas
+
+Além de criar um menu com diferentes opções, ainda é possível criar uma
+caixa com abas dentro de cada uma das opções do menu. Essas abas podem
+ser usadas para exibir diferentes informações. Para isso, basta usa-se a
+função `tabBox` dentro da função `tabItem`, como mostrado a seguir. Para
+criar cada aba, usa-se a função `tabPanel`.
+
+    library(shiny)
+    library(shinydashboard)
+
+    ui <-  dashboardPage(
+        dashboardHeader(title = "IMRS Demografia"),
+        
+        dashboardSidebar(sidebarMenu(id = 'barra_lateral',
+                                     menuItem("Opção 1", tabName = 'opcao1'),
+                                     menuItem("Opção 2", tabName = 'opcao2')
+        )
+        ),
+        
+        dashboardBody(tabItems(tabItem(tabName = 'opcao1', 
+                                       tabBox(id = 'tab_aba1_aba2',
+                                              tabPanel(title = "Aba 1", "Conteúdo da aba 1 da primeira opção do menu"),
+                                              tabPanel(title = "Aba 2", "Conteúdo da aba 2 da primeira opção do menu")
+                                              )
+                                        ),
+                               tabItem(tabName = 'opcao2', "Conteúdo da opção 2")
+                               )
+                     )
+        
+        )
+
+    server <- function(input, output) {
+        
+    }
+
+    shinyApp(ui = ui, server = server)
+
+Observe que a largura do `tabBox` pode ser ajustada com o parâmetro
+`width`, dentro da função `tabBox`. Lembre-se que 12 é o número que
+representa a largura máxima.
+
+## Exercício 3
+
+Continuando o exercício 2, crie um `tabBox` dentro do menu Indicadores,
+como mostrado nas imagens a seguir:
+
+<img src="imagens/exe3a.png">
+
+<img src="imagens/exe3b.png">
+
 ## Painel condicional
 
 O painel condicional, criado pela função `conditionalPanel`, exibe um
@@ -700,365 +1340,3 @@ verdadeira. É possível realizar váras combinações com o
     }
 
     shinyApp(ui = ui, server = server)
-
-## Exercício 4
-
-A partir do aplicativo desenvolvido no Exercício 3, faça as seguintes
-modificações:
-
-1.  Coloque dois widgets `selectInput` abaixo da primeira opção do menu,
-    que só aparecem caso a primeira opção do menu esteja selecionada,
-    como mostram as figuras abaixo.
-
-<img src="imagens/exe4a.png">
-
-<img src="imagens/exe4b.png">
-
-<img src="imagens/exe4c.png">
-
-<img src="imagens/exe4d.png">
-
-2.  A seleção do ano usará um widget `selectInput` se a aba selecionada
-    for a de Tabela. Caso a aba Gráfico seja selecionada, a seleção do
-    ano deverá usar um widget `sliderInput`:
-
-<img src="imagens/exe4e.png">
-
-# Unidade 4 - Exibindo saídas reativas
-
-O Shiny provê uma família de funções que transformam objetos em R em uma
-saída para a interface de usuário. Cada função cria um tipo de saída
-específico. Alguns exemplos:
-
--   dataTableOutput: DataTable
--   htmlOutput: HTML puro
--   imageOutput: imagens
--   plotOutput: gráficos
--   tableOutput: tabela
--   textOutput: texto
--   uiOutput: HTML puro
--   verbatimTextOutput: texto
-
-As saídas são adicionadas na `ui` da mesma forma em que adicionamos os
-elementos HTML e widgets. Observe o exemplo a seguir:
-
-    library(shiny)
-    library(shinydashboard)
-
-    ui <-  dashboardPage(
-        dashboardHeader(title = "Teste"),
-        
-        dashboardSidebar(),
-        
-        
-        dashboardBody(selectInput(inputId = 'seletor1', choices = c("A", "B", "C"), label = "Selecione"),
-                      textOutput(outputId = "texto"))
-        
-    )
-
-    server <- function(input, output) {
-        
-    }
-
-    shinyApp(ui = ui, server = server)
-
-O código acima ainda não é reativo à seleção do usuário. Observe que a
-função `textOutput` recebe um argumento, uma cadeia de caracteres. Cada
-uma das funções de saída requerem um único argumento, uma cadeia de
-caracteres que o Shiny usará como nome do seu elemento reativo. Os
-usuários não verão esse nome, mas você irá usá-lo a seguir. Ao adicionar
-uma função de saída na `ui`, estamos indicando onde queremos exibir a
-saída na interface.
-
-Agora temos que prover o código em R que irá construir o objeto. Faremos
-isso adicionando o código na função `server`. A função `server` tem um
-papel especial dentro do Shiny: ela constrói uma lista de objetos
-chamados de `output` que contem todo o código necessário para atualizar
-os objetos em R do seu aplicativo.
-
-Para criar um elemento nessa lista, basta definir um elemento `output`
-dentro da função `server` como mostrado a seguir. O nome do elemento
-deve ser igual ao nome da função de saída que você criou na `ui`.
-
-    server <- function(input, output) {
-        
-        output$texto <- renderText({
-            "Variável selecionada: "
-        })
-        
-    }
-
-Cada elemento da lista `output` deve conter uma das funções `render` do
-Shiny. Essas funções capturam um expressão em R e realizam algum
-processamento. Você deve usar a função `render` que corresponde ao tipo
-de objeto de saída que você está construindo:
-
--   renderDataTable: DataTable
--   renderImage: imagens (arquivos ou link)
--   renderPlot: gráficos
--   renderPrint: qualquer saída gerada por uma função `print`
--   renderTable: data frame, matriz ou outra estrutura de tabela
--   renderText: cadeias de caracteres
--   renderUI: HTML ou tag do Shiny
-
-Cada função `render` recebe um único argumento: uma expressão em R
-delimitada por `{}`. A expressão pode ser um simples linha de texto ou
-ela pode conter várias linhas de código.
-
-Pense nessa expressão em R como um conjunto de instruções que você dá ao
-Shiny que será armazenado para depois. O Shiny irá executar todas essas
-funções ao iniciar a execução do aplicativo e depois sempre que for
-necessário para atualizar algum elemento.
-
-Para que isso funcione, sua expressão deve retornar o tipo de objeto
-correspondente ao tipo de saída que você deseja.
-
-Executando o código a seguir, você verá que o texto “Variável
-selecionada:” será exibido no painel principal. Entretanto, o texto não
-será reativo. Ou seja, ele não irá mudar mesmo se você alterar o valor
-dos widgets de controle.
-
-Podemos fazer o texto ser reativo dizendo o Shiny para usar o valor de
-um widget quando construir o texto.
-
-    library(shiny)
-    library(shinydashboard)
-
-    ui <-  dashboardPage(
-        dashboardHeader(title = "Teste"),
-        
-        dashboardSidebar(),
-        
-        
-        dashboardBody(selectInput(inputId = 'seletor1', choices = c("A", "B", "C"), label = "Selecione"),
-                      textOutput(outputId = "texto"))
-        
-    )
-
-    server <- function(input, output) {
-        output$seletor1 <- renderText({
-            "Variável selecionada: "
-        })
-    }
-
-    shinyApp(ui = ui, server = server)
-
-Perceba que a função `server` recebe dois argumentos: `input` e
-`output`. Já vimos que `output` é uma espécie de lista que armazena
-instruções para construir os elementos em R no aplicativo. `input`
-também é um objeto tipo lista. Ele armazena os valores atuais de todos
-os widgets do seu aplicativo. Esses valores são salvos com o nome que
-você deu aos widgets na sua `ui`.
-
-POr exemplo, nosso último aplicativo tem um widget chamado de
-`seletor1`. O valor desse widget está salvo com o nome `input$seletor1`.
-
-O Shiny fará um objeto ser reativo se o objeto usa um valor da lista
-`input`. Por exemplo, a função `server` a seguir cria um objeto de texto
-reativo ao chamar o valor do widget `selectInput` para construir o
-texto.
-
-    library(shiny)
-    library(shinydashboard)
-
-    ui <-  dashboardPage(
-        dashboardHeader(title = "Teste"),
-        
-        dashboardSidebar(),
-        
-        
-        dashboardBody(selectInput(inputId = 'seletor1', choices = c("A", "B", "C"), label = "Selecione"),
-                      textOutput(outputId = "texto"))
-        
-    )
-
-    server <- function(input, output) {
-        
-        output$texto <- renderText({
-            paste("Variável selecionada: ", input$seletor1)
-        })
-        
-    }
-
-    shinyApp(ui = ui, server = server)
-
-O Shiny irá identificar quais saídas dependem de qual widget. Quando o
-usuário alterar o valor de um widget, o Shiny irá reconstruir todas as
-saídas que dependem daquele widget, usando o novo valor. Essa é forma de
-criar reatividade no Shiny, conectando valores de `input` aos objetos em
-`output`. O Shiny irá cuidar de todos os outros detalhes.
-
-## Adicionando uma tabela ao dashboard
-
-Para adicionar uma tabela ao dashboard, primeiro temos que obter os
-dados. No momento, iremos ler os dados a partir de um arquivo excel, que
-está disponível no
-[github](https://github.com/FundacaoJoaoPinheiro/R/blob/main/Curso%20Shiny/dados_curso1.xlsx).
-Baixe o arquivo e salve-o na mesma pasta onde está o arquivo `app.R`.
-
-Para usar os dados disponíveis no arquivo dentro do aplicativo, vamos
-colocar as funções relativas à importação fora da função `server`. Desse
-forma, o arquivo será importado apenas uma vez, quando for inicializado.
-
-Em seguida, podemos exibir os dados em uma tabela. Isso é feito
-colocando a função `tableOutput` na `ui`.
-
-    library(shiny)
-    library(shinydashboard)
-    library(readxl)
-
-    dados <- read_excel("dados_curso1.xlsx") 
-    dados <- dados |> subset(ANO %in% c(2019, 2020))
-
-    ui <-  dashboardPage(
-        dashboardHeader(title = "Teste"),
-        
-        dashboardSidebar(),
-        
-        
-        dashboardBody(tableOutput("tabela"))
-        
-    )
-
-    server <- function(input, output) {
-        
-        output$tabela <- renderTable({
-            dados
-        })
-        
-    }
-
-A forma em que essa tabela é exibida, usando as funções `tableOutput` e
-`renderTable` não é a mais amigável, principalmente para tabelas
-grandes. Existem outros pacotes que possibilitam exibir tabelas com uma
-interface mais amigável. Dentre eles está o `rhandsontable`.
-
-    library(shiny)
-    library(shinydashboard)
-    library(readxl)
-    library(rhandsontable)
-
-    dados <- read_excel("dados_curso1.xlsx") 
-    dados <- dados |> subset(ANO %in% c(2019, 2020))
-
-    ui <-  dashboardPage(
-        dashboardHeader(title = "Teste"),
-        
-        dashboardSidebar(),
-        
-        
-        dashboardBody(dataTableOutput("tabela"))
-        
-    )
-
-    server <- function(input, output) {
-        
-        output$tabela <- renderDataTable({
-            dados
-        })
-        
-    }
-
-    shinyApp(ui = ui, server = server)
-
-Podemos escolher os dados que serão exibidos na tabela usando widgets.
-Por exemplo, o código a seguir permite que o usuário escolha quais
-colunas serão exibidas.
-
-    library(shiny)
-    library(shinydashboard)
-    library(readxl)
-    library(rhandsontable)
-
-    dados <- read_excel("dados_curso1.xlsx") 
-    dados <- dados |> subset(ANO %in% c(2019, 2020)) |> select(-1)
-
-    ui <-  dashboardPage(
-        dashboardHeader(title = "Teste"),
-        
-        dashboardSidebar(),
-        
-        
-        dashboardBody(selectInput(inputId = 'colunas', label = "Escolha as colunas", choices = colnames(dados)),
-            dataTableOutput("tabela"))
-        
-    )
-
-    server <- function(input, output) {
-        
-        output$tabela <- renderDataTable({
-            dados |> select(input$colunas)
-        })
-    }
-
-    shinyApp(ui = ui, server = server)
-
-Podemos ainda pedir para o usuário escolher as colunas a serem exibidas
-e para quais municípios os dados serão exibidos. Observe o uso da função
-`req`. Essa função verifica se os valores estão disponíveis para serem
-usados em alguma expressão. Caso estejam, as expressões são avaliadas
-normalmente. Caso contrário, o expressão não é avaliada.
-
-    library(shiny)
-    library(shinydashboard)
-    library(readxl)
-    library(rhandsontable)
-
-    dados <- read_excel("dados_curso1.xlsx") 
-    dados <- dados |> subset(ANO %in% c(2019, 2020)) |> select(-1)
-
-    ui <-  dashboardPage(
-        dashboardHeader(title = "Teste"),
-        
-        dashboardSidebar(),
-        
-        
-        dashboardBody(selectInput(inputId = 'municipios', 
-                                  label = "Escolha os municípios", 
-                                  choices = unique(dados$MUNICÍPIO),
-                                  multiple = TRUE),
-            selectInput(inputId = 'colunas', 
-                        label = "Escolha as colunas", 
-                        choices = colnames(dados[-1])),
-            dataTableOutput("tabela"))
-        
-    )
-
-    server <- function(input, output) {
-        
-        output$tabela <- renderDataTable({
-            req(input$municipios)
-            dados |> select(c("MUNICÍPIO", input$colunas)) |> subset(MUNICÍPIO %in% input$municipios)
-        })
-        
-    }
-
-    shinyApp(ui = ui, server = server)
-
-## Exercício 5
-
-Agora iremos adicionar uma tabela ao aplicativo que fizemos no exercício
-4. Para isso, faça as seguintes modificações:
-
-1 - Leia o arquivo “dados\_curso1.xlsx” no seu aplicativo. Lembre-se de
-carregar as bibliotecas necessárias. 2 - Coloque um `dataTableOutput` na
-aba correspondente à tabela. Lembre-se de carregar as bibliotecas
-necessárias. 3 - Atualize o `selectInput` dos municípios de modo que as
-opções sejam todos os municípios de Minas Gerais. Permita que o usuário
-selecione vários municípios. Configure a seleção inicial para vazio. 4 -
-Crie um `selectInput` logo abaixo do anterior, que permita ao usuário
-selecionar quais indicadores ele deseja visualizar. As opções serão:
-AREA, D\_POPTA, HOMEMTOT, MULHERTOT. Permita que o usuário selecione
-mais de uma opção. 5 - Atualize o `selectInput` dos anos de modo que as
-opções sejam todos os anos disponíveis na tabela dados. Perimita que o
-usuário escolha mais de um ano. 6 - Na função `server`, adicione um
-elemento `renderDataTable` e escreve uma expressão de modo que a tabela
-a ser exibida no dashboard tenha as colunas municípios e ano fixas e as
-demais serão exibidas de acordo com a seleção do indicador. As linhas
-devem ser exibidas para os municípios e anos selecionados.
-
-Ao final, seu dashboard deve ser parecido com o da figura a seguir.
-
-<img src="imagens/exe5a.png">
-
-<https://shiny.rstudio.com/tutorial/written-tutorial/lesson2/>
