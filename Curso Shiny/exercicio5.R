@@ -35,7 +35,7 @@ ui <-  dashboardPage(
                                        column(width = 4,
                                               selectInput(inputId = 'municipios',
                                                           label = "Escolha o município:",
-                                                          choices = unique(dados$MUNICÍPIO),
+                                                          choices = unique(dados$MUNICIPIO),
                                                           multiple = TRUE,
                                                           selected = NULL)),
                                        column(width = 4,
@@ -59,7 +59,7 @@ ui <-  dashboardPage(
                 column(width = 4,
                        selectInput(inputId = 'municipios_grafico',
                                    label = "Escolha o município:",
-                                   choices = unique(dados$MUNICÍPIO),
+                                   choices = unique(dados$MUNICIPIO),
                                    multiple = TRUE,
                                    selected = NULL)),
                 column(width = 4,
@@ -100,8 +100,8 @@ server <- function(input, output) {
   
   output$tabela <- renderDataTable({
     req(input$indicadores, input$municipios, input$ano_tabela)
-    dados |> select(c(MUNICÍPIO, ANO, input$indicadores)) |>
-      subset(MUNICÍPIO %in% input$municipios & ANO %in% input$ano_tabela)
+    dados |> select(c(MUNICIPIO, ANO, input$indicadores)) |>
+      subset(MUNICIPIO %in% input$municipios & ANO %in% input$ano_tabela)
   })
   
   output$grafico <- renderHighchart({
@@ -111,8 +111,8 @@ server <- function(input, output) {
     
     dados_final <- lapply(input$municipios_grafico, function(x){
       dados_selecionados <- dados |>  
-        subset(MUNICÍPIO %in% x & (ANO >= input$ano_grafico[1]) & (ANO <= input$ano_grafico[2])) |>  
-        select(c(MUNICÍPIO, ANO, input$indicadores_grafico)) 
+        subset(MUNICIPIO %in% x & (ANO >= input$ano_grafico[1]) & (ANO <= input$ano_grafico[2])) |>  
+        select(c(MUNICIPIO, ANO, input$indicadores_grafico)) 
       colnames(dados_selecionados) <- c("MUNICÍPIO", "ANO", "INDICADOR")
       
       dados <- data.frame(x = dados_selecionados$ANO, 
