@@ -1,6 +1,7 @@
 library(shiny)
 library(shinydashboard)
 library(readxl)
+library(tidyverse)
 
 
 dados <- read_excel("dados_curso1.xlsx") 
