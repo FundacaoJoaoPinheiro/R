@@ -24,7 +24,7 @@ ui <-  dashboardPage(
                                        column(width = 4,
                                               selectInput(inputId = 'municipios',
                                                           label = "Escolha o município:",
-                                                          choices = unique(dados$MUNICÍPIO),
+                                                          choices = unique(dados$MUNICIPIO),
                                                           multiple = TRUE,
                                                           selected = NULL)),
                                        column(width = 4,
@@ -64,8 +64,8 @@ server <- function(input, output) {
   
   output$tabela <- renderDataTable({
     req(input$indicadores, input$municipios, input$ano_tabela)
-    dados |> select(c(MUNICÍPIO, ANO, input$indicadores)) |>
-      subset(MUNICÍPIO %in% input$municipios & ANO %in% input$ano_tabela)
+    dados |> select(c(MUNICIPIO, ANO, input$indicadores)) |>
+      subset(MUNICIPIO %in% input$municipios & ANO %in% input$ano_tabela)
   })
 }
 
