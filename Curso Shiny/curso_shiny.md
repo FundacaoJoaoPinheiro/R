@@ -967,7 +967,7 @@ normalmente. Caso contrário, o expressão não é avaliada.
         
         dashboardBody(selectInput(inputId = 'municipios', 
                                   label = "Escolha os municípios", 
-                                  choices = unique(dados$MUNICÍPIO),
+                                  choices = unique(dados$MUNICIPIO),
                                   multiple = TRUE),
             selectInput(inputId = 'colunas', 
                         label = "Escolha as colunas", 
@@ -980,7 +980,7 @@ normalmente. Caso contrário, o expressão não é avaliada.
         
         output$tabela <- renderDataTable({
             req(input$municipios)
-            dados |> select(c("MUNICÍPIO", input$colunas)) |> subset(MUNICÍPIO %in% input$municipios)
+            dados |> select(c("MUNICIPIO", input$colunas)) |> subset(MUNICIPIO %in% input$municipios)
         })
         
     }
@@ -1044,8 +1044,8 @@ Para facilitar o entendimento de como construir as séries, vamos começar
 a partir do seguinte trecho de código:
 
     dados_selecionados <- dados |>  
-                        subset(MUNICÍPIO %in% input$municipios & (ANO >= input$ano_grafico[1]) & (ANO <= input$ano_grafico[2])) |>  
-                        select(c(MUNICÍPIO, ANO, input$indicadores)) 
+                        subset(MUNICIPIO %in% input$municipios & (ANO >= input$ano_grafico[1]) & (ANO <= input$ano_grafico[2])) |>  
+                        select(c(MUNICIPIO, ANO, input$indicadores)) 
 
 Os trechos de código a seguir criam uma lista de séries, ou seja, uma
 lista em que cada elemento é uma tabela com colunas x e y. Cada elemento
@@ -1056,9 +1056,9 @@ Usando o `for`:
     dados_final <- list()
             for(i in c(1:length(input$municipios))){
                 dados_selecionados <- dados |>  
-                    subset(MUNICÍPIO %in% input$municipios[i] & (ANO >= input$ano_grafico[1]) & (ANO <= input$ano_grafico[2])) |>  
-                    select(c(MUNICÍPIO, ANO, input$indicadores)) 
-                colnames(dados_selecionados) <- c("MUNICÍPIO", "ANO", "INDICADOR")
+                    subset(MUNICIPIO %in% input$municipios[i] & (ANO >= input$ano_grafico[1]) & (ANO <= input$ano_grafico[2])) |>  
+                    select(c(MUNICIPIO, ANO, input$indicadores)) 
+                colnames(dados_selecionados) <- c("MUNICIPIO", "ANO", "INDICADOR")
                 
                 
                 dados_final[[i]] <- data.frame(x = dados_selecionados$ANO, 
@@ -1069,9 +1069,9 @@ Usando a função `lapply`:
 
      dados_final <- lapply(input$municipios, function(x){
                 dados_selecionados <- dados |>  
-                    subset(MUNICÍPIO %in% x & (ANO >= input$ano_grafico[1]) & (ANO <= input$ano_grafico[2])) |>  
-                    select(c(MUNICÍPIO, ANO, input$indicadores)) 
-                colnames(dados_selecionados) <- c("MUNICÍPIO", "ANO", "INDICADOR")
+                    subset(MUNICIPIO %in% x & (ANO >= input$ano_grafico[1]) & (ANO <= input$ano_grafico[2])) |>  
+                    select(c(MUNICIPIO, ANO, input$indicadores)) 
+                colnames(dados_selecionados) <- c("MUNICIPIO", "ANO", "INDICADOR")
                 
                 dados <- data.frame(x = dados_selecionados$ANO, 
                                     y = dados_selecionados$INDICADOR)
@@ -1113,7 +1113,7 @@ exemplo a seguir:
                 column(width = 4,
                        selectInput(inputId = 'municipios',
                                    label = "Escolha o município:",
-                                   choices = unique(dados$MUNICÍPIO),
+                                   choices = unique(dados$MUNICIPIO),
                                    multiple = TRUE,
                                    selected = NULL)),
                 column(width = 4,
@@ -1143,9 +1143,9 @@ exemplo a seguir:
             
             dados_final <- lapply(input$municipios, function(x){
                 dados_selecionados <- dados |>  
-                    subset(MUNICÍPIO %in% x & (ANO >= input$ano_grafico[1]) & (ANO <= input$ano_grafico[2])) |>  
-                    select(c(MUNICÍPIO, ANO, input$indicadores)) 
-                colnames(dados_selecionados) <- c("MUNICÍPIO", "ANO", "INDICADOR")
+                    subset(MUNICIPIO %in% x & (ANO >= input$ano_grafico[1]) & (ANO <= input$ano_grafico[2])) |>  
+                    select(c(MUNICIPIO, ANO, input$indicadores)) 
+                colnames(dados_selecionados) <- c("MUNICIPIO", "ANO", "INDICADOR")
                 
                 dados <- data.frame(x = dados_selecionados$ANO, 
                                     y = dados_selecionados$INDICADOR)
@@ -1223,7 +1223,7 @@ estudamos. Observe o exemplo a seguir.
         
         dashboardBody(selectInput(inputId = 'municipios',
                                   label = "Escolha o município:",
-                                  choices = unique(dados$'MUNICÍPIO'),
+                                  choices = unique(dados$'MUNICIPIO'),
                                   multiple = TRUE,
                                   selected = NULL),
                               
@@ -1240,8 +1240,8 @@ estudamos. Observe o exemplo a seguir.
     server <- function(input, output) {
         
         output$media_area <- renderText({
-            dados_selecionados <- dados |> select('MUNICÍPIO', AREA, ANO) |>
-                                           subset(ANO == 2020 & dados$'MUNICÍPIO' %in% input$municipios)
+            dados_selecionados <- dados |> select('MUNICIPIO', AREA, ANO) |>
+                                           subset(ANO == 2020 & dados$'MUNICIPIO' %in% input$municipios)
                                     
             media <- sum(dados_selecionados$AREA) / length(input$municipios)
             as.character(format(round(media, 2), nsmall = 2, big.mark = ".", decimal.mark = ","))
@@ -1312,7 +1312,7 @@ obter esse resultado. Uma das mais simples está exemplificada a seguir.
       output$municipios_sorteados <- renderText({
         input$sorteia_municipios
         
-        mun <- isolate(sample(dados$'MUNICÍPIO', input$num_municipios))
+        mun <- isolate(sample(dados$'MUNICIPIO', input$num_municipios))
         paste(mun, collapse = ", ")
         
       })
@@ -1359,7 +1359,7 @@ ficam dentro da função `server`. Observe o exemplo.
       meus_dados <- reactiveValues()
       
       output$municipios_sorteados <- renderText({
-        mun <- sample(dados$'MUNICÍPIO', input$num_municipios)
+        mun <- sample(dados$'MUNICIPIO', input$num_municipios)
         meus_dados$mun <- mun
         paste(mun, collapse = ", ")
         
@@ -1636,6 +1636,8 @@ Observe como ficaram os arquivos:
 
 `app.R`
 
+    source("global.R")
+
     ui <-  dashboardPage(
       dashboardHeader(title = "IMRS Demografia"),
       
@@ -1653,7 +1655,7 @@ Observe como ficaram os arquivos:
                                            column(width = 4,
                                                   selectInput(inputId = 'municipios',
                                                               label = "Escolha o município:",
-                                                              choices = unique(dados$MUNICÍPIO),
+                                                              choices = unique(dados$MUNICIPIO),
                                                               multiple = TRUE,
                                                               selected = NULL)),
                                            column(width = 4,
@@ -1677,7 +1679,7 @@ Observe como ficaram os arquivos:
                     column(width = 4,
                            selectInput(inputId = 'municipios_grafico',
                                        label = "Escolha o município:",
-                                       choices = unique(dados$MUNICÍPIO),
+                                       choices = unique(dados$MUNICIPIO),
                                        multiple = TRUE,
                                        selected = NULL)),
                     column(width = 4,
@@ -1736,8 +1738,8 @@ Observe como ficaram os arquivos:
       
       output$tabela <- renderDataTable({
         req(input$indicadores, input$municipios, input$ano_tabela)
-        dados |> select(c(MUNICÍPIO, ANO, input$indicadores)) |>
-          subset(MUNICÍPIO %in% input$municipios & ANO %in% input$ano_tabela)
+        dados |> select(c(MUNICIPIO, ANO, input$indicadores)) |>
+          subset(MUNICIPIO %in% input$municipios & ANO %in% input$ano_tabela)
       })
       
       output$grafico <- renderHighchart({
@@ -1747,9 +1749,9 @@ Observe como ficaram os arquivos:
         
         dados_final <- lapply(input$municipios_grafico, function(x){
           dados_selecionados <- dados |>  
-            subset(MUNICÍPIO %in% x & (ANO >= input$ano_grafico[1]) & (ANO <= input$ano_grafico[2])) |>  
-            select(c(MUNICÍPIO, ANO, input$indicadores_grafico)) 
-          colnames(dados_selecionados) <- c("MUNICÍPIO", "ANO", "INDICADOR")
+            subset(MUNICIPIO %in% x & (ANO >= input$ano_grafico[1]) & (ANO <= input$ano_grafico[2])) |>  
+            select(c(MUNICIPIO, ANO, input$indicadores_grafico)) 
+          colnames(dados_selecionados) <- c("MUNICIPIO", "ANO", "INDICADOR")
           
           dados <- data.frame(x = dados_selecionados$ANO, 
                               y = dados_selecionados$INDICADOR)
@@ -1780,7 +1782,7 @@ Observe como ficaram os arquivos:
       
       output$municipios_sorteados <- renderText({
         input$sorteia_municipios
-        mun <- isolate(sample(unique(dados$'MUNICÍPIO'), input$num_municipios))
+        mun <- isolate(sample(unique(dados$'MUNICIPIO'), input$num_municipios))
         meus_dados$mun <- mun
         paste(mun, collapse = ", ")
         
@@ -1792,12 +1794,16 @@ Observe como ficaram os arquivos:
       })
       
       output$populacao <- renderText({
-        dados_selecionados <- dados |> subset(dados$'MUNICÍPIO' %in% input$selecao_municipios & ANO == 2020)
+        dados_selecionados <- dados |> subset(dados$'MUNICIPIO' %in% input$selecao_municipios & ANO == 2020)
         sum(dados_selecionados$D_POPTA)
       })
     }
 
     shinyApp(ui = ui, server = server)
+
+É comum encontrar um aplicativo Shiny definido em mais de um arquivo, o
+`ui.R`, que define a interface de usuário, e o `server.R`, que define a
+função `server`.
 
 ## Mensagens pop-up
 
