@@ -134,7 +134,7 @@ botão stop, que aparece no canto superior direito.
 ## Criando um aplicativo
 
 Depois de ter instalado o pacote Shiny, você pode criar um novo
-aplicativo clicando em Arquivo &gt; Novo Arquivo &gt; Shiny Web App. Uma
+aplicativo clicando em Arquivo \> Novo Arquivo \> Shiny Web App. Uma
 janela irá aparecer, onde você dará o nome do seu aplicativo e indicará
 onde o mesmo será salvo. É recomendável criar uma pasta exclusiva para o
 seu aplicativo, onde será salvo o script `app.R`.
@@ -571,8 +571,8 @@ complexas. Suponha que desejamos acrescentar dois widgets lado a lado na
 -   `column`: Cria uma coluna para ser usada dentro de um `fluiRow`.
     Essa função tem um parâmetro obrigatório `width`, que deve ser um
     número entre 1 e 12. Note que a largura de uma linha é 12. Assim, a
-    soma das larguras de todas as colunas na linha não deve exceder
-    a 12.
+    soma das larguras de todas as colunas na linha não deve exceder a
+    12.
 -   `box`: Cria uma caixa que é usada para se colocar o conteúdo da
     interface de usuário.
 
@@ -657,12 +657,12 @@ da interface:
 A partir do aplicativo desenvolvido no Exercício 2, faça as seguintes
 modificações:
 
-1.  Crie um menu adicional, de modo que o aplicativo fique com a
+1)  Crie um menu adicional, de modo que o aplicativo fique com a
     seguinte aparência:
 
 <img src="imagens/exe6a.png">
 
-2.  Coloque dois widgets `selectInput`, de acordo com as figuras abaixo:
+2)  Coloque dois widgets `selectInput`, de acordo com as figuras abaixo:
 
 <img src="imagens/exe6b.png">
 
@@ -992,7 +992,7 @@ normalmente. Caso contrário, o expressão não é avaliada.
 Agora iremos adicionar uma tabela ao aplicativo que fizemos no exercício
 3. Para isso, faça as seguintes modificações:
 
-1 - Leia o arquivo “dados\_curso1.xlsx” no seu aplicativo. Lembre-se de
+1 - Leia o arquivo “dados_curso1.xlsx” no seu aplicativo. Lembre-se de
 carregar as bibliotecas necessárias.
 
 2 - Coloque um `dataTableOutput` no menu correspondente à tabela.
@@ -1003,8 +1003,8 @@ vários municípios. Configure a seleção inicial para vazio.
 
 4 - Crie um `selectInput` ao lado do anterior, que permita ao usuário
 selecionar quais indicadores ele deseja visualizar. As opções serão:
-AREA, D\_POPTA, HOMEMTOT, MULHERTOT. Permita que o usuário selecione
-mais de uma opção.
+AREA, D_POPTA, HOMEMTOT, MULHERTOT. Permita que o usuário selecione mais
+de uma opção.
 
 5 - Atualize o `selectInput` dos anos de modo que as opções sejam todos
 os anos disponíveis na tabela dados. Permita que o usuário escolha mais
@@ -1191,7 +1191,7 @@ lado, como mostrado a seguir. Observe que agora a seleção do ano é feita
 por um `sliderInput`. Não se esqueça de atribuir nomes (`inputId`)
 diferentes para os widgets do menu Tabela e do menu Gráfico. Faça com
 que o usuário só consiga selecionar um único indicador para ser exibido.
-Faça com que a seleção inicial do indicador seja D\_POPTA.
+Faça com que a seleção inicial do indicador seja D_POPTA.
 
 <img src="imagens/exe8a.png">
 
@@ -1199,6 +1199,607 @@ Faça com que a seleção inicial do indicador seja D\_POPTA.
 dentro de um `box`
 
 <img src="imagens/exe8b.png">
+
+## Saídas de texto
+
+Como já vimos anteriormente, usamos a função `textOutput` na `ui` e a
+`renderText` na `server` para exibirmos saídas de texto. Podemos fazer
+estruturas um pouco mais complexas combinando as funções que já
+estudamos. Observe o exemplo a seguir.
+
+    library(shiny)
+    library(shinydashboard)
+    library(readxl)
+    library(tidyverse)
+
+
+    dados <- read_excel("dados_curso1.xlsx") 
+    dados <- dados |> select(-1)
+
+    ui <-  dashboardPage(
+        dashboardHeader(title = "IMRS Demografia"),
+        
+        dashboardSidebar(),
+        
+        dashboardBody(selectInput(inputId = 'municipios',
+                                  label = "Escolha o município:",
+                                  choices = unique(dados$'MUNICÍPIO'),
+                                  multiple = TRUE,
+                                  selected = NULL),
+                              
+                      
+                      span("Média da área dos municípios: ", textOutput(outputId = 'media_area', inline = TRUE), "km²", style='font-size:24px;'),
+                      br(),
+                      br(), 
+                      
+                      span("Exemplo de fórmula: $$x = \\frac{b^2 \\pm \\sqrt{\\Delta}}{4a}$$",  style='font-size:24px;')
+                      ),
+                      withMathJax()
+    )
+
+    server <- function(input, output) {
+        
+        output$media_area <- renderText({
+            dados_selecionados <- dados |> select('MUNICÍPIO', AREA, ANO) |>
+                                           subset(ANO == 2020 & dados$'MUNICÍPIO' %in% input$municipios)
+                                    
+            media <- sum(dados_selecionados$AREA) / length(input$municipios)
+            as.character(format(round(media, 2), nsmall = 2, big.mark = ".", decimal.mark = ","))
+        })
+        
+        
+    }
+
+    shinyApp(ui = ui, server = server)
+
+## Adicionando botões
+
+Um botão é adicionado na `ui` por meio da função `actionButton` e tem
+como parâmetros o `inputId` e o `label`, entre outros. O código a seguir
+mostra o valor retornado pela botão, que é inicializado em zero e é
+incrementado a cada vez que o botão é pressionado.
+
+    library(shiny)
+    library(shinydashboard)
+
+
+    ui <-  dashboardPage(
+        dashboardHeader(title = "IMRS Demografia"),
+        
+        dashboardSidebar(),
+        
+        dashboardBody(actionButton(inputId = 'botao', label = "Clique aqui"),
+                      textOutput(outputId = 'texto'))
+                      
+    )
+
+    server <- function(input, output) {
+        
+        output$texto <- renderText({
+            input$botao
+          
+        })
+        
+    }
+
+    shinyApp(ui = ui, server = server)
+
+Podemos usar os botões para disparar alguma atualização na interface ou
+a execução de algum trecho de código. Existem diversas formas de se
+obter esse resultado. Uma das mais simples está exemplificada a seguir.
+
+    library(shiny)
+    library(shinydashboard)
+    library(readxl)
+    library(tidyverse)
+
+
+    dados <- read_excel("dados_curso1.xlsx") 
+    dados <- dados |> select(-1)
+
+    ui <-  dashboardPage(
+      dashboardHeader(title = "IMRS Demografia"),
+      
+      dashboardSidebar(),
+      
+      dashboardBody(numericInput(inputId = 'num_municipios', label = "Digite o número de municípios", value = 1),
+                    actionButton(inputId = 'sorteia_municipios', label = "Sortear"),
+                    textOutput(outputId = 'municipios_sorteados', inline = FALSE))
+    )
+
+    server <- function(input, output) {
+      
+      output$municipios_sorteados <- renderText({
+        input$sorteia_municipios
+        
+        mun <- isolate(sample(dados$'MUNICÍPIO', input$num_municipios))
+        paste(mun, collapse = ", ")
+        
+      })
+      
+    }
+
+    shinyApp(ui = ui, server = server)
+
+Observe o uso da função `isolate`. Ela faz com que a expressão dentro
+dela, que depende de alguma entrada, não cause a atualização da saída
+quando essa entrada muda. A saída será atualizada quando alguma outra
+entrada da qual ela depende for alterada, nesse caso o botão.
+
+## Funções update, reactiveValue e observeEvent
+
+Até agora vimos como colocar um widget na `ui` que é configurado durante
+a inicialização do aplicativo. No entanto, às vezes é necessário que uma
+ou mais configurações sejam alteradas dependendo da interação do usuário
+com o aplicativo. Isso é feito por meio do uso das funções `update`, que
+ficam dentro da função `server`. Observe o exemplo.
+
+    library(shiny)
+    library(shinydashboard)
+    library(readxl)
+    library(tidyverse)
+
+
+    dados <- read_excel("dados_curso1.xlsx") 
+    dados <- dados |> select(-1)
+
+    ui <-  dashboardPage(
+      dashboardHeader(title = "IMRS Demografia"),
+      
+      dashboardSidebar(),
+      
+      dashboardBody(numericInput(inputId = 'num_municipios', label = "Digite o número de municípios", value = 1),
+                    textOutput(outputId = 'municipios_sorteados', inline = FALSE),
+                    actionButton(inputId = 'atualiza', label = "Atualizar"),
+                    checkboxGroupInput(inputId = 'seletor', label = "Escolha o município", choices = NULL))
+    )
+
+    server <- function(input, output) {
+      
+      meus_dados <- reactiveValues()
+      
+      output$municipios_sorteados <- renderText({
+        mun <- sample(dados$'MUNICÍPIO', input$num_municipios)
+        meus_dados$mun <- mun
+        paste(mun, collapse = ", ")
+        
+      })
+      
+      observeEvent(input$atualiza, {
+        updateCheckboxGroupInput(inputId = 'seletor', choices = meus_dados$mun)
+      })
+      
+    }
+
+    shinyApp(ui = ui, server = server)
+
+Nesse último exemplo vários conceitos foram introduzidos:
+
+### updateCheckboxGroupInput
+
+No momento da inicialização do aplicativo ainda não sabemos quais serão
+as opções que devem ser mostradas no checkbox, criado com a função
+`checkboxInputGroup`. Para atualizarmos as opções que serão exibidas ou
+qualquer outro parâmetro, com exceção do `inputId`, usamos a função
+`updateCheckboxGroupInput`. Note que ela tem os mesmos parâmetros da
+função `checkboxGroupInput`. Perceba que o parâmetro `inputId` deve ser
+o mesmo do widget que foi adicionado na `ui`.
+
+### observeEvent
+
+Queremos que o widget só seja atualizado quando o usuário clicar no
+botão atualizar. Isso é feito por meio do uso da função `observeEvent`.
+Ela recebe como primeiro parâmetro a entrada que queremos monitorar. O
+segundo parâmetro é a expressão R que será executada quando a entrada
+for alterada. Nesse caso, executamos a função
+\`updateCheckboxGroupInput\`\`.
+
+### reactiveValues
+
+Variáveis criadas dentro de funções `render` são variáveis locais, não
+podendo ser acessadas a partir de outras funções. Quando é necessário
+compartilhar uma variável entre duas ou mais funções, usa-se a função
+`reactiveValues`, que cria uma lista reativa à qual podemos atribuir
+variáveis e realizar a leitura dessas variáveis.
+
+## Exercício 6
+
+O ponto de partida é o aplicativo feito no Exercício 5. No menu “Outras
+Informações”, adicione os seguintes elementos:
+
+1 - `numericInput`: Permite o usuário selecionar a quantidade de
+municípios que ele deseja amostrar;
+
+2 - `actionButton`: Faz a amostragem de municípios cujo tamanho é dado
+pela entrada do usuário no controle anterior;
+
+3 - `textOutput`: Exibe os municípios selecionados;
+
+4 - `actionButton`: Atualiza as opções do próximo elemento;
+
+5 - `checkboxGroupInput`: O usuário poderá selecionar 1 ou mais dentre
+os munícipios sorteados;
+
+6 - `textOutput`: Exibe a soma da população dos municípios selecionados.
+
+Faça as alterações necessárias na função `server`, de modo que o
+aplicativo tenha o seguinte comportamento: o usuário deve entrar com o
+tamanho da amostra desejada no primeiro campo. Então deve clicar no
+botão logo abaixo para que os municípios sejam sorteados. Os nomes dos
+municípios sorteados devem aparecer logo abaixo do botão.
+
+Depois de realizar o sorteio dos municípios, o usuário deve clicar no
+segundo botão para atualizar as opções do `checkboxGroupInput`,
+colocando como opções os municípios sorteados. A medida que o usuário
+seleciona os municípios, o aplicativo deve somar a população dos
+municípios selecionados e exibir a soma. Lembre-se que a base de dados
+contém a população para todos os anos de 2000 a 2020. Você só precisa
+somar a população do último ano disponível.
+
+Ao final, seu aplicativo deve ter a seguinte aparência.
+
+<img src="imagens/exe9a.png">
+
+# Unidade 5 - Publicando o aplicativo
+
+Agora que já sabemos construir um aplicativo Shiny, vamos aprender a
+compartilha-lo com outras pessoas. Existem duas opções para isso:
+
+1 - **Compartilhe seu aplicativo como um script R**. Essa é a maneira
+mais fácil para compartilhar um aplicativo, mas só funciona se os
+usuários tem o R e RStudio instalados no computador a sabem como
+usá-los. Os usuários podem usar o script para executar o aplicativo da
+mesma forma que temos feito durante o curso.
+
+2 - **Compartilhe seu aplicativo como uma página da web**. Essa é a
+maneira mais amigável de compartilhar o aplicativo. Os usuários podem
+navegar em seu aplicativo por meio da internet com um navegador.
+
+## Compartilhando como scripts
+
+Qualquer com R pode executar seu aplicativo. Eles precisarão de uma
+cópia do script `app.R`, além de arquivos suplementares, como as bases
+de dados e imagens. Para enviar os arquivos para outro usuário, envie
+por email (é interessante zipar os arquivos) ou compartilhe por meio de
+um local na nuvem.
+
+Para executar o aplicativo, o usuário terá que salvar os arquivos em uma
+pasta local.
+
+O Shiny ainda provê alguns comandos que facilitam o compartilhamento de
+arquivos hospedados na nuvem.
+
+### `runGitHub`
+
+Você pode hospedar os arquivos do seu aplicativo no
+[GitHub](www.github.com). Para isso, você deverá ter uma conta no
+GitHub, que pode ser criada gratuitamente.
+
+Uma vez criada a conta, crie um novo repositório e coloque todos os
+arquivos do seu aplicativo lá.
+
+Os usuários podem executar o aplicativo com o seguinte comando:
+
+    runGitHub("<nome do seu repositório>", "<seu nome de usuário>")
+
+## Compartilhando como uma página Web
+
+Apesar de ser simples, compartilhar o aplicativo através de um script em
+R tem a desvantagem de necessitar que o usuário tenha R e o Shiny
+instalados no computador.
+
+Entretanto, o Shiny cria a perfeita oportunidade para compartilhar o
+aplicativo com pessoas que não tem o R. De fato, o aplicativo Shiny está
+na forma de uma das ferramentas de comunicação mais utilizadas: uma
+página web. Se você hospedar o aplicativo com sua própria URL, os
+usuários podem visitar o aplicativo sem terem de se preocupar com o
+código que o gera.
+
+Existem 3 formas que são mais fáceis de se hospedar um aplicativo Shiny
+como uma página:
+
+1 - shinyapps.io
+
+2 - Shiny Server
+
+3 - RStudio Connect
+
+### shinyapps.io
+
+Dentre as 3 formas de compartilhar seu aplicativo mencionadas acima, a
+mais fácil é aquela que usa [shinyapps.io](www.shinyapps.io), que é o
+serviço de hospedagem do RStudio para aplicativos Shiny.
+
+A plataforma shinyapps.io permite que você faça o upload do seu
+aplicativo diretamente do seu RStudio.
+
+O primeiro passo para publicar o aplicativo na plataforma é criar uma
+conta, caso você ainda não tenha. A plataforma oferece um plano
+gratuito, mas você é limitado a 5 aplicativos e um tempo de execução
+mensal total de 25 horas. Dependendo da finalidade e abrangência do seu
+aplicativo, isso é mais que o suficiente. No entanto, se você
+compartilhar seu aplicativo para um grande número de pessoas, o seu
+tempo de processamento mensal irá se esgotar rapidamente.
+
+Depois de criado sua conta na plataforma shinyapps.io e seu aplicativo
+Shiny, clique na seta ao lado do botão de compartilhar, que fica canto
+superior direito do editor de texto. Clique em Manage Accounts.
+
+<img src="imagens/tutorial1a.png">
+
+Irá aparecer a seguinte janela:
+
+<img src="imagens/tutorial2.png">
+
+Clique em Connect. A seguinte janela irá aparecer:
+
+<img src="imagens/tutorial3.png">
+
+Clique em ShinyApps.io. A seguinte janela irá aparecer:
+
+<img src="imagens/tutorial10.png">
+
+Clique em your account on ShinyApps. Seu navegador irá abrir com a
+plataforma shinyapps.io. Faça o login usando a conta que você criou
+previamente. Uma vez logado, você será redirecionado para a página de
+dashboard, como mostrado abaixo:
+
+<img src="imagens/tutorial4.png">
+
+Clique no ícone ao lado direito do seu nome de usuário, no canto
+superior direito. Serão mostradas as seguintes opções:
+
+<img src="imagens/tutorial5.png">
+
+Clique em Tokens. Você será redirecionado para uma página com a seguinte
+aparência:
+
+<img src="imagens/tutorial6.png">
+
+Se você ainda não tiver nenhum Token, clique em Add Token. Em seguida
+clique no botão Show. A seguinte janela irá aparecer:
+
+<img src="imagens/tutorial9.png">
+
+Clique em Copy to Clipboard, tecle CTRL+C seguido de ENTER, conforme as
+instruções. Depois volte ao RStudio e cole o seu token no espaço em
+branco, como a seguir:
+
+<img src="imagens/tutorial7.png">
+
+Clique em Connect Account. Pronto, o RStudio agora está vinculado com
+sua conta na plataforma shinyapps.io
+
+<img src="imagens/tutorial8.png">
+
+Agora clique no botão compartilhar. Uma janela semelhante a essa irá
+aparecer:
+
+<img src="imagens/tutorial11.png">
+
+Selecione os arquivos que seu aplicativo usa, como as imagens e
+planilhas, inclusive o script `app.R`. Desmarque a opção `.RData`, caso
+você não precise de variáveis do seu ambiente de trabalho.
+
+Se é a primeira vez que você está publicando seu aplicativo, você poderá
+escolher o nome dele. Se você já o publicou uma vez e está fazendo uma
+atualização, então é só clicar em Publish e aguarde o processo de upload
+terminar. Se você não desmarcou a opção Launch brownser na última
+janela, seu aplicativo será inicializado assim que estiver pronto. Esse
+processo demora alguns minutos.
+
+Uma vez que seu aplicativo esteja publicado, é possível que alguns erros
+aconteçam dentro da plataforma shinyapps.io, que impedem seu aplicativo
+de ser executado. Para descobrir qual foi o motivo do erro, vá para a
+plataforma
+[shinyapps.io](https://www.shinyapps.io/admin/#/applications/all)
+
+<img src="imagens/tutorial12.png">
+
+Clique no nome do seu aplicativo. Você será redirecionado para a
+seguinte página:
+
+<img src="imagens/tutorial14.png">
+
+Clique em Logs. Você verá as mensagens que são exibidas durante a
+inicialização do seu aplicativo, que não ficam visíveis para o usuário.
+Procure pela mensagem de erro. Nesse caso, ocorreu um erro relativo ao
+pacote `shinydashboard`. Isso acontece porque o servidor da plataforma
+shinyapps espera que os comandos para carregar as bibliotecas
+necessárias estejam num arquivo diferente, chamado `global.R`. Esse
+arquivo deve estar na mesma pasta que seu arquivo `app.R`. Nele você
+pode definir variáveis globais.
+
+Observe como ficaram os arquivos:
+
+`global.R`
+
+    library(shiny)
+    library(shinydashboard)
+    library(readxl)
+    library(tidyverse)
+    library(highcharter)
+
+    dados <- read_excel("dados_curso1.xlsx") 
+    dados <- dados |> select(-1)
+
+    #função para exportação de imagens
+    export <- list(
+      list(text="PNG",
+           onclick=JS("function () {
+                    this.exportChartLocal(); }")),
+      list(text="JPEG",
+           onclick=JS("function () {
+                    this.exportChartLocal({ type: 'image/jpeg' }); }"))
+      
+    )
+
+`app.R`
+
+    ui <-  dashboardPage(
+      dashboardHeader(title = "IMRS Demografia"),
+      
+      dashboardSidebar(sidebarMenu(id = 'barra_lateral',
+                                   menuItem("Indicadores - Tabela", tabName = 'indicadores_tabela'),
+                                   menuItem("Indicadores - Gráfico", tabName = 'indicadores_grafico'),
+                                   menuItem("Outras informações", tabName = 'outras_infos'),
+                                   menuItem("Sobre", tabName = 'sobre')
+      )
+      ),
+      
+      dashboardBody(tabItems(tabItem(tabName = 'indicadores_tabela',
+                                     fluidRow(
+                                       box(width = 12,
+                                           column(width = 4,
+                                                  selectInput(inputId = 'municipios',
+                                                              label = "Escolha o município:",
+                                                              choices = unique(dados$MUNICÍPIO),
+                                                              multiple = TRUE,
+                                                              selected = NULL)),
+                                           column(width = 4,
+                                                  selectInput(inputId = 'indicadores',
+                                                              label = "Escolha o indicador",
+                                                              choices = c("AREA", "D_POPTA", "HOMEMTOT", "MULHERTOT"),
+                                                              multiple = TRUE,
+                                                              selected = NULL)),
+                                           column(width = 4,
+                                                  selectInput(inputId = 'ano_tabela',
+                                                              label = "Escolha o ano:",
+                                                              choices = unique(dados$ANO),
+                                                              multiple = TRUE)))),
+                                     
+                                     dataTableOutput(outputId = 'tabela')
+                                     
+      ),
+      tabItem(tabName = 'indicadores_grafico', 
+              fluidRow(
+                box(width = 12,
+                    column(width = 4,
+                           selectInput(inputId = 'municipios_grafico',
+                                       label = "Escolha o município:",
+                                       choices = unique(dados$MUNICÍPIO),
+                                       multiple = TRUE,
+                                       selected = NULL)),
+                    column(width = 4,
+                           selectInput(inputId = 'indicadores_grafico',
+                                       label = "Escolha o indicador",
+                                       choices = c("AREA", "D_POPTA", "HOMEMTOT", "MULHERTOT"),
+                                       multiple = FALSE,
+                                       selected = "D_POPTA")),
+                    column(width = 4,
+                           sliderInput(inputId = 'ano_grafico',
+                                       label = "Escolha o intervalo:",
+                                       min = min(dados$ANO),
+                                       max = max(dados$ANO),
+                                       value = c(min(dados$ANO), max(dados$ANO)))))),
+              
+              fluidRow(
+                box(width = 12,
+                    highchartOutput(outputId = 'grafico')
+                ))),
+      tabItem(tabName = 'outras_infos', 
+              box( title = NULL,
+                   status = "success",
+                   solidHeader = TRUE,
+                   width = 12,
+                   collapsible = TRUE,
+                   collapsed = FALSE,
+                   numericInput(inputId = 'num_municipios', label = "Digite o número de municípios", value = 1),
+                   actionButton(inputId = 'sorteia_municipios', label = "Sortear"),
+                   br(),
+                   textOutput(outputId = 'municipios_sorteados', inline = FALSE),
+                   br(),
+                   actionButton(inputId = 'atualizar_municipios', label = "Atualizar opções"),
+                   br(),
+                   checkboxGroupInput(inputId = 'selecao_municipios', label = "Escolha os municípios", choices = NULL),
+                   br(),
+                   span("População total: ", textOutput(outputId = 'populacao', inline = TRUE)))
+              
+              ),
+      tabItem(tabName = 'sobre',
+              a(href = "http://fjp.mg.gov.br/", img(src = "logo_fjp.png", weight = 150, height = 150)),
+              br(),
+              h1("IMRS Demografia"),
+              p("Esse dashboard permite a visualização de dados referentes à dimensão Demografia do IMRS", style = "font-size:16pt"),
+              br(),
+              p("Para acessar a plataforma do IMRS, clique", a("aqui", href="http://imrs.fjp.mg.gov.br/"), ".", style = "color: red; font-size:16pt")
+              
+      )
+      
+      )
+      )
+      
+      
+    )
+
+    server <- function(input, output) {
+      
+      output$tabela <- renderDataTable({
+        req(input$indicadores, input$municipios, input$ano_tabela)
+        dados |> select(c(MUNICÍPIO, ANO, input$indicadores)) |>
+          subset(MUNICÍPIO %in% input$municipios & ANO %in% input$ano_tabela)
+      })
+      
+      output$grafico <- renderHighchart({
+        
+        req(input$municipios_grafico)
+        req(input$indicadores_grafico)
+        
+        dados_final <- lapply(input$municipios_grafico, function(x){
+          dados_selecionados <- dados |>  
+            subset(MUNICÍPIO %in% x & (ANO >= input$ano_grafico[1]) & (ANO <= input$ano_grafico[2])) |>  
+            select(c(MUNICÍPIO, ANO, input$indicadores_grafico)) 
+          colnames(dados_selecionados) <- c("MUNICÍPIO", "ANO", "INDICADOR")
+          
+          dados <- data.frame(x = dados_selecionados$ANO, 
+                              y = dados_selecionados$INDICADOR)
+          
+        })  
+        
+        h <- highchart() |>
+          
+          hc_xAxis(title = list(text = "Ano"), allowDecimals = FALSE) |>
+          hc_chart(type = "line") |>
+          hc_exporting(enabled = T, fallbackToExportServer = F, 
+                       menuItems = export)  |>
+          hc_yAxis(title = list(text = "Valor do indicador ")) |>
+          hc_title(text = paste("Indicador: ", input$indicadores_grafico))
+        
+        
+        for (k in 1:length(dados_final)) {
+          h <- h |> 
+            hc_add_series(data = dados_final[[k]], name = input$municipios_grafico[k])
+        }
+        
+        h
+        
+      })
+      
+      meus_dados <- reactiveValues()
+      
+      
+      output$municipios_sorteados <- renderText({
+        input$sorteia_municipios
+        mun <- isolate(sample(unique(dados$'MUNICÍPIO'), input$num_municipios))
+        meus_dados$mun <- mun
+        paste(mun, collapse = ", ")
+        
+        
+      })
+      
+      observeEvent(input$atualizar_municipios, {
+        updateCheckboxGroupInput(inputId = 'selecao_municipios', choices = meus_dados$mun)
+      })
+      
+      output$populacao <- renderText({
+        dados_selecionados <- dados |> subset(dados$'MUNICÍPIO' %in% input$selecao_municipios & ANO == 2020)
+        sum(dados_selecionados$D_POPTA)
+      })
+    }
+
+    shinyApp(ui = ui, server = server)
+
+## Mensagens pop-up
 
 ## Adicionando abas
 
