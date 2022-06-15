@@ -1,7 +1,7 @@
 Curso Shiny
 ================
 Michel Alves
-19/05/2022
+15/06/2022
 
 # Unidade 1 - Arquitetura de um aplicativo Shiny
 
@@ -1392,7 +1392,7 @@ botão atualizar. Isso é feito por meio do uso da função `observeEvent`.
 Ela recebe como primeiro parâmetro a entrada que queremos monitorar. O
 segundo parâmetro é a expressão R que será executada quando a entrada
 for alterada. Nesse caso, executamos a função
-\`updateCheckboxGroupInput\`\`.
+`updateCheckboxGroupInput`.
 
 ### reactiveValues
 
@@ -1457,11 +1457,11 @@ navegar em seu aplicativo por meio da internet com um navegador.
 
 ## Compartilhando como scripts
 
-Qualquer com R pode executar seu aplicativo. Eles precisarão de uma
-cópia do script `app.R`, além de arquivos suplementares, como as bases
-de dados e imagens. Para enviar os arquivos para outro usuário, envie
-por email (é interessante zipar os arquivos) ou compartilhe por meio de
-um local na nuvem.
+Qualquer pessoa que tenha um computador com R pode executar seu
+aplicativo. Eles precisarão de uma cópia do script `app.R`, além de
+arquivos suplementares, como as bases de dados e imagens. Para enviar os
+arquivos para outro usuário, envie por email (é interessante zipar os
+arquivos) ou compartilhe por meio de um local na nuvem.
 
 Para executar o aplicativo, o usuário terá que salvar os arquivos em uma
 pasta local.
@@ -1603,12 +1603,11 @@ seguinte página:
 
 Clique em Logs. Você verá as mensagens que são exibidas durante a
 inicialização do seu aplicativo, que não ficam visíveis para o usuário.
-Procure pela mensagem de erro. Nesse caso, ocorreu um erro relativo ao
-pacote `shinydashboard`. Isso acontece porque o servidor da plataforma
-shinyapps espera que os comandos para carregar as bibliotecas
-necessárias estejam num arquivo diferente, chamado `global.R`. Esse
-arquivo deve estar na mesma pasta que seu arquivo `app.R`. Nele você
-pode definir variáveis globais.
+Procure pela mensagem de erro.
+
+É comum colocar comandos para carregar as bibliotecas e definição de
+variáveis globais em um arquivo chamado `global.R`. Esse arquivo deve
+estar na mesma pasta que seu arquivo `app.R`.
 
 Observe como ficaram os arquivos:
 
@@ -1805,7 +1804,67 @@ Observe como ficaram os arquivos:
 `ui.R`, que define a interface de usuário, e o `server.R`, que define a
 função `server`.
 
+## Exercício 7
+
+O ponto de partida é o aplicativo desenvolvido no Exercício 6.
+
+1 - Crie uma conta no Github, caso você ainda não tenha uma. Em seguida,
+crie um repositório e faça o upload dos arquivos do seu aplicativo.
+Execute o aplicativo usando a função `runGitHub`.
+
+2 - Crie uma conta na plataforma shinyapps.io e publique seu aplicativo,
+usando os recursos do RStudio.
+
+# Unidade 6 - Outros recursos
+
 ## Mensagens pop-up
+
+Caso você deseje exibir mensagens pop-up em seu aplicativo, como por
+exemplo, em decorrência de uma entrada inválida dada pelo usuário, você
+pode usar o pacote `shinyalert`. Observe o código a seguir:
+
+    library(shiny)
+    library(shinydashboard)
+    library(readxl)
+    library(tidyverse)
+    library(shinyalert)
+
+
+    dados <- read_excel("dados_curso1.xlsx") 
+    dados <- dados |> select(-1)
+
+    ui <-  dashboardPage(
+      dashboardHeader(title = "IMRS Demografia"),
+      
+      dashboardSidebar(),
+      
+      dashboardBody(numericInput(inputId = 'num_municipios', label = "Digite o número de municípios (1-10)", value = 1),
+                    actionButton(inputId = 'sorteia_municipios', label = "Sortear"),
+                    textOutput(outputId = 'municipios_sorteados', inline = FALSE))
+    )
+
+    server <- function(input, output) {
+      
+      output$municipios_sorteados <- renderText({
+        
+        num <- isolate(input$num_municipios)
+        
+        input$sorteia_municipios
+        
+        if(num < 1 | num > 10){
+          shinyalert(title = "Erro", text = "O número de municípios deve ser um número entre 1 e 10.")
+        }
+        else{
+          mun <- isolate(sample(unique(dados$MUNICIPIO), num))
+          paste(mun, collapse = ", ")
+        }
+        
+      })
+      
+      
+    }
+
+    shinyApp(ui = ui, server = server)
 
 ## Adicionando abas
 
@@ -1848,15 +1907,6 @@ criar cada aba, usa-se a função `tabPanel`.
 Observe que a largura do `tabBox` pode ser ajustada com o parâmetro
 `width`, dentro da função `tabBox`. Lembre-se que 12 é o número que
 representa a largura máxima.
-
-## Exercício 3
-
-Continuando o exercício 2, crie um `tabBox` dentro do menu Indicadores,
-como mostrado nas imagens a seguir:
-
-<img src="imagens/exe3a.png">
-
-<img src="imagens/exe3b.png">
 
 ## Painel condicional
 
