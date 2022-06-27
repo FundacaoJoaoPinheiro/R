@@ -1,4 +1,4 @@
-Mini-curso de Webscrapping
+Mini-curso de Web scraping
 ================
 Michel Alves
 Junho de 2022
