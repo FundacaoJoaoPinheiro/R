@@ -22,6 +22,10 @@ Junho de 2022
     -   [Exercício](#exercício-1)
     -   [Referências](#referências)
 
+[Clique
+aqui](https://github.com/FundacaoJoaoPinheiro/R/blob/main/Curso%20Webscrapping/material_completo.pdf)
+para acessar esse guia de aula em PDF
+
 # Unidade 1
 
 ## O que é Webscrapping?
@@ -95,7 +99,7 @@ descreve os elementos de uma página por meio de *tags* marcadas por
     <body>
     <h1>Minha página</h1>
     <h2>Segundo título</h2>
-    <h3>Terceiro Título</h2>
+    <h3>Terceiro Título</h3>
     </body>
     </head>
     </html>
@@ -115,7 +119,7 @@ tag `<p>`:
     <h1>Minha página</h1>
     <h2>Segundo título</h2>
     <p>"Duas coisas são infinitas. O universo e a estupidez humana." Albert Einstein</p>
-    <h3>Terceiro Título</h2>
+    <h3>Terceiro Título</h3>
     </body>
     </head>
     </html>
@@ -130,7 +134,7 @@ a tag `<a>`. Ela tem o atributo `href` que especifica o link:
     <h1>Minha página</h1>
     <h2>Segundo título</h2>
     <p>"Duas coisas são infinitas. O universo e a estupidez humana." <a href="https://it.wikipedia.org/wiki/Albert_Einstein">Albert Einstein</a></p>
-    <h3>Terceiro Título</h2>
+    <h3>Terceiro Título</h3>
     </body>
     </head>
     </html>
@@ -146,7 +150,7 @@ o atributo `src` para especificarmos a URL da imagem.
     <h2>Segundo título</h2>
     <p>"Duas coisas são infinitas. O universo e a estupidez humana." <a href="https://it.wikipedia.org/wiki/Albert_Einstein">Albert Einstein</a></p>
     <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Albert_Einstein_Head.jpg/800px-Albert_Einstein_Head.jpg">
-    <h3>Terceiro Título</h2>
+    <h3>Terceiro Título</h3>
     </body>
     </head>
     </html>
