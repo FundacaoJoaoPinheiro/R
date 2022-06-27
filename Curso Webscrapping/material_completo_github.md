@@ -4,15 +4,15 @@ Michel Alves
 Junho de 2022
 
 -   [Unidade 1](#unidade-1)
-    -   [O que é Webscrapping?](#o-que-é-webscrapping)
-    -   [Quando é preciso realizar
-        webscrapping?](#quando-é-preciso-realizar-webscrapping)
+    -   [O que é web scraping?](#o-que-é-web-scraping)
+    -   [Quando é preciso realizar web
+        scraping?](#quando-é-preciso-realizar-web-scraping)
     -   [Estrutura de uma página web](#estrutura-de-uma-página-web)
     -   [XML](#xml)
     -   [Como visualizar o HTML de uma
         página](#como-visualizar-o-html-de-uma-página)
-    -   [Bibliotecas no R para
-        webscrapping](#bibliotecas-no-r-para-webscrapping)
+    -   [Bibliotecas no R para web
+        scraping](#bibliotecas-no-r-para-web-scraping)
 -   [Unidade 2](#unidade-2)
     -   [Extraindo dados](#extraindo-dados)
     -   [Exercício](#exercício)
@@ -24,11 +24,11 @@ Junho de 2022
 
 [Clique
 aqui](https://github.com/FundacaoJoaoPinheiro/R/blob/main/Curso%20Webscrapping/material_completo.pdf)
-para acessar esse guia de aula em PDF
+para acessar esse guia de aula em PDF.
 
 # Unidade 1
 
-## O que é Webscrapping?
+## O que é web scraping?
 
 O *web scraping* (raspagem de rede, em tradução livre), também conhecido
 como extração de dados da web, é o nome dado ao processo de coleta de
@@ -48,9 +48,9 @@ um site para outro meio, a diferença é que a raspagem de rede faz isso
 em uma escala macroscópica e com automação inteligente, para extrair
 milhões de dados de páginas da internet.
 
-No entanto, o processo de webscrapping não é uma tarefa simples. Os
-websites se apresentam em muitas formas e, como resultado, os
-webscrappers variam em funcionalidades e características. Também pode
+No entanto, o processo de web scraping não é uma tarefa simples. Os
+websites se apresentam em muitas formas e, como resultado, os web
+scrapers variam em funcionalidades e características. Também pode
 acontecer de encontrarmos captchas (aquele teste para verificar se você
 é humano) quando tentando realizar a raspagem de dados. Esses casos,
 infelizmente, não serão tratados nesse curso.
@@ -60,7 +60,7 @@ que dependem de como o site estrutura suas informações
 
 **Abordagem 1**: Se o site armazena todas as suas informações no *front
 end* do HTML, você pode baixar o conteúdo do HTML diretamente e extrair
-as informações úteis. São baiscamente 5 passos:
+as informações úteis. São basicamente 5 passos:
 
 1.  Identificar o website desejado;
 2.  Coletar as URLs das páginas das quais você deseja extrair os dados;
@@ -82,9 +82,9 @@ API. Os passos são:
 4.  Extrair as informações desejadas;
 5.  Salvar os dados em formato CSV ou XLSX, entre outros.
 
-## Quando é preciso realizar webscrapping?
+## Quando é preciso realizar web scraping?
 
-O processo de webscrapping é necessário quando os dados desejados estão
+O processo de web scraping é necessário quando os dados desejados estão
 disponíveis dentro de um código HTML. Em outros casos, pode ser usado
 para obter arquivos que contém os dados desejados.
 
@@ -351,7 +351,7 @@ armazenar or exibir.
 A maioria dos navegadores atuais possuem um recurso conhecido como
 **Ferramentas para Desenvolvedores**. Embora a maioria de suas
 funcionalidades sejam úteis para desenvolvedores da web, algumas delas
-são essenciais para realizar o webscrapping. Para abrir a ferramenta,
+são essenciais para realizar o web scraping. Para abrir a ferramenta,
 basta clicar com o botão direito do mouse em algum elemento da página e
 em seguida escolher a opção Inspecionar. Outra opção é apertar a tecla
 F12 no teclado ou o atalho CTRL+SHIFT+I.
@@ -375,9 +375,9 @@ item”. Isso abrirá a janela Inspecionar documento e tudo o que você
 precisa fazer é substituir “senha” por “texto” no campo de entrada do
 tipo de senha. Isso deve revelar a senha oculta com asteriscos.
 
-## Bibliotecas no R para webscrapping
+## Bibliotecas no R para web scraping
 
-Existem várias possibilidades de usos de ferramentas para webscrapping
+Existem várias possibilidades de usos de ferramentas para web scraping
 em R. Veremos algumas delas.
 
     library("xml2")
@@ -390,7 +390,7 @@ em R. Veremos algumas delas.
 
 ## Extraindo dados
 
-A primeira etapa ao realizar o webscrapping é obter o HTML. Considere a
+A primeira etapa ao realizar o web scraping é obter o HTML. Considere a
 seguinte URL:
 
     library("xml2")
@@ -633,8 +633,8 @@ E se quisermos navegar até a segunda página de resultados?
     p |> html_elements(xpath = "//h3/a") |> html_text2()
 
 Alguns sites proibem o uso de ferramentas automatizadas, ou **robôs**,
-tal como o webscrapping. Para descobrir se um site permite ou não o uso
-de webscrapping, é só procurar pelo arquivo `robots.txt`. Exemplo:
+tal como o web scraping. Para descobrir se um site permite ou não o uso
+de web scraping, é só procurar pelo arquivo `robots.txt`. Exemplo:
 
     http://fjp.mg.gov.br/robots.txt
 
