@@ -501,13 +501,18 @@ Para importar um arquivo, primeiro deve-se obter a URL onde o mesmo está
 disponível. Para isso, pode-se usar a função `html_attr()`.
 
     library("rio")
-    url <- "http://fjp.mg.gov.br/produto-interno-bruto-pib-de-minas-gerais/"
+    url <- "https://www.anac.gov.br/acesso-a-informacao/dados-abertos/areas-de-atuacao/voos-e-operacoes-aereas/percentuais-de-atrasos-e-cancelamentos"
+
     pagina <- read_html(url)
 
-    pagina |> html_elements(xpath = "//*[contains(text(), 'PIB anual')]/../../*/*/*/strong") |> html_text2()
+    pagina |> html_elements(xpath = "//h2/a") 
 
-    link <- pagina |> html_elements(xpath = "//*[contains(text(), 'Bases de dados')]/../../*/*/li[2]/a") |> html_attr('href')
-    arquivo <- rio::import(link)
+
+    link <- pagina |> html_elements(xpath = "//h2/a") |> html_attr('href')
+
+
+
+    arquivo <- rio::import(link[2])
 
 ## Exercício
 
