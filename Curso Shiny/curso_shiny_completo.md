@@ -1069,7 +1069,7 @@ colocando a função `tableOutput` na `ui`.
     #dir <- dirname(rstudioapi::getActiveDocumentContext()$path)
     #setwd(dir)
 
-    dados <- read_excel("dados_curso1.xlsx") 
+    dados <- read_excel("www\\dados_curso1.xlsx") 
     dados <- dados |> subset(ANO %in% c(2019, 2020))
 
     ui <-  dashboardPage(
@@ -1102,7 +1102,7 @@ interface mais amigável. Dentre elas está `dataTableOutput`.
     library(readxl)
     library(tidyverse)
 
-    dados <- read_excel("dados_curso1.xlsx") 
+    dados <- read_excel("www\\dados_curso1.xlsx") 
     dados <- dados |> subset(ANO %in% c(2019, 2020))
 
     ui <-  dashboardPage(
@@ -1135,7 +1135,7 @@ colunas serão exibidas.
     library(tidyverse)
 
 
-    dados <- read_excel("dados_curso1.xlsx") 
+    dados <- read_excel("www\\dados_curso1.xlsx") 
     dados <- dados |> subset(ANO %in% c(2019, 2020)) |> select(-1)
 
     ui <-  dashboardPage(
@@ -1170,7 +1170,7 @@ normalmente. Caso contrário, o expressão não é avaliada.
     library(tidyverse)
 
 
-    dados <- read_excel("dados_curso1.xlsx") 
+    dados <- read_excel("www\\dados_curso1.xlsx") 
     dados <- dados |> subset(ANO %in% c(2019, 2020)) |> select(-1)
 
     ui <-  dashboardPage(
@@ -1301,7 +1301,7 @@ exemplo a seguir:
     library(highcharter)
 
 
-    dados <- read_excel("dados_curso1.xlsx") 
+    dados <- read_excel("www\\dados_curso1.xlsx") 
     dados <- dados |> select(-1)
 
     #função para exportação de imagens
@@ -1427,7 +1427,7 @@ estudamos. Observe o exemplo a seguir.
     library(tidyverse)
 
 
-    dados <- read_excel("dados_curso1.xlsx") 
+    dados <- read_excel("www\\dados_curso1.xlsx") 
     dados <- dados |> select(-1)
 
     ui <-  dashboardPage(
@@ -1508,7 +1508,7 @@ obter esse resultado. Uma das mais simples está exemplificada a seguir.
     library(tidyverse)
 
 
-    dados <- read_excel("dados_curso1.xlsx") 
+    dados <- read_excel("www\\dados_curso1.xlsx") 
     dados <- dados |> select(-1)
 
     ui <-  dashboardPage(
@@ -1554,7 +1554,7 @@ ficam dentro da função `server`. Observe o exemplo.
     library(tidyverse)
 
 
-    dados <- read_excel("dados_curso1.xlsx") 
+    dados <- read_excel("www\\dados_curso1.xlsx") 
     dados <- dados |> select(-1)
 
     ui <-  dashboardPage(
@@ -1833,7 +1833,7 @@ Observe como ficaram os arquivos:
     library(tidyverse)
     library(highcharter)
 
-    dados <- read_excel("dados_curso1.xlsx") 
+    dados <- read_excel("www\\dados_curso1.xlsx") 
     dados <- dados |> select(-1)
 
     #função para exportação de imagens
@@ -2044,7 +2044,7 @@ pode usar o pacote `shinyalert`. Observe o código a seguir:
     library(shinyalert)
 
 
-    dados <- read_excel("dados_curso1.xlsx") 
+    dados <- read_excel("www\\dados_curso1.xlsx") 
     dados <- dados |> select(-1)
 
     ui <-  dashboardPage(
