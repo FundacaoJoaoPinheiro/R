@@ -522,7 +522,7 @@ disponível. Para isso, pode-se usar a função `html_attr()`.
 
 ## Exercício
 
-Acesse a seguinte página do DATASUS e obter as opções disponíveis para
+Acesse a seguinte página do DATASUS e obtenha as opções disponíveis para
 
 -   Linha
 -   Coluna
