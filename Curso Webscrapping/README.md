@@ -1,6 +1,6 @@
 Mini-curso de Web scraping
 ================
-Michel Alves
+Michel Alves - 
 Agosto de 2022
 
 -   <a href="#unidade-1" id="toc-unidade-1">Unidade 1</a>
