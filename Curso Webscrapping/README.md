@@ -1,6 +1,6 @@
 Mini-curso de Web scraping
 ================
-Michel Alves - 
+Michel Alves -
 Agosto de 2022
 
 -   <a href="#unidade-1" id="toc-unidade-1">Unidade 1</a>
@@ -545,6 +545,9 @@ Em seguida, obtenha os valores para as seguintes seleções:
 -   Idade da mãe: 20 a 24 anos
 -   Sexo: Masc
 
+[Clique aqui para ver a
+resposta.](https://github.com/FundacaoJoaoPinheiro/R/blob/main/Curso%20Webscrapping/Exercicio1.R)
+
 # Unidade 3
 
 ## Navegação em páginas e preenchimento de formulários
@@ -654,29 +657,8 @@ A partir do página inicial da FJP, ir em Biblioteca e em seguida
 Repositório Institucional, realizar uma pesquisa pelo termo *Produto
 Interno Bruto* e armazenar os 20 primeiros resultados numa tabela.
 
-    library(rvest)
-
-    url <- "http://fjp.mg.gov.br/"
-    s <- session(url)
-
-    p <- read_html(s)
-    p |> html_elements(xpath = "//span[contains(text(), 'Biblioteca')]/..")
-    s <- s |> session_follow_link(xpath = "//span[contains(text(), 'Biblioteca')]/..")
-
-    p <- read_html(s)
-    p |> html_elements(xpath = "//figcaption[contains(text(), 'Institucional')]/../a")
-    s <- s |> session_follow_link(xpath = "//figcaption[contains(text(), 'Institucional')]/../a")
-
-    f <- s |> html_form()
-    f <- f[[2]]
-
-    f <- f |> html_form_set(query = "produto interno bruto")
-    resp <- f |> html_form_submit()
-
-    p <- read_html(resp)
-    p |> html_elements(xpath = "//h3[contains(text(), 'Conjunto')]/../table")
-    tabela <- p |> html_elements(xpath = "//h3[contains(text(), 'Conjunto')]/../table") |> html_table()
-    tabela <- tabela[[5]]
+[Clique aqui para ver a
+resposta.](https://github.com/FundacaoJoaoPinheiro/R/blob/main/Curso%20Webscrapping/Exercicio2.R)
 
 # Referências
 
