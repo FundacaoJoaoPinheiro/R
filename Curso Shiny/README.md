@@ -1,6 +1,6 @@
 Mini-curso de Shiny
 ================
-Michel Alves
+Michel Alves -
 Agosto de 2022
 
 -   <a href="#unidade-1---arquitetura-de-um-aplicativo-shiny"
