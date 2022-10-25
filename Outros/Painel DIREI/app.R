@@ -17,6 +17,8 @@ library(promises)
 library(future)
 library(shinyjs)
 
+#https://docs.google.com/spreadsheets/d/1qBeKtxV5MKAdo1CzG7gqYpD1ne8_XhdX/edit?rtpof=true&sd=true#gid=61577572
+
 # Realiza a leitura da planilha compartilhada
 url <- "https://drive.google.com/uc?export=download&id=1qBeKtxV5MKAdo1CzG7gqYpD1ne8_XhdX"
 GET(url, write_disk(tf <- tempfile(fileext = ".xlsx")))
@@ -29,6 +31,7 @@ user_key <- dados_videos$user_key[1]
 id_canal <- dados_videos$canal_id[1]
 id_videos <- dados_videos$videos_id
 nomes_videos <- dados_videos$nomes
+exibir_grafico <- dados_videos$Exibir_grafico
 
 # Inicializa os vetores com os nomes dos meses
 anos <- unique(dados$ano)
@@ -72,15 +75,14 @@ ui <- dashboardPage(
                                     Shiny.onInputChange("dimension", dimension);
                                 });
                             ')),
-                     tags$style(HTML('
+                     tags$style(HTML("
                       .my_table .table>tbody>tr>td, .table>tbody>tr>th, .table>tfoot>tr>td, .table>tfoot>tr>th, .table>thead>tr>td, .table>thead>tr>th {
                         padding: 10px;
                         column-width: 5%;
                         border-spacing: 1px;
                         line-height: 1.42857143;
-                        text-align:center;
-                        
-                      }'
+                        text-align:center;}
+                      .tabbable > .nav > li > a[data-value='Painel Mensal'] {background-color: white; color:black}"
                       ))
                      ),
        
@@ -101,8 +103,9 @@ ui <- dashboardPage(
         #fluidRow(verbatimTextOutput("dimension_display")),
         fluidRow(
           column(width = 12,
-                 tabBox(width = 12,
+                 tabsetPanel(
                    tabPanel("Painel Mensal",
+                            
                             fluidRow(
                               column(width = 3,
                                      dateInput2(inputId = 'mes_ano',
@@ -197,11 +200,11 @@ ui <- dashboardPage(
                             ),
                             fluidRow(
                                box(
-                                 title = div( style="text-align: center;",
-                                              span("Emissão CPM", textOutput(outputId = 'anos_emissao_cpm', inline = TRUE) )
-                                 ),
+                                 # title = div( style="text-align: center;",
+                                 #              span("Emissão CPM", textOutput(outputId = 'anos_emissao_cpm', inline = TRUE) )
+                                 # ),
                                  status = "primary",
-                                 solidHeader = TRUE,
+                                 solidHeader = FALSE,
                                  width = 6,
                                  #height = 250,
                                  highchartOutput(outputId = 'emissao_cpm', height = 250),
@@ -212,11 +215,11 @@ ui <- dashboardPage(
                                    
                                ),
                                box(
-                                 title = div( style="text-align: center;",
-                                              span("Arrecadação com CPM", textOutput(outputId = 'ano_arrecadacao_cpm', inline = TRUE) )
-                                 ),
+                                 # title = div( style="text-align: center;",
+                                 #              span("Arrecadação com CPM", textOutput(outputId = 'ano_arrecadacao_cpm', inline = TRUE) )
+                                 # ),
                                  status = "primary",
-                                 solidHeader = TRUE,
+                                 solidHeader = FALSE,
                                  width = 6,
                                  #height = 250,
                                  highchartOutput(outputId = 'grafico_arrecadacao_cpm')
@@ -231,15 +234,19 @@ ui <- dashboardPage(
                                        status = "primary",
                                        solidHeader = TRUE,
                                        width = 12,
+                                       collapsible = TRUE,
+                                       collapsed = TRUE,
                                        #height = 250,
                                        highchartOutput(outputId = 'grafico_metas_publicacao')
                                      )
                                   ),
                               column(width = 6,
                                      box(
-                                       title = div("Visualizações Webnários Youtube"),
+                                       #title = div("Visualizações Webnários Youtube"),
                                        status = "primary",
-                                       solidHeader = TRUE,
+                                       collapsible = TRUE,
+                                       collapsed = ifelse(exibir_grafico == "sim", yes = FALSE, no = TRUE),
+                                       solidHeader = FALSE,
                                        width = 12,
                                        box(
                                          shinycssloaders::withSpinner(highchartOutput(outputId = 'grafico_visualizacoes')),                                   
@@ -527,14 +534,17 @@ server <- function(input, output) {
         
         hc_chart(type = "column") |>
         hc_yAxis(title = list(text = "Nº de emissões"), max = max(cpm$producao, na.rm = TRUE)+5) |>
-        #hc_title(text = "Visualizações") |>
+        hc_title(text = paste("Emissão CPM", ano(), " x ", ano()-1, " x ", ano()-2)) |>
         hc_xAxis(categories = c("JAN", meses_sigla)) |>
         hc_tooltip(crosshairs = TRUE,
                    borderWidth = 5,
                    sort = FALSE,
                    table = TRUE, 
                    headerFormat = 'Emissões {point.x}<br>',
-                   pointFormat = "{series.name}:{point.y} <br>") 
+                   pointFormat = "{series.name}:{point.y} <br>") |>
+        hc_plotOptions(column=list(dataLabels=list(enabled=TRUE))) |>
+        hc_exporting(enabled = T, fallbackToExportServer = F, 
+                     menuItems = export)  
       
       
       anos <- unique(cpm$ano)
@@ -565,6 +575,7 @@ server <- function(input, output) {
       
       #print(paste(input$dimension[1], input$dimension[2], input$dimension[2]/input$dimension[1]))
       
+      req(input$dimension)
       
       
       if(input$dimension[1] > 1300){
@@ -578,6 +589,41 @@ server <- function(input, output) {
       }
       
       
+      
+    })
+    
+    ## Arrecadação CPM ----
+    output$grafico_arrecadacao_cpm <- renderHighchart({
+      arrecadacao_cpm <- dados |> select(ano, mes, cpm) |>
+        subset(ano == ano())
+      dados1 <- data.frame(x= arrecadacao_cpm$mes ,
+                           y= arrecadacao_cpm$cpm)
+      
+      h <- highchart() |>
+        
+        hc_chart(type = "column") |>
+        hc_yAxis(title = list(text = "Valor (R$)"), max = max(arrecadacao_cpm$cpm, na.rm = TRUE)+5) |>
+        hc_title(text = paste("Arrecadação com CPM", ano())) |>
+        hc_xAxis(categories = c("JAN", meses_sigla)) |>
+        hc_tooltip(crosshairs = TRUE,
+                   borderWidth = 5,
+                   sort = FALSE,
+                   table = TRUE, 
+                   headerFormat = '{point.x} de {series.name}<br>',
+                   pointFormat = "R$ {point.y} <br>") |>
+        hc_add_series(data = dados1, name = ano(), showInLegend = FALSE) |>
+        hc_plotOptions(column=list(dataLabels=list(enabled=TRUE,
+                                            format='R$ {point.y:.2f}',
+                                            align = 'center' ,rotation = 315
+                                            )))|>
+        hc_exporting(enabled = T, fallbackToExportServer = F, 
+                     menuItems = export)  
+
+      
+      
+      
+      
+      h
       
     })
     
@@ -598,70 +644,7 @@ server <- function(input, output) {
       NULL
     }) 
     
-    output$grafico_visualizacoes <- renderHighchart({
-      
-      req(data_to_plot())
-      
-      vis <- data_to_plot()
-      
-      h <- highchart() |>
-
-        hc_chart(type = "column") |>
-        hc_yAxis(title = list(text = "Nº de visualizações")) |>
-        #hc_title(text = "Visualizações") |>
-        hc_xAxis(labels = list(enabled=FALSE), max = length(nomes_videos)+1, min = 0) |>
-        hc_tooltip(crosshairs = TRUE,
-                   borderWidth = 5,
-                   sort = FALSE,
-                   table = TRUE, 
-                   headerFormat = '{series.name}<br>',
-                   pointFormat = "{point.y:.0f} visualizações<br>") 
-
-      for (k in 1:length(nomes_videos)) {
-        dados1 <- data.frame(x= k ,
-                            y= as.numeric(vis$statistics.viewCount[k]))
-        
-        h <- h |>
-          hc_add_series(data = dados1, name = nomes_videos[k])
-      }
-      
-      h
-      
-    })
-    
-    
-    output$grafico_arrecadacao_cpm <- renderHighchart({
-      arrecadacao_cpm <- dados |> select(ano, mes, cpm) |>
-                      subset(ano == ano())
-      dados1 <- data.frame(x= arrecadacao_cpm$mes ,
-                           y= arrecadacao_cpm$cpm)
-      
-      h <- highchart() |>
-        
-        hc_chart(type = "column") |>
-        hc_yAxis(title = list(text = "Valor (R$)"), max = max(arrecadacao_cpm$cpm, na.rm = TRUE)+5) |>
-        #hc_title(text = "Visualizações") |>
-        hc_xAxis(categories = c("JAN", meses_sigla)) |>
-        hc_tooltip(crosshairs = TRUE,
-                   borderWidth = 5,
-                   sort = FALSE,
-                   table = TRUE, 
-                   headerFormat = '{point.x} de {series.name}<br>',
-                   pointFormat = "R$ {point.y} <br>") |>
-        hc_add_series(data = dados1, name = ano(), showInLegend = FALSE) #|>
-        # hc_plotOptions(column=list(dataLabels=list(enabled=TRUE, 
-        #                                       format='R$ {point.y:.2f}',
-        #                                       align = 'center' #,rotation = 270
-        #                                       ))) 
-        # 
-      
-     
-      
-      
-      h
-      
-    })
-    
+    ## Metas de publicação ----
     output$grafico_metas_publicacao <- renderHighchart({
       metas <- dados |> select(ano, mes, 
                                pva_boletim_caged, 
@@ -671,22 +654,22 @@ server <- function(input, output) {
                                pva_boletim_tematico,
                                pva_relatorio_nota_tecnica,
                                publicado) |>
-                        subset(ano == ano())
+        subset(ano == ano())
       metas <- metas |> mutate(previsao = rowSums(metas[3:7])) 
       
       
       
       a <- metas |> mutate(mes_sigla = meses_sigla)#subset(ano == 2022)|>
-        
+      
       
       c <- a |> select(-ano) |>
-                select(-publicado) #|>
-                #pivot_longer(cols = c(2:7),
-                #             names_to = "tipo")
+        select(-publicado) #|>
+      #pivot_longer(cols = c(2:7),
+      #             names_to = "tipo")
       b <- c |> group_nest(mes_sigla) |>
-                mutate(id = mes_sigla,
-                       type = 'column',
-                       data = map(data, list_parse))
+        mutate(id = mes_sigla,
+               type = 'column',
+               data = map(data, list_parse))
       
       
       publicado <- data.frame(x = metas$mes,
@@ -711,16 +694,16 @@ server <- function(input, output) {
       tt <- tooltip_table(x, y)
       
       h <- hchart(a, 
-             "column",
-             hcaes(x = mes_sigla, y = previsao, name = mes_sigla, drilldown = mes_sigla ),
-             name = "Publicações",
-             colorByPoint = TRUE) |>
+                  "column",
+                  hcaes(x = mes_sigla, y = previsao, name = mes_sigla, drilldown = mes_sigla ),
+                  name = "Publicações",
+                  colorByPoint = TRUE) |>
         hc_drilldown(
           allowPointDrilldown = TRUE,
           series = list_parse(b)
         ) |>
         hc_tooltip(headerFormat = "Total {point.x}: {point.y}",
-                    pointFormat = tt,
+                   pointFormat = tt,
                    valueDecimals = 0,
                    useHTML = TRUE)
       #https://jkunst.com/highcharter/articles/drilldown.html
@@ -750,7 +733,7 @@ server <- function(input, output) {
       # 
       #   }')))
       #  
-       
+      
       # tooltip: {
       #   formatter: function() {
       #     return 'The value for <b>' + this.x + '</b> is <b>' + this.y + '</b>, in series '+ this.series.name;
@@ -762,6 +745,44 @@ server <- function(input, output) {
       
       
     })
+    
+    
+    
+    output$grafico_visualizacoes <- renderHighchart({
+      
+      req(data_to_plot())
+      
+      vis <- data_to_plot()
+      
+      h <- highchart() |>
+
+        hc_chart(type = "column") |>
+        hc_yAxis(title = list(text = "Nº de visualizações")) |>
+        hc_title(text = "Visualizações Webnários Youtube") |>
+        hc_xAxis(labels = list(enabled=FALSE), max = length(nomes_videos)+1, min = 0) |>
+        hc_tooltip(crosshairs = TRUE,
+                   borderWidth = 5,
+                   sort = FALSE,
+                   table = TRUE, 
+                   headerFormat = '{series.name}<br>',
+                   pointFormat = "{point.y:.0f} visualizações<br>") 
+
+      for (k in 1:length(nomes_videos)) {
+        dados1 <- data.frame(x= k ,
+                            y= as.numeric(vis$statistics.viewCount[k]))
+        
+        h <- h |>
+          hc_add_series(data = dados1, name = nomes_videos[k])
+      }
+      
+      h
+      
+    })
+    
+    
+   
+    
+    
     
     
     
