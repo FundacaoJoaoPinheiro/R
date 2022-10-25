@@ -40,9 +40,9 @@ ano_dados = 2021
 #' 
 #' Aqui é realizada a leitura dos arquivos em formato .xlsx. Os arquivos deverão estar na mesma pasta em que o 
 #' script está salvo.
-dados_imrs <- as_tibble(readxl::read_excel("IMRS2021 - BASE ESPORTE.xlsx", sheet = 1, col_types = c("numeric", "numeric", "numeric", "numeric", "text", "numeric", "text", "numeric", "numeric", "numeric", "text", "text", "text" )))
-dados_icms <- as_tibble(readxl::read_excel("Dados_Basicos_Esporte_2022.xlsx", sheet = 1))
-dados_quadra <- as_tibble(readxl::read_excel("Quadras.xlsx", sheet = 1))
+dados_imrs <- as_tibble(readxl::read_excel("", sheet = 1, col_types = c("numeric", "numeric", "numeric", "numeric", "text", "numeric", "text", "numeric", "numeric", "numeric", "text", "text", "text" )))
+dados_icms <- as_tibble(readxl::read_excel("Dados_Basicos_Esportes_2022.xlsx", sheet = 1))
+dados_quadra <- as_tibble(readxl::read_excel("ProcQuadras_2021.xls", sheet = 1))
 dados_munic <- as_tibble(readxl::read_excel("Base Suplemento Esporte MUNIC 2016.xls", sheet = 2))
 dados_munic_acoes <- as_tibble(readxl::read_excel("Base Suplemento Esporte MUNIC 2016.xls", sheet = 6))
 dados_munic_conv <- as_tibble(readxl::read_excel("Base Suplemento Esporte MUNIC 2016.xls", sheet = 5))
@@ -98,7 +98,7 @@ options(scipen = 9999999)
 indicadores <- indicadores %>% mutate(L_ILRHE =  if_else_(indicadores$conselho_de_esportes=="SIM",
                                                           if_else_(is.na(indicadores$pontuacao_municipio_soma_das_atividades_do_municipio), 0, (indicadores$pontuacao_municipio_soma_das_atividades_do_municipio/indicadores$soma_pontuacao_municipios_mg)*100), 0))
 #' Remove as colunas que não são mais necessárias
-indicadores <- indicadores %>% select(-c(14:22))
+indicadores <- indicadores %>% select(-c(14:ncol(indicadores)))
 
 
 #' ### Dados MUNIC
@@ -156,7 +156,7 @@ indicadores <- indicadores %>% mutate(L_CONVESP = "Não") %>%
 #' Filtra os dados para os municípios de Minas Gerais
 dados_munic_equip <- dados_munic_equip %>% subset(substr(dados_munic_equip$S1, 1, 2) == "31") %>% #seleciona as linhas cujos códigos 
                                                                                                   # de município começam com 31
-                                        select(c(1, 2, 3)) # seleciona as colunas com as variáveis de interesse (S1, S628, S629)
+                                        select(c("S1", "S628", "S629")) # seleciona as colunas com as variáveis de interesse (S1, S628, S629)
 
 #' Altera o nome da coluna S1 para IBGE7
 colnames(dados_munic_equip) <- c("IBGE7", "S628", "S629")
@@ -173,7 +173,7 @@ indicadores <- indicadores %>% mutate(L_EQUI = indicadores$S628) %>% select(-S62
 #' Filtra os dados para os municípios de Minas Gerais
 dados_munic_acoes <- dados_munic_acoes %>% subset(substr(dados_munic_acoes$S1, 1, 2) == "31") %>% #seleciona as linhas cujos códigos 
                                                                                                   # de município começam com 31
-                                           select(c(1, 2, 12, 22, 33)) # seleciona as colunas com as variáveis de interesse (S1, S182, S192, S202 e S213)
+                                           select(c("S1", "S182", "S192", "S202", "S213")) # seleciona as colunas com as variáveis de interesse (S1, S182, S192, S202 e S213)
 
 #' O indicador tem valor Sim se pelo menos uma das variáveis tem valor Sim, caso contrário é Não
 indicadores <- indicadores %>% mutate(L_PARTESP =  if_else_(dados_munic_acoes$S182 == "Sim" |
