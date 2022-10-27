@@ -1,0 +1,1 @@
+Scripts para extração dos dados e cálculo dos indicadores relativos ao IMRS na dimensão segurança. Os dados provenientes da SEJUSP devem ser obtidos de forma manual e o endereço para o arquivo deve ser ajustado no script. O script principal é o importacao_dados_IMRS_segurança.R.
