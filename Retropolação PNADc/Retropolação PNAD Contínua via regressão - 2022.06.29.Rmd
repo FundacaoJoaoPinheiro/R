@@ -1,0 +1,1261 @@
+---
+title: "Retropolação PNADc - MG"
+author: "Marcos Damasceno"
+date: '2022-05-25'
+output:
+  word_document: default
+  html_document: default
+  pdf_document:
+    latex_engine: lualatex
+    pandoc_args: --listings
+    includes:
+      in_header: preamble.tex
+geometry: left=2cm,right=1cm,top=2cm,bottom=1cm
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.width=10, fig.height=7) 
+```
+
+
+__Script para retropolação das séries temporais de ocupação e desocupação da PNAD Contínua para o estado de Minas Gerais, com base na PNAD desagregada, noutras pesquisas sobre mercado de trabalho (PME e PED) e no PIB estadual__
+
+
+Neste script é feita a retropolação ou "retroprojeção" dos dados sobre ocupação e desocupação da Pesquisa Nacional por Amostra de Domicílios Contínua (PNAD Contínua) trimestral, iniciada pelo Instituto Brasileiro de Geografia e Estatística (IBGE) em 2012, para anos anteriores. A retropolação terá como referência a antiga PNAD, pesquisa domiciliar de periodicidade anual substituída pela PNAD Contínua e que foi conduzida pelo mesmo IBGE até 2015. Em se tratando de duas pesquisas similares, espera-se que uma regressão linear entre ambas no período em que coincidiram temporalmente (entre 2012 e 2015) informe um coeficiente que permita estimar dados (valores preditos) da PNAD Contínua para períodos anteriores ao início de suas séries, tendo como base os dados já registrados pela PNAD.
+
+Como as duas pesquisas possuem frequências (periodicidades) diferentes, é necessário primeiro desagregar os dados da PNAD (isto é, aumentar a frequência da série temporal) entre 2002 e 2015 de anual para trimestral, para só então fazer a regressão entre os dados de ocupação e desocupação por elas registrados. Buscando fazer com que essa desagregação possa captar as oscilações do mercado de trabalho ao longo de tal período, serão tomadas como referência outras pesquisas que mensuram a produção e o mercado de trabalho, a saber: a Pesquisa Mensal de Emprego - PME (também conduzida pelo IBGE até 2016), a Pesquisa de Emprego e Desemprego - PED (conduzida pela Fundação João Pinheiro - FJP até 2014, para a região metropolitana de Belo Horizonte) e o Produto Interno Bruto - PIB estadual (também calculado e publicado trimestralmente pela FJP).
+
+Considerando que, à exceção do PIB, nenhuma dessas pesquisas cobriu todo o período entre 2002 e 2015 (a própria PNAD não tem dado para 2010, por se tratar de ano de realização do Censo Demográfico), também será necessário estendê-las temporalmente com o uso de outra regressão linear, tomando como "denominador comum" os dados do PIB, de modo a obter coeficientes que exprimam a relação entre os dados sobre trabalho e os da produção estadual.
+
+Uma vez desagregada a PNAD antiga em frequência trimestral e obtido, via regressão linear, o coeficiente que relaciona os dados da população ocupada e desocupada mensurados nesta pesquisa com os registrados pela PNAD Contínua, será possível, então, gerar séries temporais desta última para ocupação, desocupação e respectivas taxas desde 2002 até a atualidade.
+
+
+__Comandos preliminares do script__
+-----------------------------------------------------------------------------
+
+Os comandos abaixo limpam o console e os objetos que estejam carregados no ambiente do RStudio:
+
+```{r}
+  
+  rm(list = ls())
+  cat("\014")
+  
+```
+
+Abaixo, a função _setwd()_ indica o diretório no computador que será usado para carregar e salvar arquivos, em especial as planilhas que contêm os dados usados neste script:
+
+```{r}
+
+  #setwd("G:/Meu Drive/NÚCLEO DEMOGRAFIA/MERCADO TRABALHO/ESTUDOS PNAD E PNADC/RETROPOLAÇÃO MATEMÁTICA PNADC")
+  setwd("C:/Users/MD/Desktop/Fund. João Pinheiro/Retropolação PNADC MG")
+  #setwd("C:/Users/x12695714/Desktop/Retropolação PNADC MG")
+
+```
+  
+Já os comandos abaixo carregam os pacotes do R utilizados neste script (se algum deles não estiver instalado, é necessário instalar antes de carregar, inserindo o nome do pacote entre aspas como argumento da função _install.packages()_):
+
+```{r}
+
+  library(readxl)
+  library(tempdisagg)
+  library(ggplot2)
+  library(zoo)
+  library(dplyr)
+  library(rio)
+
+```
+
+-----------------------------------------------------------------------------
+__1) Construção das séries temporais__
+-----------------------------------------------------------------------------
+  
+Primeiramente, as séries temporais da PNAD, PNAD Contínua, PME, PED e PIB são montadas em formato de vetores numéricos. A função _read_xlsx_ importa os dados das séries temporais que estão em planilhas de Excel, salvando-os no objeto _dados_, no formato de "data frame". Como essas planilhas estão em um mesmo arquivo (_"Inputs - PNAD + ....xls"), a função toma como argumento não só o nome desse arquivo, mas especifica também qual planilha deve ser lida ( _sheet_ = "PNAD", "PED", "PIB" etc.). Em seguida, vetores numéricos ( _tsOcupadosPNAD_, _tsOcupadosPNADc_, _tsOcupadosPME_ etc.) são criados para armazenar os dados de cada uma das séries importadas, sendo a função _na.omit()_ usada para identificar e ignorar ou "pular" as células que eventualmente não tenham observações e estejam em branco (valores "missing"). Esse procedimento é feito para os dados de ocupados e desocupados (à exceção do PIB, que tem apenas uma série com os dados da produção), resultando em dois vetores para cada pesquisa, com os seguintes tamanhos: 
+
+
+-- PNAD: 13 registros anuais (2002 a 2015, com exceção do dado de 2010, ano de Censo Demográfico), publicados pelo IBGE; _(OBS.: mencionar compatibilização com a PNADc, se for o caso; conferir também se vamos usar os dados de MG ou Brasil ou RMBH - os dados do Sidra - tabela 1868 - não estão batendo com os da planilha)_
+
+
+-- PNAD Contínua: 40 registros trimestrais (1º trimestre de 2012 ao 4º trimestre de 2021) para Minas Gerais, publicados pelo IBGE;
+
+
+-- PME: 55 registros trimestrais obtidos pela média simples de 165 registros mensais (abril/2002 a dezembro/2015) para a Região Metropolitana de Belo Horizonte, publicados pelo IBGE;
+
+
+-- PED: 50 registros trimestrais obtidos de 150 registros mensais (março/2002 a junho/2014) para a Região Metropolitana de Belo Horizonte, publicados pela FJP -- a publicação da pesquisa era mensal, mas o dado de cada mês corresponde à média móvel que abrange o mês de referência e os dois meses anteriores;
+
+
+-- PIB: 80 registros trimestrais publicados pela FJP (1º trimestre/2002 ao 4º trimestre/2021) para Minas Gerais.
+
+```{r}
+  
+  # Importa os dados das séries temporais da planilha em .xlsx:
+
+  dados <- read_xlsx("Inputs - PNAD + PME + PED + PIB + PNADc.xlsx", sheet = "PNAD") 
+  
+  tsOcupadosPNAD <- na.omit(dados$OcupadosPNAD...4)
+  
+  tsDesocupadosPNAD <- na.omit(dados$`Desocupados PNAD...5`)
+  
+  
+  dados <- read_xlsx("Inputs - PNAD + PME + PED + PIB + PNADc.xlsx", sheet = "PNAD Contínua", skip = 3)
+  
+  dados <- dados[-41,]
+  
+  tsOcupadosPNADc <- dados$`Força de trabalho - ocupada`
+  
+  tsDesocupadosPNADc <- dados$`Força de trabalho - desocupada`
+  
+  
+  dados <- read_xlsx("Inputs - PNAD + PME + PED + PIB + PNADc.xlsx", sheet = "PME", skip = 4)
+  
+  tsOcupadosPME <- na.omit(dados$Total...11)
+  
+  tsDesocupadosPME <- na.omit(dados$Total...15)
+  
+  
+  dados <- read_xlsx("Inputs - PNAD + PME + PED + PIB + PNADc.xlsx", sheet = "PED")
+  
+  tsOcupadosPED <- na.omit(dados$`Ocupados - trimestral (em mil)`[73:length(dados$`Ocupados - trimestral (em mil)`)])
+  
+  tsDesocupadosPED <- na.omit(dados$`Desocupados  -  trimestral (em mil)`[73:length(dados$`Desocupados  -  trimestral (em mil)`)])
+  
+  
+  dados <- read_xlsx("Inputs - PNAD + PME + PED + PIB + PNADc.xlsx", sheet = "PIB", skip = 3)
+    
+  dados <- dados[-c(81, 82, 83),]
+              
+  tsPIB <- dados$...15
+  
+  rm(dados)
+  
+```
+  
+-----------------------------------------------------------------------------
+__2) Ajuste da PNAD, PME e PED para completarem o período de 2002 a 2015:__ 
+-----------------------------------------------------------------------------
+
+Dada a necessidade de ter um mesmo número de observações na PNAD e na PNAD Contínua para só então realizar a regressão entre as duas, uma etapa prévia é transformar ou desagregar as séries anuais sobre ocupação e desocupação da primeira em séries trimestrais -- o que será feito tomando as três outras séries (PME, PED e PIB) como referência.
+
+Para tanto, é possível recorrer a técnicas estatísticas já desenvolvidas para esses fins e já operacionalizadas em pacotes de linguagem R. Um desses pacotes é o _tempdisagg_ (https://cran.r-project.org/web/packages/tempdisagg/index.html), que permite o uso de distintos métodos de desagregação de séries temporais. Entre eles, há os que se valem dos dados da própria série para estimar valores intermediários entre os registros já disponíveis e outros que tomam como referência outras séries temporais de maior frequência e relacionadas com a série que se pretende desagregar, no intuito de incorporar o comportamento (em nível e, sobretudo, estrutura) dessas séries relacionadas ao longo do período analisado. Nesse segundo caso, uma exigência comum nas técnicas de desagregação é que, além de contar com registros que cubram um mesmo lapso temporal, a série de maior frequência, tomada como referência para a desagregação, tenha uma quantidade de registros que some um múltiplo exato da quantidade de registros da série de menor frequência que se deseja desagregar. Por isso, um primeiro passo antes de promover a desagregação é garantir que as séries consideradas cubram um mesmo período temporal, ainda que com frequências diferentes nos seus registros.
+
+No caso em questão, a PNAD não tem dado anual para 2010, da mesma forma que a PME não tem dado para os dois primeiros meses de 2002 e a PED não avança para além de junho de 2014. Portanto, uma primeira tarefa é interpolar valores anuais para ocupados e desocupados na PNAD em 2010, retropolar dois valores mensais para a PME (para obter a média simples de ocupados e desocupados no primeiro trimestre de 2002) e extrapolar seis valores trimestrais para a PED (completando as séries de ocupados e desocupados até o último trimestre de 2015). No intuito de obter resultados condizentes com o cenário econômico de Minas Gerais nesses dois períodos, optou-se por utilizar o PIB estadual como referência para essas estimativas, obtidas por meio de regressão linear que indicou os coeficientes que relacionam a oscilação do PIB com as das séries da PNAD, PME e PED.
+
+Abaixo, a função _lm()_ opera as regressões entre os dados do PIB (variável independente) e as séries de ocupados e desocupados da PME e PED (variáveis dependentes), sempre limitando os registros de cada vetor numérico dessas séries ao período em que as pesquisas coincidem (2º trimestre de 2002 ao 4º trimestre de 2015, no caso da regressão da PME sobre o PIB, e 1º trimestre de 2002 ao 2º trimestre de 2014, no caso da regressão da PED sobre o PIB), indexando a posição desses registros entre colchetes. O resultado da função é um objeto de classe "list" que contém, entre seus atributos, os coeficientes $ß_0$ e $ß_1$ (intercepto e inclinação, respectivamente). Aplicando esses coeficientes na equação de regressão com os registros trimetrais do PIB no primeiro trimestre de 2002 e entre o 3º trimestre de 2014 e o 4º de 2015, extrai-se os valores preditos para completar as séries trimestrais da PME e da PED, respectivamente, os quais são adicionados aos vetores numéricos de ocupados e desocupados dessas pesquisas.
+
+```{r}
+
+  # Regressões para as séries de ocupados e desocupados da PME:
+
+  regressao <- lm(tsOcupadosPME ~ tsPIB[2:56])
+  
+  summary(regressao) # Resultado estatisticamente significativo
+  
+  qqnorm(regressao$residuals) # Análise Q-Q dos resíduos e homocedasticidade dos dados
+  
+  qqline(regressao$residuals)
+  
+  plot(density(regressao$residuals)) # Gráfico com a distribuição dos resíduos
+  
+  plot(tsPIB[2:56], tsOcupadosPME)
+  
+  tsOcupadosPME <- c(as.numeric(regressao$coefficients[1]) + as.numeric(regressao$coefficients[2]) * tsPIB[1],
+                      tsOcupadosPME)
+  
+
+  regressao <- lm(tsDesocupadosPME ~ tsPIB[2:56])
+  
+  summary(regressao) # Resultado estatisticamente significativo
+  
+  qqnorm(regressao$residuals) # Análise Q-Q dos resíduos e homocedasticidade dos dados
+  
+  qqline(regressao$residuals)
+  
+  plot(density(regressao$residuals)) # Gráfico com a distribuição dos resíduos
+
+  plot(tsPIB[2:56], tsDesocupadosPME)
+  
+  tsDesocupadosPME <- c(as.numeric(regressao$coefficients[1]) + as.numeric(regressao$coefficients[2]) * tsPIB[1], tsDesocupadosPME)
+
+  
+  # Regressões para as séries de ocupados e desocupados da PED:
+  
+  regressao <- lm(tsOcupadosPED ~ tsPIB[1:50])
+  
+  summary(regressao) # Resultado estatisticamente significativo
+  
+  qqnorm(regressao$residuals) # Análise Q-Q dos resíduos e homocedasticidade dos dados
+  
+  qqline(regressao$residuals)
+  
+  plot(density(regressao$residuals)) # Gráfico com a distribuição dos resíduos
+
+  plot(tsPIB[1:50], tsOcupadosPED)
+  
+  for(i in 1:6){
+    tsOcupadosPED[50+i] <- tsPIB[50+i] * as.numeric(regressao$coefficients[2]) +
+      as.numeric(regressao$coefficients[1])
+  }
+  
+  
+  regressao <- lm(tsDesocupadosPED ~ tsPIB[1:50])
+  
+  summary(regressao) # Resultado estatisticamente significativo
+  
+  qqnorm(regressao$residuals) # Análise Q-Q dos resíduos e homocedasticidade dos dados
+  
+  qqline(regressao$residuals)
+  
+  plot(density(regressao$residuals)) # Gráfico com a distribuição dos resíduos
+
+  plot(tsPIB[1:50], tsDesocupadosPED)
+  
+  for(i in 1:6){
+    tsDesocupadosPED[50+i] <- tsPIB[50+i] * as.numeric(regressao$coefficients[2]) +
+      as.numeric(regressao$coefficients[1])
+  }
+  
+  rm(i, regressao)
+  
+```
+
+No caso da PNAD, para fazer tal regressão e obter o estimador que permita gerar um valor para o ano de 2010, é necessário antes compatibilizar as frequências das séries de ocupados e desocupados (registros anuais) com a do PIB (registros trimestrais), pois a regressão só opera com uma mesma quantidade de registros das variáveis dependente (PNAD) e independente (PIB). Isso pode ser feito tanto reduzindo a frequência do PIB --- obtendo médias simples dos trimestres de cada ano e formando valores anuais para os períodos de 2002 a 2009 e de 2011 a 2015 --- ou aumentando a frequência da PNAD por meio de métodos de desagregação. Abaixo, ambos os procedimentos serão realizados para evidenciar que, optando pela segunda alternativa (aumento da frequência das séries da PNAD), aumentam-se os graus de liberdade e extraem-se coeficientes de regressão (intercepto e inclinação) com maior significância estatística. Aplicando esses coeficientes na equação de regressão com a média dos valores trimestrais do PIB em 2010, chega-se a um valor predito para as séries de ocupados e desocupados da PNAD no mesmo ano.
+
+Para desagregar a PNAD anual em observações trimestrais, usa-se a função _td()_ do pacote _tempdisagg_. Nesse primeiro momento, o objetivo é apenas interpolar valores para o ano de 2010 nas séries da PNAD e por isso será usado o método de Denton-Cholette, que permite operar desagregações sem utilizar nenhuma outra série ou indicador como referência --- na prática, essa desagregação opera uma simples interpolação com os dados anuais já disponíveis, resultando em uma suavização das curvas para as séries anuais de ocupados e desocupados. Vale observar desde já que, qualquer que seja o método usado, a função _td()_ gera uma lista com diversos elementos, entre eles o _values_, um vetor que armazena a série temporal desagregada. Os argumentos dessa função incluem a série a ser desagregada (ocupados e desocupados da PNAD, no caso), a ordem de diferenciação (no caso, 0), a frequência para a qual se deseja desagregar (de anual para trimestral, expressa pelo argumento _to = 4_ --- o valor informa o fator multiplicador entre as frequências da série original a série desagregada resultante), o tipo de conversão (no caso, a que mantenha para os valores desagregados o mesmo o nível das séries originais --- ao invés de dividí-los entre os anos e trimestres, por exemplo ---, o que se garante com o argumento _conversion = "mean"_ ) e, enfim, o método escolhido para a desagregação ( _method = denton-cholette_, no caso).
+
+Ao longo dos comandos abaixo, são plotados os gráficos com as séries que compõem as regressões, bem como os resultados dessas regressões, por meio das funções _summary()_ e _plot()_, de modo a averiguar a qualidade dos estimadores:
+
+```{r}
+  
+  # Primeiro método para completar as séries da PNAD, por meio da redução da frequência da série do PIB:
+
+  x <- tsPIB[-c(33:36)] # Vetor com os dados do PIB sem os registros do ano de 2010
+
+  PIB_Anual <- 1:13 # Vetor para armazenar os dados com a média anual do PIB trimestral
+  
+  i2 <- 1 # Índice para loop da função "for"
+  
+  for (i in 1:length(PIB_Anual)) { # Obtém valores anuais do PIB pela média simples dos registros trimestrais
+    PIB_Anual[i] <- mean(x[i2:(i2+3)])
+    i2 <- i2 + 4
+  }
+  
+  regressao <- lm(tsOcupadosPNAD ~ PIB_Anual)
+  
+  plot(PIB_Anual, tsOcupadosPNAD)
+  
+  summary(regressao) # Observa-se que os coeficientes obtidos para a série de ocupados são estatisticamente significativos
+  
+  qqnorm(regressao$residuals) # Análise Q-Q dos resíduos e homocedasticidade dos dados
+  
+  qqline(regressao$residuals)
+  
+  plot(density(regressao$residuals)) # Gráfico com a distribuição dos resíduos
+  
+  
+  regressao <- lm(tsDesocupadosPNAD ~ PIB_Anual)
+  
+  plot(PIB_Anual, tsDesocupadosPNAD)
+  
+  summary(regressao) # Já o coeficiente β1 (inclinação) obtido para a série de desocupados não é estatisticamente significativo em um intervalo de confiança aceitável
+  
+  
+  # Segundo método para completar a PNAD, aumentando a frequência das séries de ocupados e desocupados para trimestral, para fazer regressão com o PIB e obter valor para o ano de 2010:
+
+  ocupadosPNAD_trimestral <- td(tsOcupadosPNAD ~ 0, to = 4, conversion = "mean", method ="denton-cholette")
+
+  x <- tsPIB[-c(33:36, 57:80)]
+
+  regressao <- lm(ocupadosPNAD_trimestral$values ~ x)
+
+  plot(x, ocupadosPNAD_trimestral$values)
+  
+  summary(regressao) # Os coeficientes de regressão para a série de ocupados continuam estatisticamente significativos
+  
+  qqnorm(regressao$residuals) # Análise Q-Q dos resíduos e homocedasticidade dos dados
+  
+  qqline(regressao$residuals)
+  
+  plot(density(regressao$residuals)) # Gráfico com a distribuição dos resíduos
+  
+  tsOcupadosPNAD <- append(tsOcupadosPNAD, as.numeric(regressao$coefficients[1] + mean(tsPIB[33:36]) *
+                                                        regressao$coefficients[2]), after = 8)
+  
+  
+  desocupadosPNAD_trimestral <- td(tsDesocupadosPNAD ~ 0, to = 4, conversion = "mean", method ="denton-cholette")
+
+  regressao <- lm(desocupadosPNAD_trimestral$values ~ x)
+
+  plot(x, desocupadosPNAD_trimestral$values)
+  
+  summary(regressao) # Desta vez, com mais graus de liberdade, ambos os coeficientes para a série de desocupados são estatisticamente significativos sob um intervalo de confiança aceitável
+  
+  qqnorm(regressao$residuals) # Análise Q-Q dos resíduos e homocedasticidade dos dados
+  
+  qqline(regressao$residuals)
+  
+  plot(density(regressao$residuals)) # Gráfico com a distribuição dos resíduos
+  
+  tsDesocupadosPNAD <- append(tsDesocupadosPNAD, as.numeric(regressao$coefficients[1] + mean(tsPIB[33:36]) *
+                                                        regressao$coefficients[2]), after = 8)
+  
+  
+  rm(i, i2, x, ocupadosPNAD_trimestral, desocupadosPNAD_trimestral, PIB_Anual, regressao)
+  
+```
+
+Ao fim, tem-se vetores para todas as séries que serão usadas nas desagregações e na retropolação abaixo abrangendo todo o período entre 2002 e 2015, sendo 14 registros anuais da PNAD e 56 registros trimestrais da PME, PED e PIB (este último tem 80 registros, pois segue até 2021).
+
+-----------------------------------------------------------------------------
+__3) Desagregação da PNAD anual para dados trimestrais:__
+-----------------------------------------------------------------------------
+
+Dispondo das séries da PNAD, da PME e da PED completas para o período entre 2002 e 2015, a PNAD anual desse mesmo período será novamente desagregada para a frequência trimestral, desta vez já contendo o dado interpolado para 2010 e tomando as séries da PME, PED e PIB como referência. A intenção desta vez é incorporar, na PNAD desagregada, os movimentos (oscilações) na população ocupada e desocupada. 
+
+Novamente será utilizada a função _td()_, desta vez aplicando tanto o método de Denton-Cholette quanto o de Chow-Lin, sendo que o primeiro admite desagregações com ou sem indicadores de referência, ao passo que o segundo apenas opera com algum indicador desse tipo, pois usa um modelo de regressão entre os valores das duas séries. Para tanto, os argumentos da função devem especificar o método selecionado ( _method = denton-cholette_ ou _method = chow-lin-maxlog_) e também o fator multiplicador entre a série a ser desagregada (a PNAD) e a série de referência na desagregação (PME e PED) --- nesse caso, o argumento _to = 3_, dado que as séries da PNAD têm uma observação para cada quatro das séries da PME e PED ---, além dos outros argumentos já mencionados anteriormente. A função _summary()_, acionada após cada desagregação, exibe os resultados e parâmetros estatísticos da operação.
+
+As primeiras desagregações utilizam a PME como série de referência, usando tanto o método de Denton-Cholette quanto o de Chow-Lin. Abaixo, são geradas quatro séries da PNAD em frequência trimestral entre 2002 e 2015, duas para ocupados e duas para desocupados, cada dupla contendo os resultados com o uso dos dois métodos de desagregação mencionados:
+
+```{r}
+
+  # Desagregações pelo método de Denton-Cholette, considerando a PME como referência:
+
+  ocupadosPNAD_DC_PME <- td(tsOcupadosPNAD ~ 0 + tsOcupadosPME, to = 3, conversion = "mean",
+                            method ="denton-cholette")
+
+  summary(ocupadosPNAD_DC_PME)
+  
+  desocupadosPNAD_DC_PME <- td(tsDesocupadosPNAD ~ 0 + tsDesocupadosPME, to = 3, conversion = "mean", 
+                               method = "denton-cholette")
+  
+  summary(desocupadosPNAD_DC_PME)
+
+  
+  # Desagregações pelo método de Chow-Lin, considerando a PME como referência:
+
+  ocupadosPNAD_CL_PME <- td(tsOcupadosPNAD ~ 0 + tsOcupadosPME, to = 3, conversion = "mean",
+                            method ="chow-lin-maxlog")
+
+  summary(ocupadosPNAD_CL_PME) # O coeficiente é estatisticamente significativo
+  
+  qqnorm(ocupadosPNAD_CL_PME$residuals) # Análise Q-Q dos resíduos e homocedasticidade dos dados
+  
+  qqline(ocupadosPNAD_CL_PME$residuals)
+  
+  plot(density(ocupadosPNAD_CL_PME$residuals)) # Gráfico com a distribuição dos resíduos
+  
+  desocupadosPNAD_CL_PME <- td(tsDesocupadosPNAD ~ 0 + tsDesocupadosPME, to = 3, conversion = "mean", method = "chow-lin-maxlog")
+
+  summary(desocupadosPNAD_CL_PME) # Percebe-se que, diferentemente do que ocorre na série de ocupados, na de desocupados o coeficiente da regressão operada pelo método de Chow-Lin não é estatistiamente significativo sob um intervalo de confiança aceitável. 
+  
+  # Uma alternativa para superar a falta de significância estatística para a série de desocupados problema é transformar o modelo de desagregação de um modelo em nível para um modelo nível-log ou log-log, ou seja, desagregando a série da PNAD com a série da PME transformada pelo seu logaritmo natural (modelo "level-log"), ou transformando ambas as séries (modelo "log-log"):
+  
+  log_log <- td(log(tsDesocupadosPNAD) ~ 0 + log(tsDesocupadosPME), to = 3, conversion = "mean", method = "chow-lin-maxlog")
+  
+  summary(log_log) # Agora o estimador é estatisticamente significativo
+  
+  qqnorm(log_log$residuals) # Análise Q-Q dos resíduos e homocedasticidade dos dados
+  
+  qqline(log_log$residuals)
+  
+  plot(density(log_log$residuals)) # Gráfico com a distribuição dos resíduos
+  
+  
+  level_log <- td(tsDesocupadosPNAD ~ 0 + log(tsDesocupadosPME), to = 3, conversion = "mean", method = "chow-lin-maxlog")
+  
+  summary(level_log) # Também nesse modelo o estimador é estatisticamente significativo
+  
+  qqnorm(level_log$residuals) # Análise Q-Q dos resíduos e homocedasticidade dos dados
+  
+  qqline(level_log$residuals)
+  
+  plot(density(level_log$residuals)) # Gráfico com a distribuição dos resíduos
+  
+  
+  # Gráfico para comparar os resultados dos modelos transformados:
+  
+  trimestre <- as.yearqtr(seq(as.Date("2002-03-01"), by="quarter", length.out = 56))
+  
+  PNAD_original <- array(data = NA, dim = 56)
+  
+  i2 <- 0
+  
+  for(i in 1:length(tsDesocupadosPNAD)){
+      PNAD_original[i2+3] <- round(tsDesocupadosPNAD[i])
+      i2 <- i2+4
+  }
+  
+  series <- data.frame(PNAD_original, exp(log_log$values), level_log$values)
+  
+  ggplot(series, aes(trimestre)) +  
+    geom_line(aes(y = exp(log_log$values), colour = "Desagregação PNAD-PME; modelo log-log"), size = 0.8) +
+    geom_line(aes(y = level_log$values, colour = "Desagregação PNAD-PME; modelo level-log"), size = 0.8) +
+    geom_point(aes(y = PNAD_original, color = "PNAD original"), size = 2) +
+    xlab("Trimestre") + ylab("População desocupada (mil)") +
+    scale_x_yearqtr(format = "%Y-%q", n = 14) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_color_manual(values = c("grey", "green", "black")) +
+    theme(legend.position="bottom")
+  
+  # Vê-se que as curvas geradas não diferenciam tanto em nível e estrutura, mas ambas falham em captar tanto o nível quanto o movimento da PNAD. Entre os dois modelos, o log-log, capta melhor as oscilações e tem uma interpretação mais segura, já que ambas as variáveis foram regredidas em logaritmo.
+  
+  desocupadosPNAD_CL_PME <- log_log
+  
+  rm(i, i2, trimestre, series, PNAD_original, log_log, level_log)
+  
+```
+
+As desagregações seguintes usam as séries da PED como referência, também gerando quatro séries trimestrais para a PNAD entre 2002 e 2015, duas para ocupados e duas para desocupados, novamente para os métodos de Denton-Cholette Chow-Lin:
+
+```{r}
+
+  # Desagregações pelo método de Denton-Cholette, considerando a PED como referência:
+  
+  ocupadosPNAD_DC_PED <- td(tsOcupadosPNAD ~ 0 + tsOcupadosPED, to = 3, conversion = "mean",
+                            method ="denton-cholette")
+
+  summary(ocupadosPNAD_DC_PED)
+  
+  desocupadosPNAD_DC_PED <- td(tsDesocupadosPNAD ~ 0 + tsDesocupadosPED, to = 3, conversion = "mean", 
+                               method = "denton-cholette")
+
+  summary(desocupadosPNAD_DC_PED)
+
+
+  # Desagregações pelo método de Chow-Lin, considerando a PED como referência:
+
+  ocupadosPNAD_CL_PED <- td(tsOcupadosPNAD ~ 0 + tsOcupadosPED, to = 3, conversion = "mean",
+                            method ="chow-lin-maxlog")
+
+  summary(ocupadosPNAD_CL_PED) # O coeficiente é estatisticamente significativo
+  
+  qqnorm(ocupadosPNAD_CL_PED$residuals) # Análise Q-Q dos resíduos e homocedasticidade dos dados
+  
+  qqline(ocupadosPNAD_CL_PED$residuals)
+  
+  plot(density(ocupadosPNAD_CL_PED$residuals)) # Gráfico com a distribuição dos resíduos
+  
+  
+  desocupadosPNAD_CL_PED <- td(tsDesocupadosPNAD ~ 0 + tsDesocupadosPED, to = 3, conversion = "mean", 
+                               method = "chow-lin-maxlog")
+
+  summary(desocupadosPNAD_CL_PED) # Novamente, para a série de desocupados, o coeficiente da regressão operada pelo método de Chow-Lin não é estatisticamente significativo em um nível de confiança aceitável.
+  
+  # Recorre-se, então, ao mesmo tipo de transformação feita acima para o caso da PME, qual seja, rodando a função de desagregação em modelos "level-log" e "log-log" para depois comparar os resultados e, sendo ambos estatisticamente significativos, optar por aquele cujo resultado seja a curva mais condizente com a série da PNAD:
+  
+  log_log <- td(log(tsDesocupadosPNAD) ~ 0 + log(tsDesocupadosPED), to = 3, conversion = "mean", method = "chow-lin-maxlog")
+  
+  summary(log_log) # Agora o estimador é estatisticamente significativo
+  
+  qqnorm(log_log$residuals) # Análise Q-Q dos resíduos e homocedasticidade dos dados
+  
+  qqline(log_log$residuals)
+  
+  plot(density(log_log$residuals)) # Gráfico com a distribuição dos resíduos
+  
+  
+  level_log <- td(tsDesocupadosPNAD ~ 0 + log(tsDesocupadosPED), to = 3, conversion = "mean", method = "chow-lin-maxlog")
+  
+  summary(level_log) # Também nesse modelo o estimador é estatisticamente significativo
+  
+  qqnorm(level_log$residuals) # Análise Q-Q dos resíduos e homocedasticidade dos dados
+  
+  qqline(level_log$residuals)
+  
+  plot(density(level_log$residuals)) # Gráfico com a distribuição dos resíduos
+  
+  
+  # Gráfico para comparar os resultados dos modelos transformados:
+  
+  trimestre <- as.yearqtr(seq(as.Date("2002-03-01"), by="quarter", length.out = 56))
+  
+  PNAD_original <- array(data = NA, dim = 56)
+  
+  i2 <- 0
+  
+  for(i in 1:length(tsDesocupadosPNAD)){
+      PNAD_original[i2+3] <- round(tsDesocupadosPNAD[i])
+      i2 <- i2+4
+  }
+  
+  series <- data.frame(PNAD_original, exp(log_log$values), level_log$values)
+  
+  ggplot(series, aes(trimestre)) +  
+    geom_line(aes(y = exp(log_log$values), colour = "Desagregação PNAD-PED; modelo log-log"), size = 0.8) +
+    geom_line(aes(y = level_log$values, colour = "Desagregação PNAD-PED; modelo level-log"), size = 0.8) +
+    geom_point(aes(y = PNAD_original, color = "PNAD original"), size = 2) +
+    xlab("Trimestre") + ylab("População desocupada (mil)") +
+    scale_x_yearqtr(format = "%Y-%q", n = 14) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_color_manual(values = c("grey", "green", "black")) +
+    theme(legend.position="bottom")
+  
+  # Vê-se que as curvas geradas não diferenciam tanto em nível e estrutura. O modelo log-log, porém, além de captar melhor as oscilações, tem uma interpretação mais segura, já que ambas as variáveis foram regredidas em logaritmo.
+  
+  desocupadosPNAD_CL_PED <- log_log
+  
+  rm(i, i2, trimestre, series, PNAD_original, log_log, level_log)
+  
+```
+
+Em seguida, a PNAD é desagregada tendo o PIB como referência, novamente gerando quatro séries trimestrais, duas para ocupados e duas para desocupados, pelos mesmos dois métodos de Denton-Cholette e de Chow-Lin:
+
+```{r}
+
+  # Desagregações pelo método de Denton-Cholette, considerando o PIB como referência:
+  
+  x <- tsPIB[1:56]
+
+  ocupadosPNAD_DC_PIB <- td(tsOcupadosPNAD ~ 0 + x, to = 3, conversion = "mean", method ="denton-cholette")
+
+  summary(ocupadosPNAD_DC_PIB)
+  
+  desocupadosPNAD_DC_PIB <- td(tsDesocupadosPNAD ~ 0 + x, to = 3, conversion = "mean", method = "denton-cholette")
+
+  summary(desocupadosPNAD_DC_PIB)
+
+
+  # Desagregações pelo método de Chow-Lin, considerando o PIB como referência:
+
+  ocupadosPNAD_CL_PIB <- td(tsOcupadosPNAD ~ 0 + x, to = 3, conversion = "mean", method ="chow-lin-maxlog")
+
+  summary(ocupadosPNAD_CL_PIB) # O coeficiente é estatisticamente significativo
+  
+  qqnorm(ocupadosPNAD_CL_PIB$residuals) # Análise Q-Q dos resíduos e homocedasticidade dos dados
+  
+  qqline(ocupadosPNAD_CL_PIB$residuals)
+  
+  plot(density(ocupadosPNAD_CL_PIB$residuals)) # Gráfico com a distribuição dos resíduos
+  
+  
+  desocupadosPNAD_CL_PIB <- td(tsDesocupadosPNAD ~ 0 + x, to = 3, conversion = "mean", method = "chow-lin-maxlog")
+
+  summary(desocupadosPNAD_CL_PIB) # O coeficiente é estatisticamente significativo
+  
+  qqnorm(desocupadosPNAD_CL_PIB$residuals) # Análise Q-Q dos resíduos e homocedasticidade dos dados
+  
+  qqline(desocupadosPNAD_CL_PIB$residuals)
+  
+  plot(density(desocupadosPNAD_CL_PIB$residuals)) # Gráfico com a distribuição dos resíduos
+  
+
+  rm(x)
+  
+```
+
+Por fim, uma última desagregação é feita utilizando o método de Denton-Cholette sem nenhuma outra série de referência, ou seja, apenas com os dados da própria PNAD anual entre 2002 e 2015 --- o mesmo procedimento feito anteriormente para obter o valor anual das séries da PNAD em 2010, mas, desta vez, para gerar séries trimestrais para todo o período de 2002 a 2015. A intenção é que essa desagregação sirva apenas para a comparação dos resultados gerados usando a PME e a PED como referência:
+
+```{r}
+
+  ocupadosPNAD_DC <- td(tsOcupadosPNAD ~ 0, to = 4, conversion = "mean", method ="denton-cholette")
+
+  summary(ocupadosPNAD_DC)
+  
+
+  desocupadosPNAD_DC <- td(tsDesocupadosPNAD ~ 0, to = 4, conversion = "mean", method = "denton-cholette")
+
+  summary(desocupadosPNAD_DC)
+
+```
+
+Feitas as desagregações da PNAD anual para a frequência trimestral, abaixo são gerados quatro gráficos, dois contendo as séries para ocupados e outros dois as séries para desocupados. Cada um deles contém as seis curvas geradas pela combinação entre os dados de PME, PED e PIB e um dos métodos de desagregação (Denton-Cholette ou Chow-Lin), além da curva gerada pela desagregação sem referência em nenhuma outra pesquisa:
+
+```{r}
+
+  # Gráficos para a série de ocupados - método de Denton-Cholette:
+
+  trimestre <- as.yearqtr(seq(as.Date("2002-03-01"), by="quarter", length.out = 56))
+
+  series <- data.frame(trimestre, ocupadosPNAD_DC_PED$values, ocupadosPNAD_DC_PME$values,
+                       ocupadosPNAD_DC_PIB$values, ocupadosPNAD_DC$values)
+  
+  ggplot(series, aes(trimestre)) +  
+    geom_line(aes(y = ocupadosPNAD_DC_PED.values, colour = "PED - Denton-Cholette"), size = 0.8) +
+    geom_line(aes(y = ocupadosPNAD_DC_PME.values, colour = "PME - Denton-Cholette"), size = 0.8) +
+    geom_line(aes(y = ocupadosPNAD_DC_PIB.values, colour = "PIB - Denton-Cholette"), size = 0.8) +
+    geom_line(aes(y = ocupadosPNAD_DC.values, colour = "Sem série de referência"), size = 0.8) +
+    xlab("Trimestre") + ylab("População ocupada (mil)") +
+    scale_x_yearqtr(format = "%Y-%q", n = 14) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_color_manual(values = c("darkgreen", "lightblue", "green", "grey")) +
+    theme(legend.position="bottom")
+  
+  # Gráficos para a série de ocupados - método de Chow-Lin:
+
+  series <- data.frame(trimestre, ocupadosPNAD_CL_PED$values, ocupadosPNAD_CL_PME$values,
+                       ocupadosPNAD_CL_PIB$values, ocupadosPNAD_DC$values)
+  
+  ggplot(series, aes(trimestre)) +  
+    geom_line(aes(y = ocupadosPNAD_CL_PED.values, colour = "PED - Chow-Lin"), size = 0.8) +
+    geom_line(aes(y = ocupadosPNAD_CL_PME.values, colour = "PME - Chow-Lin"), size = 0.8) +
+    geom_line(aes(y = ocupadosPNAD_CL_PIB.values, colour = "PIB - Chow-Lin"), size = 0.8) +
+    geom_line(aes(y = ocupadosPNAD_DC.values, colour = "Sem série de referência"), size = 0.8) +
+    xlab("Trimestre") + ylab("População ocupada (mil)") +
+    scale_x_yearqtr(format = "%Y-%q", n = 14) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_color_manual(values = c("darkgreen", "lightblue", "green", "grey")) +
+    theme(legend.position="bottom")
+  
+  # Gráficos com as séries originais de ocupados na PED e PME, para comparação:
+  
+  series2 <- data.frame(trimestre, tsOcupadosPME, tsOcupadosPED)
+  
+  ggplot(series2, aes(trimestre)) +  
+    geom_line(aes(y = tsOcupadosPME, colour = "PME"), size = 0.8) +
+    geom_line(aes(y = tsOcupadosPED, colour = "PED"), size = 0.8) +
+    xlab("Trimestre") + ylab("População ocupada (mil)") +
+    scale_x_yearqtr(format = "%Y-%q", n = 14) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_color_manual(values = c("grey", "black")) +
+    theme(legend.position="bottom")
+
+  
+  # Gráficos para a série de desocupados - método de Denton-Cholette:
+
+  series <- data.frame(trimestre, desocupadosPNAD_DC_PED$values,
+                       desocupadosPNAD_DC_PME$values,desocupadosPNAD_DC_PIB$values,
+                       desocupadosPNAD_DC$values)
+  
+  ggplot(series, aes(trimestre)) +  
+    geom_line(aes(y = desocupadosPNAD_DC_PED.values, colour = "PED - Denton-Cholette"), size = 0.8) +
+    geom_line(aes(y = desocupadosPNAD_DC_PME.values, colour = "PME - Denton-Cholette"), size = 0.8) +
+    geom_line(aes(y = desocupadosPNAD_DC_PIB.values, colour = "PIB - Denton-Cholette"), size = 0.8) +
+    geom_line(aes(y = desocupadosPNAD_DC.values, colour = "Sem série de referência"), size = 0.8) +
+    xlab("Trimestre") + ylab("População desocupada (mil)") +
+    scale_x_yearqtr(format = "%Y-%q", n = 14) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_color_manual(values = c("darkgreen", "lightblue", "green", "grey")) +
+    theme(legend.position="bottom")
+  
+  # Gráficos para a série de desocupados - método de Chow-Lin:
+
+  series <- data.frame(trimestre, exp(desocupadosPNAD_CL_PED$values), exp(desocupadosPNAD_CL_PME$values),
+                       desocupadosPNAD_CL_PIB$values, desocupadosPNAD_DC$values)
+  
+  ggplot(series, aes(trimestre)) +  
+    geom_line(aes(y = exp(desocupadosPNAD_CL_PED$values), colour = "PED - Chow-Lin"), size = 0.8) +
+    geom_line(aes(y = exp(desocupadosPNAD_CL_PME$values), colour = "PME - Chow-Lin"), size = 0.8) +
+    geom_line(aes(y = desocupadosPNAD_CL_PIB.values, colour = "PIB - Chow-Lin"), size = 0.8) +
+    geom_line(aes(y = desocupadosPNAD_DC.values, colour = "Sem série de referência"), size = 0.8) +
+    xlab("Trimestre") + ylab("População desocupada (mil)") +
+    scale_x_yearqtr(format = "%Y-%q", n = 14) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_color_manual(values = c("darkgreen", "lightblue", "green", "grey")) +
+    theme(legend.position="bottom")
+  
+  # Gráficos com as séries originais de desocupados na PED e PME, para comparação:
+  
+  series2 <- data.frame(trimestre, tsDesocupadosPME, tsDesocupadosPED)
+  
+  ggplot(series2, aes(trimestre)) +  
+    geom_line(aes(y = tsDesocupadosPME, colour = "PME"), size = 0.8) +
+    geom_line(aes(y = tsDesocupadosPED, colour = "PED"), size = 0.8) +
+    xlab("Trimestre") + ylab("População desocupada (mil)") +
+    scale_x_yearqtr(format = "%Y-%q", n = 14) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_color_manual(values = c("grey", "black")) +
+    theme(legend.position="bottom")
+  
+  rm(trimestre, series, series2)
+  
+```
+
+Pelos gráficos acima, pode-se fazer as seguintes observações com relação às séries da PNAD desagregada para ocupados e desocupados:
+
+-- Ocupados: em ambos os métodos de desagregação e seja qual for a série de referência, há um pico de ocupados entre 2006 e 2008 que não tem correspondência com os registros anuais da PNAD. Afora essa divergência, as curvas desagregadas em geral acompanham nível e tendência da curva original, especialmente aquelas obtidas com o método de Chow-Lin e usando PED ou PIB como referência (ao passo que as desagregações obtidas com a PME antecipam a queda no número de ocupados que, tal como nos registros dessa pesquisa, inicia em 2012, ao passo que, na PNAD anual, o total de ocupados inicia a tendência de queda apenas em 2014).
+
+-- Desocupados: em meados de 2011, há um aumento de nível nas séries desagregadas que não guarda correspondência com a PNAD original. Esses resultados convergem com os dados da PED, que em 2012 iniciam uma tendência de alta - ao passo que a PME somente demonstra essa tendência a partir do final de 2014. Assim, seja qual for o método de desagregação, o resultado são séries trimestrais da PNAD que elevam o nível dos registros já em 2011. Os melhores resultados parecem ser os obtidos com uso da PME, apesar da grande divergência observada em termos de nível e estrutura entre 2011 e 2014.
+
+-----------------------------------------------------------------------------
+__4) Regressão da PNAD Contínua sobre a PNAD desagregada em trimestres:__
+-----------------------------------------------------------------------------
+
+De posse das séries de ocupados e desocupados da PNAD desagregadas para frequência trimestral, pode-se, enfim, extrair coeficientes que as relacionem com as da PNAD Contínua no período em que as pesquisas coincidiram (2012 a 2015), por meio de outra regressão linear. Aplicados tais coeficientes na equação de regressão com os dados da PNAD entre 2002 e 2011, obtem-se valores preditos que irão compor as séries retropoladas da PNAD Contínua. 
+
+A regressão, nesse caso, terá um ajuste específico, que é a adição do valor 0 à variável independente (isto é, as séries de ocupados e desocupados da PNAD) nos argumentos da função _lm()_, no intuito de definir o intercepto da regressão como igual a zero. O sentido desse ajuste é tomar como pressuposto que ambas as pesquisas tenham a mesma aptidão para detectar zero ocupados quando for essa a realidade --- noutras palavras, ambas partem de uma mesma origem. A variável dependente corresponde aos primeiros dezesseis registros da PNAD Contínua, enquanto a independente corresponde aos últimos dezesseis registros da PNAD anual desagregrada em trimestres, cobrindo exatamente o período de 2012 a 2015.
+
+A função _summary()_ é novamente acionada para exibir os resultados das regressões, que são doze, ao todo: seis para a série de ocupados e seis para a de desocupados, combinando os dois métodos de desagregação (Denton-Cholette e Chow-Lin) com as três séries de referência (PME, PED e PIB) usadas nas desagregações.
+
+```{r}
+  
+  # Regressões utilizando as séries de ocupados e desocupados desagregadas com referência na PME:
+
+  lm_ocupados_DC_PME <- lm(tsOcupadosPNADc[1:16] ~ 0 + ocupadosPNAD_DC_PME$values[41:56])
+  
+  summary(lm_ocupados_DC_PME)
+  
+  lm_desocupados_DC_PME <- lm(tsDesocupadosPNADc[1:16] ~ 0 + desocupadosPNAD_DC_PME$values[41:56])
+  
+  summary(lm_desocupados_DC_PME)
+  
+  
+  lm_ocupados_CL_PME <- lm(tsOcupadosPNADc[1:16] ~ 0 + ocupadosPNAD_CL_PME$values[41:56])
+  
+  summary(lm_ocupados_CL_PME)
+
+  qqnorm(lm_ocupados_CL_PME$residuals) # Análise Q-Q dos resíduos e homocedasticidade dos dados
+  
+  qqline(lm_ocupados_CL_PME$residuals)
+  
+  plot(density(lm_ocupados_CL_PME$residuals)) # Gráfico com a distribuição dos resíduos
+
+  
+  lm_desocupados_CL_PME <- lm(tsDesocupadosPNADc[1:16] ~ 0 + exp(desocupadosPNAD_CL_PME$values[41:56]))
+  
+  summary(lm_desocupados_CL_PME)
+  
+  qqnorm(lm_desocupados_CL_PME$residuals) # Análise Q-Q dos resíduos e homocedasticidade dos dados
+  
+  qqline(lm_desocupados_CL_PME$residuals)
+  
+  plot(density(lm_desocupados_CL_PME$residuals)) # Gráfico com a distribuição dos resíduos
+  
+  
+  # Regressões utilizando as séries de ocupados e desocupados desagregadas com referência na PED:
+  
+  lm_ocupados_DC_PED <- lm(tsOcupadosPNADc[1:16] ~ 0 + ocupadosPNAD_DC_PED$values[41:56])
+  
+  summary(lm_ocupados_DC_PED)
+  
+  lm_desocupados_DC_PED <- lm(tsDesocupadosPNADc[1:16] ~ 0 + desocupadosPNAD_DC_PED$values[41:56])
+  
+  summary(lm_desocupados_DC_PED)
+  
+  
+  lm_ocupados_CL_PED <- lm(tsOcupadosPNADc[1:16] ~ 0 + ocupadosPNAD_CL_PED$values[41:56])
+  
+  summary(lm_ocupados_CL_PED)
+  
+  qqnorm(lm_ocupados_CL_PED$residuals) # Análise Q-Q dos resíduos e homocedasticidade dos dados
+  
+  qqline(lm_ocupados_CL_PED$residuals)
+  
+  plot(density(lm_ocupados_CL_PED$residuals)) # Gráfico com a distribuição dos resíduos
+  
+  
+  lm_desocupados_CL_PED <- lm(tsDesocupadosPNADc[1:16] ~ 0 + exp(desocupadosPNAD_CL_PED$values[41:56]))
+  
+  summary(lm_desocupados_CL_PED)
+  
+  qqnorm(lm_desocupados_CL_PED$residuals) # Análise Q-Q dos resíduos e homocedasticidade dos dados
+  
+  qqline(lm_desocupados_CL_PED$residuals)
+  
+  plot(density(lm_desocupados_CL_PED$residuals)) # Gráfico com a distribuição dos resíduos
+  
+  
+  # Regressões utilizando as séries de ocupados e desocupados desagregadas com referência no PIB:
+
+  lm_ocupados_DC_PIB <- lm(tsOcupadosPNADc[1:16] ~ 0 + ocupadosPNAD_DC_PIB$values[41:56])
+  
+  summary(lm_ocupados_DC_PIB)
+  
+  lm_desocupados_DC_PIB <- lm(tsDesocupadosPNADc[1:16] ~ 0 + desocupadosPNAD_DC_PIB$values[41:56])
+  
+  summary(lm_desocupados_DC_PIB)
+  
+  
+  lm_ocupados_CL_PIB <- lm(tsOcupadosPNADc[1:16] ~ 0 + ocupadosPNAD_CL_PIB$values[41:56])
+  
+  summary(lm_ocupados_CL_PIB)
+  
+  qqnorm(lm_ocupados_CL_PIB$residuals) # Análise Q-Q dos resíduos e homocedasticidade dos dados
+  
+  qqline(lm_ocupados_CL_PIB$residuals)
+  
+  plot(density(lm_ocupados_CL_PIB$residuals)) # Gráfico com a distribuição dos resíduos
+  
+  
+  lm_desocupados_CL_PIB <- lm(tsDesocupadosPNADc[1:16] ~ 0 + desocupadosPNAD_CL_PIB$values[41:56])
+  
+  summary(lm_desocupados_CL_PIB)
+  
+  qqnorm(lm_desocupados_CL_PIB$residuals) # Análise Q-Q dos resíduos e homocedasticidade dos dados
+  
+  qqline(lm_desocupados_CL_PIB$residuals)
+  
+  plot(density(lm_desocupados_CL_PIB$residuals)) # Gráfico com a distribuição dos resíduos
+  
+  
+  # Regressões utilizando as séries de ocupados e desocupados desagregadas sem nenhuma série de referência:
+  
+  lm_ocupados_DC <- lm(tsOcupadosPNADc[1:16] ~ 0 + ocupadosPNAD_DC$values[41:56])
+  
+  summary(lm_ocupados_DC)
+  
+  qqnorm(lm_ocupados_DC$residuals) # Análise Q-Q dos resíduos e homocedasticidade dos dados
+  
+  qqline(lm_ocupados_DC$residuals)
+  
+  plot(density(lm_ocupados_DC$residuals)) # Gráfico com a distribuição dos resíduos
+  
+  
+  lm_desocupados_DC <- lm(tsDesocupadosPNADc[1:16] ~ 0 + desocupadosPNAD_DC$values[41:56])
+  
+  summary(lm_desocupados_DC)
+  
+  qqnorm(lm_desocupados_DC$residuals) # Análise Q-Q dos resíduos e homocedasticidade dos dados
+  
+  qqline(lm_desocupados_DC$residuals)
+  
+  plot(density(lm_desocupados_DC$residuals)) # Gráfico com a distribuição dos resíduos
+  
+```
+
+
+Testes de cointegração...
+
+```{r}
+
+# Teste de cointegração da regressão entre PNAD e PNADc
+
+```
+
+-----------------------------------------------------------------------------
+__5) Retropolação da PNAD Contínua entre 2002 e 2011:__
+-----------------------------------------------------------------------------
+
+Entre os resultados das regressões acima estão os estimadores ou coeficientes $β_1$ ( _coefficients_ gerados pela função _lm()_ para cada regressão), que expressam a medida da relação entre PNAD e PNAD Contínua no período entre 2012 e 2015. Multiplicando esse coeficiente pelos valores da PNAD desagregada em trimestres entre 2002 e 2011, obtém-se, enfim, a série da PNAD Contínua retropolada para este período, também em frequência trimestral. 
+
+Nos comandos abaixo, dois vetores (um para a série de ocupados e outro para a de desocupados) são criados para armazenar os 40 valores resultantes dessa multiplicação. Essa operação é feita doze vezes, contemplando os resultados das regressões e desagregações temporais para cada um dos métodos e séries de referência utilizados. Ao final, tem-se doze séries da PNAD Contínua (seis para ocupados e seis para desocupados) em frequência trimestral para o período entre 2002 e 2011.
+
+```{r}
+
+  # Séries retropoladas com base na PNAD desagregada com referência na PME:
+
+  ocupadosPNADc_DC_PME <- round(lm_ocupados_DC_PME$coefficients * ocupadosPNAD_DC_PME$values[1:40])
+  
+  desocupadosPNADc_DC_PME <- round(lm_desocupados_DC_PME$coefficients *
+                                  desocupadosPNAD_DC_PME$values[1:40])
+
+  ocupadosPNADc_CL_PME <- round(lm_ocupados_CL_PME$coefficients * ocupadosPNAD_CL_PME$values[1:40])
+  
+  desocupadosPNADc_CL_PME <- round(lm_desocupados_CL_PME$coefficients *
+                                  exp(desocupadosPNAD_CL_PME$values[1:40]))
+  
+  
+  # Séries retropoladas com base na PNAD desagregada com referência na PED:
+  
+  ocupadosPNADc_DC_PED <- round(lm_ocupados_DC_PED$coefficients * ocupadosPNAD_DC_PED$values[1:40])
+  
+  desocupadosPNADc_DC_PED <- round(lm_desocupados_DC_PED$coefficients *
+                                  desocupadosPNAD_DC_PED$values[1:40])
+
+  ocupadosPNADc_CL_PED <- round(lm_ocupados_CL_PED$coefficients * ocupadosPNAD_CL_PED$values[1:40])
+  
+  desocupadosPNADc_CL_PED <- round(lm_desocupados_CL_PED$coefficients *
+                                  exp(desocupadosPNAD_CL_PED$values[1:40]))
+  
+
+  # Séries retropoladas com base na PNAD desagregada com referência no PIB:
+  
+  ocupadosPNADc_DC_PIB <- round(lm_ocupados_DC_PIB$coefficients * ocupadosPNAD_DC_PIB$values[1:40])
+  
+  desocupadosPNADc_DC_PIB <- round(lm_desocupados_DC_PIB$coefficients *
+                                  desocupadosPNAD_DC_PIB$values[1:40])
+
+  ocupadosPNADc_CL_PIB <- round(lm_ocupados_CL_PIB$coefficients * ocupadosPNAD_CL_PIB$values[1:40])
+  
+  desocupadosPNADc_CL_PIB <- round(lm_desocupados_CL_PIB$coefficients *
+                                  desocupadosPNAD_CL_PIB$values[1:40])
+  
+  
+  # Séries retropoladas com base na PNAD desagregada sem referência em nenhuma outra pesquisa:
+  
+  ocupadosPNADc_DC <- round(lm_ocupados_DC$coefficients * ocupadosPNAD_DC$values[1:40])
+  
+  desocupadosPNADc_DC <- round(lm_desocupados_DC$coefficients * desocupadosPNAD_DC$values[1:40])
+  
+  
+  # PNADc retropolada com base na PNAD desagregada com referência na PME pelo método de Chow-Lin e coeficientes dados pela regressão da PNAD sem série indicadora (para os desocupados, optou-se pela retropolação que combina a série da PNAD desagregada pela PME com o método de Chow-Lin, que captou melhor o movimento e o nível dos dados originais da PNAD, mas com os coeficientes obtidos pela regressão usando a PNAD desagregada sem nenhuma série de referência, pois foi essa a desagregação que resultou em dados mais próximos dos da PNAD Contínua entre 2012 e 2015)
+  
+  desocupados_CL_PME_PNAD_DC <- round(lm_desocupados_DC$coefficients * exp(desocupadosPNAD_CL_PME$values[1:40]))
+
+```
+
+-----------------------------------------------------------------------------
+__6) Gráficos das séries retropoladas e exportação dos resultados:__
+-----------------------------------------------------------------------------
+
+Por fim, são gerados os gráficos para as séries de ocupados e desocupados da PNAD Contínua, abrangendo tanto o período de realização e publicação dos dados originais da pesquisa (2012 a 2021) quanto o período retropolado pelo método aqui aplicado (2002 a 2011). Para fins de comparação, a curva com os dados da PNAD original desagregada (sem referência em nenhuma outra série) também é plotada.
+
+Em seguida à exibição dos gráficos, a função _export()_ exporta os resultados das séries de ocupados e desocupados da PNAD (original e desagregada) e da PNAD Contínua (original e retropolada) para todo o período entre 2002 a 2021: 
+
+```{r}
+
+  # Gráficos para as séries de ocupados geradas com a PNAD desagregada com referência na PME:
+
+  trimestre <- as.yearqtr(seq(as.Date("2002-03-01"), by="quarter", length.out = 80))
+
+  PNADc_original <- array(data = NA, dim = 40) %>% append(tsOcupadosPNADc)
+  
+  PNAD_desagregada <- array(data = NA, dim = 24) %>% append(round(ocupadosPNAD_DC$values), 0)
+  
+  PNAD_original <- array(data = NA, dim = 80)
+  
+  i2 <- 0
+  
+  for(i in 1:length(tsOcupadosPNAD)){
+      PNAD_original[i2+3] <- round(tsOcupadosPNAD[i])
+      i2 <- i2+4
+  }
+  
+  PNADc_DC_PME <- array(data = NA, dim = 40) %>% append(ocupadosPNADc_DC_PME, after = 0)
+  
+  PNADc_CL_PME <- array(data = NA, dim = 40) %>% append(ocupadosPNADc_CL_PME, after = 0)
+  
+  series <- data.frame(trimestre, PNADc_DC_PME, PNADc_CL_PME, PNADc_original, PNAD_desagregada, PNAD_original)
+  
+  ggplot(series, aes(trimestre)) +  
+    geom_line(aes(y = PNADc_DC_PME, color = "PNADc (retropolação com PME e método de Denton-Cholette)"),
+              size = 0.8) +
+    geom_line(aes(y = PNADc_CL_PME, color = "PNADc (retropolação com PME e método de Chow-Lin)"),
+              size = 0.8) +
+    geom_line(aes(y = PNADc_original, color = "PNADc original"), size = 0.8) +
+    geom_line(aes(y = PNAD_desagregada, color = "PNAD desagregada"), size = 0.8) +
+    geom_point(aes(y = PNAD_original, color = "PNAD original"), size = 2) +
+    xlab("Trimestre") + ylab("População ocupada (mil)") +
+    scale_x_yearqtr(format = "%Y-%q", n = 20) + scale_y_continuous(breaks = seq(8000, 11000, 500)) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_color_manual("Legenda:", breaks = c("PNADc (retropolação com PME e método de Denton-Cholette)",
+                                              "PNADc (retropolação com PME e método de Chow-Lin)",
+                                              "PNADc original", "PNAD desagregada", "PNAD original"),
+                       values = c("blue", "deepskyblue", "purple", "grey", "black")) +
+    theme(legend.position="bottom")
+  
+  
+  # Gráficos para as séries de ocupados geradas com a PNAD desagregada com referência na PED:
+
+  PNADc_DC_PED <- array(data = NA, dim = 40) %>% append(ocupadosPNADc_DC_PED, after = 0)
+  
+  PNADc_CL_PED <- array(data = NA, dim = 40) %>% append(ocupadosPNADc_CL_PED, after = 0)
+  
+  series <- data.frame(trimestre, PNADc_DC_PED, PNADc_CL_PED, PNADc_original, PNAD_desagregada, PNAD_original)
+  
+  ggplot(series, aes(trimestre)) +  
+    geom_line(aes(y = PNADc_DC_PED, color = "PNADc (retropolação com PED e método de Denton-Cholette)"),
+              size = 0.8) +
+    geom_line(aes(y = PNADc_CL_PED, color = "PNADc (retropolação com PED e método de Chow-Lin)"),
+              size = 0.8) +
+    geom_line(aes(y = PNADc_original, color = "PNADc original"), size = 0.8) +
+    geom_line(aes(y = PNAD_desagregada, color = "PNAD desagregada"), size = 0.8) +
+    geom_point(aes(y = PNAD_original, color = "PNAD original"), size = 2) +
+    xlab("Trimestre") + ylab("População ocupada (mil)") +
+    scale_x_yearqtr(format = "%Y-%q", n = 20) + scale_y_continuous(breaks = seq(8000, 11000, 500)) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_color_manual("Legenda:", breaks = c("PNADc (retropolação com PED e método de Denton-Cholette)",
+                                              "PNADc (retropolação com PED e método de Chow-Lin)",
+                                              "PNADc original", "PNAD desagregada", "PNAD original"),
+                       values = c("blue", "deepskyblue", "purple", "grey", "black")) +
+    theme(legend.position="bottom")  
+  
+  
+  # Gráficos para as séries de ocupados geradas com a PNAD desagregada com referência no PIB:
+
+  PNADc_DC_PIB <- array(data = NA, dim = 40) %>% append(ocupadosPNADc_DC_PIB, after = 0)
+  
+  PNADc_CL_PIB <- array(data = NA, dim = 40) %>% append(ocupadosPNADc_CL_PIB, after = 0)
+  
+  series <- data.frame(trimestre, PNADc_DC_PIB, PNADc_CL_PIB, PNADc_original, PNAD_desagregada, PNAD_original)
+  
+  ggplot(series, aes(trimestre)) +  
+    geom_line(aes(y = PNADc_DC_PIB, color = "PNADc (retropolação com PIB e método de Denton-Cholette)"),
+              size = 0.8) +
+    geom_line(aes(y = PNADc_CL_PIB, color = "PNADc (retropolação com PIB e método de Chow-Lin)"),
+              size = 0.8) +
+    geom_line(aes(y = PNADc_original, color = "PNADc original"), size = 0.8) +
+    geom_line(aes(y = PNAD_desagregada, color = "PNAD desagregada"), size = 0.8) +
+    geom_point(aes(y = PNAD_original, color = "PNAD original"), size = 2) +
+    xlab("Trimestre") + ylab("População ocupada (mil)") +
+    scale_x_yearqtr(format = "%Y-%q", n = 20) + scale_y_continuous(breaks = seq(8000, 11000, 500)) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_color_manual("Legenda:", breaks = c("PNADc (retropolação com PIB e método de Denton-Cholette)",
+                                              "PNADc (retropolação com PIB e método de Chow-Lin)",
+                                              "PNADc original", "PNAD desagregada", "PNAD original"),
+                       values = c("blue", "deepskyblue", "purple", "grey", "black")) +
+    theme(legend.position="bottom")  
+  
+  
+  # Gráficos para as séries de ocupados geradas com a PNAD desagregada sem referência em nenhuma  pesquisa:
+
+  PNADc_DC <- array(data = NA, dim = 40) %>% append(ocupadosPNADc_DC, after = 0)
+  
+  series <- data.frame(trimestre, PNADc_DC, PNADc_original, PNAD_desagregada, PNAD_original)
+  
+  ggplot(series, aes(trimestre)) +  
+    geom_line(aes(y = PNADc_DC, color = "PNADc (retropolação sem série de referência e método de   Denton-Cholette)"),
+              size = 0.8) +
+    geom_line(aes(y = PNADc_original, color = "PNADc original"), size = 0.8) +
+    geom_line(aes(y = PNAD_desagregada, color = "PNAD desagregada"), size = 0.8) +
+    geom_point(aes(y = PNAD_original, color = "PNAD original"), size = 2) +
+    xlab("Trimestre") + ylab("População ocupada (mil)") +
+    scale_x_yearqtr(format = "%Y-%q", n = 20) + scale_y_continuous(breaks = seq(8000, 11000, 500)) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_color_manual("Legenda:", breaks = c("PNADc (retropolação sem série de referência e método de Denton-Cholette)",
+                                              "PNADc original", "PNAD desagregada", "PNAD original"),
+                       values = c("deepskyblue", "purple", "grey", "black")) +
+    theme(legend.position="bottom")  
+  
+  
+  # Exporta os resultados das séries de ocupados para planilha em formato .xlsx:
+
+  export(data.frame(trimestre, PNADc_DC_PME, PNADc_CL_PME, PNADc_DC_PED, PNADc_CL_PED, PNADc_DC_PIB,
+                    PNADc_CL_PIB, PNADc_DC, PNADc_original, PNAD_desagregada, PNAD_original),
+         file = "Ocupados - PNAD e PNADc - 2002 a 2021.xlsx", overwrite = TRUE)
+  
+  
+  # Gráficos para as séries de desocupados geradas com a PNAD desagregada com referência na PME:
+
+  PNADc_original <- array(data = NA, dim = 40) %>% append(tsDesocupadosPNADc)
+  
+  PNAD_desagregada <- array(data = NA, dim = 24) %>% append(round(desocupadosPNAD_DC$values), 0)
+  
+  PNAD_original <- array(data = NA, dim = 80)
+  
+  i2 <- 0
+  
+  for(i in 1:length(tsDesocupadosPNAD)){
+      PNAD_original[i2+3] <- round(tsDesocupadosPNAD[i])
+      i2 <- i2+4
+  }
+  
+  PNADc_DC_PME <- array(data = NA, dim = 40) %>% append(desocupadosPNADc_DC_PME, after = 0)
+  
+  PNADc_CL_PME <- array(data = NA, dim = 40) %>% append(desocupadosPNADc_CL_PME, after = 0)
+  
+  series <- data.frame(trimestre, PNADc_DC_PME, PNADc_CL_PME, PNADc_original, PNAD_desagregada, PNAD_original)
+  
+  ggplot(series, aes(trimestre)) +  
+    geom_line(aes(y = PNADc_DC_PME, color = "PNADc (retropolação com PME e método de Denton-Cholette)"),
+              size = 0.8) +
+    geom_line(aes(y = PNADc_CL_PME, color = "PNADc (retropolação com PME e método de Chow-Lin)"),
+              size = 0.8) +
+    geom_line(aes(y = PNADc_original, color = "PNADc original"), size = 0.8) +
+    geom_line(aes(y = PNAD_desagregada, color = "PNAD desagregada"), size = 0.8) +
+    geom_point(aes(y = PNAD_original, color = "PNAD original"), size = 2) +
+    xlab("Trimestre") + ylab("População desocupada (mil)") +
+    scale_x_yearqtr(format = "%Y-%q", n = 20) + scale_y_continuous(breaks = seq(250, 1600, 100)) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_color_manual("Legenda:", breaks = c("PNADc (retropolação com PME e método de Denton-Cholette)",
+                                              "PNADc (retropolação com PME e método de Chow-Lin)",
+                                              "PNADc original", "PNAD desagregada", "PNAD original"),
+                       values = c("blue", "deepskyblue", "purple", "grey", "black")) +
+    theme(legend.position="bottom")
+  
+  
+  # Gráficos para as séries de desocupados geradas com a PNAD desagregada com referência na PED:
+
+  PNADc_DC_PED <- array(data = NA, dim = 40) %>% append(desocupadosPNADc_DC_PED, after = 0)
+  
+  PNADc_CL_PED <- array(data = NA, dim = 40) %>% append(desocupadosPNADc_CL_PED, after = 0)
+  
+  series <- data.frame(trimestre, PNADc_DC_PED, PNADc_CL_PED, PNADc_original, PNAD_desagregada, PNAD_original)
+  
+  ggplot(series, aes(trimestre)) +  
+    geom_line(aes(y = PNADc_DC_PED, color = "PNADc (retropolação com PED e método de Denton-Cholette)"),
+              size = 0.8) +
+    geom_line(aes(y = PNADc_CL_PED, color = "PNADc (retropolação com PED e método de Chow-Lin)"),
+              size = 0.8) +
+    geom_line(aes(y = PNADc_original, color = "PNADc original"), size = 0.8) +
+    geom_line(aes(y = PNAD_desagregada, color = "PNAD desagregada"), size = 0.8) +
+    geom_point(aes(y = PNAD_original, color = "PNAD original"), size = 2) +
+    xlab("Trimestre") + ylab("População desocupada (mil)") +
+    scale_x_yearqtr(format = "%Y-%q", n = 20) + scale_y_continuous(breaks = seq(250, 1600, 100)) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_color_manual("Legenda:", breaks = c("PNADc (retropolação com PED e método de Denton-Cholette)",
+                                              "PNADc (retropolação com PED e método de Chow-Lin)",
+                                              "PNADc original", "PNAD desagregada", "PNAD original"),
+                       values = c("blue", "deepskyblue", "purple", "grey", "black")) +
+    theme(legend.position="bottom")  
+  
+  
+  # Gráficos para as séries de desocupados geradas com a PNAD desagregada com referência no PIB:
+
+  PNADc_DC_PIB <- array(data = NA, dim = 40) %>% append(desocupadosPNADc_DC_PIB, after = 0)
+  
+  PNADc_CL_PIB <- array(data = NA, dim = 40) %>% append(desocupadosPNADc_CL_PIB, after = 0)
+  
+  series <- data.frame(trimestre, PNADc_DC_PIB, PNADc_CL_PIB, PNADc_original, PNAD_desagregada, PNAD_original)
+  
+  ggplot(series, aes(trimestre)) +  
+    geom_line(aes(y = PNADc_DC_PIB, color = "PNADc (retropolação com PIB e método de Denton-Cholette)"),
+              size = 0.8) +
+    geom_line(aes(y = PNADc_CL_PIB, color = "PNADc (retropolação com PIB e método de Chow-Lin)"),
+              size = 0.8) +
+    geom_line(aes(y = PNADc_original, color = "PNADc original"), size = 0.8) +
+    geom_line(aes(y = PNAD_desagregada, color = "PNAD desagregada"), size = 0.8) +
+    geom_point(aes(y = PNAD_original, color = "PNAD original"), size = 2) +
+    xlab("Trimestre") + ylab("População desocupada (mil)") +
+    scale_x_yearqtr(format = "%Y-%q", n = 20) + scale_y_continuous(breaks = seq(250, 1600, 100)) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_color_manual("Legenda:", breaks = c("PNADc (retropolação com PIB e método de Denton-Cholette)",
+                                              "PNADc (retropolação com PIB e método de Chow-Lin)",
+                                              "PNADc original", "PNAD desagregada", "PNAD original"),
+                       values = c("blue", "deepskyblue", "purple", "grey", "black")) +
+    theme(legend.position="bottom")  
+  
+  # Gráficos para as séries de desocupados geradas com a PNAD desagregada sem referência em nenhuma  pesquisa:
+  
+  
+  PNADc_DC <- array(data = NA, dim = 40) %>% append(desocupadosPNADc_DC, after = 0)
+  
+  series <- data.frame(trimestre, PNADc_DC, PNADc_original, PNAD_desagregada, PNAD_original)
+  
+  ggplot(series, aes(trimestre)) +  
+    geom_line(aes(y = PNADc_DC, color = "PNADc (retropolação sem série de referência e método de Denton-Cholette)"),
+              size = 0.8) +
+    geom_line(aes(y = PNADc_original, color = "PNADc original"), size = 0.8) +
+    geom_line(aes(y = PNAD_desagregada, color = "PNAD desagregada"), size = 0.8) +
+    geom_point(aes(y = PNAD_original, color = "PNAD original"), size = 2) +
+    xlab("Trimestre") + ylab("População desocupada (mil)") +
+    scale_x_yearqtr(format = "%Y-%q", n = 20) + scale_y_continuous(breaks = seq(250, 1600, 100)) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_color_manual("Legenda:", breaks = c("PNADc (retropolação sem série de referência e método de Denton-Cholette)",
+                                              "PNADc original", "PNAD desagregada", "PNAD original"),
+                       values = c("deepskyblue", "purple", "grey", "black")) +
+    theme(legend.position="bottom")  
+  
+  
+  # Gráficos para as séries de desocupados geradas com a PNAD desagregada com base na PME e com retropolação usando o estimador da regressão com a sére sem referência em nenhuma  pesquisa:
+  
+  
+  PNADc_CL_PME_PNAD_DC <- array(data = NA, dim = 40) %>% append(desocupadosPNADc_DC, after = 0)
+  
+  series <- data.frame(trimestre, PNADc_CL_PME_PNAD_DC, PNADc_original, PNAD_desagregada, PNAD_original)
+  
+  ggplot(series, aes(trimestre)) +  
+    geom_line(aes(y = PNADc_CL_PME_PNAD_DC, color = "PNADc (retropolação com base na PME e estimador da regressão sem série de referência)"),
+              size = 0.8) +
+    geom_line(aes(y = PNADc_original, color = "PNADc original"), size = 0.8) +
+    geom_line(aes(y = PNAD_desagregada, color = "PNAD desagregada"), size = 0.8) +
+    geom_point(aes(y = PNAD_original, color = "PNAD original"), size = 2) +
+    xlab("Trimestre") + ylab("População desocupada (mil)") +
+    scale_x_yearqtr(format = "%Y-%q", n = 20) + scale_y_continuous(breaks = seq(250, 1600, 100)) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_color_manual("Legenda:", breaks = c("PNADc (retropolação com base na PME e estimador da regressão sem série de referência)",
+                                              "PNADc original", "PNAD desagregada", "PNAD original"),
+                       values = c("deepskyblue", "purple", "grey", "black")) +
+    theme(legend.position="bottom")  
+  
+  
+  
+  # Exporta os resultados das séries de desocupados para planilha em formato .xlsx:
+
+  export(data.frame(trimestre, PNADc_DC_PME, PNADc_CL_PME, PNADc_DC_PED, PNADc_CL_PED, PNADc_DC_PIB,
+                    PNADc_CL_PIB, PNADc_CL_PME_PNAD_DC, PNADc_DC, PNADc_original, PNAD_desagregada, PNAD_original), 
+         file = "Desocupados - PNAD e PNADc - 2002 a 2021 - 22.06.xlsx", overwrite = TRUE)
+  
+  rm(i2, trimestre, PNADc_DC_PME, PNADc_CL_PME, PNADc_DC_PED, PNADc_CL_PED, PNADc_DC_PIB, PNADc_CL_PIB,
+     PNADc_DC, PNADc_original, PNAD_desagregada, PNAD_original)
+     
+```
+
+-----------------------------------------------------------------------------
+__7) Taxas de desocupação
+-----------------------------------------------------------------------------
+
+```{r}
+
+# Gera as taxas de desocupação para a PNAD anual (14 registros entre 2002 e 2015), PNAD Contínua trimestral original (40 registros entre 2012 e 2021) e para a PNAD Contínua trimestral retropolada com base em cada um dos exercícios de desagregação anteriores (40 registros entre 2002 e 2011):
+
+  taxaPNAD <- round(tsDesocupadosPNAD / (tsOcupadosPNAD + tsDesocupadosPNAD) * 100, 2)
+  
+  taxaPNADc_real <- round(tsDesocupadosPNADc / (tsOcupadosPNADc + tsDesocupadosPNADc) * 100, 2)
+  
+  taxaPNADc_DC_PME <- round(desocupadosPNADc_DC_PME / (ocupadosPNADc_DC_PME + desocupadosPNADc_DC_PME) * 100, 2)
+  
+  taxaPNADc_CL_PME <- round(desocupadosPNADc_CL_PME / (ocupadosPNADc_CL_PME + desocupadosPNADc_CL_PME) * 100, 2)
+  
+  taxaPNADc_DC_PED <- round(desocupadosPNADc_DC_PED / (ocupadosPNADc_DC_PED + desocupadosPNADc_DC_PED) * 100, 2)
+  
+  taxaPNADc_CL_PED <- round(desocupadosPNADc_CL_PED / (ocupadosPNADc_CL_PED + desocupadosPNADc_CL_PED) * 100, 2)
+  
+  taxaPNADc_DC_PIB <- round(desocupadosPNADc_DC_PIB / (ocupadosPNADc_DC_PIB + desocupadosPNADc_DC_PIB) * 100, 2)
+  
+  taxaPNADc_CL_PIB <- round(desocupadosPNADc_CL_PIB / (ocupadosPNADc_CL_PIB + desocupadosPNADc_CL_PIB) * 100, 2)
+    
+
+# Gera gráficos para as taxas de desocupação e exporta os resultados para planilhas em formato .xlsx:
+  
+  trimestre <- as.yearqtr(seq(as.Date("2002-03-01"), by="quarter", length.out = 80))
+  
+  x <- array(data = NA, dim = 80)
+  
+  i2 <- 0
+  
+  for(i in 1:length(taxaPNAD)){
+      x[i2+3] <- round(taxaPNAD[i],2)
+      i2 <- i2+4
+  }
+
+  PNAD <- x
+
+  PNADc <- array(data = NA, dim = 40) %>% append(taxaPNADc_real)
+
+  PNADc_DC_PME <- array(data = NA, dim = 40) %>% append(taxaPNADc_DC_PME, after = 0)
+  
+  PNADc_CL_PME <- array(data = NA, dim = 40) %>% append(taxaPNADc_CL_PME, after = 0)
+  
+  PNADc_DC_PED <- array(data = NA, dim = 40) %>% append(taxaPNADc_DC_PED, after = 0)
+  
+  PNADc_CL_PED <- array(data = NA, dim = 40) %>% append(taxaPNADc_CL_PED, after = 0)
+  
+  PNADc_DC_PIB <- array(data = NA, dim = 40) %>% append(taxaPNADc_DC_PIB, after = 0)
+  
+  PNADc_CL_PIB <- array(data = NA, dim = 40) %>% append(taxaPNADc_CL_PIB, after = 0)
+
+  series <- data.frame(trimestre, PNAD, PNADc, PNADc_DC_PME, PNADc_CL_PME, PNADc_DC_PED, PNADc_CL_PED, PNADc_DC_PIB, PNADc_CL_PIB)
+  
+  ggplot(series, aes(trimestre)) +  
+    geom_line(aes(y = PNADc_DC_PME, color = "Taxa de desocupação - PNADc desagregada com PME - Denton-Cholette"),
+              size = 0.8) +
+    geom_line(aes(y = PNADc_CL_PME, color = "Taxa de desocupação - PNADc desagregada com PME - Chow-Lin"),
+              size = 0.8) +
+    geom_line(aes(y = PNADc_DC_PED, color = "Taxa de desocupação - PNADc desagregada com PED - Denton-Cholette"),
+              size = 0.8) +
+    geom_line(aes(y = PNADc_CL_PED, color = "Taxa de desocupação - PNADc desagregada com PED - Chow-Lin"),
+              size = 0.8) +
+    geom_line(aes(y = PNADc_DC_PIB, color = "Taxa de desocupação - PNADc desagregada com PIB - Denton-Cholette"),
+              size = 0.8) +
+    geom_line(aes(y = PNADc_CL_PIB, color = "Taxa de desocupação - PNADc desagregada com PIB - Chow-Lin"),
+              size = 0.8) +
+    geom_line(aes(y = PNADc, color = "Taxa de desocupação - PNADc original"),
+              size = 0.8) +
+    geom_point(aes(y = PNAD, color = "Taxa de desocupação - PNAD original"), size = 2) +
+    xlab("Trimestre") + ylab("Taxa de desocupação (%)") +
+    scale_x_yearqtr(format = "%Y-%q", n = 20) + 
+    scale_y_continuous(breaks = seq(0, 15, 1)) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    #scale_color_manual("Legenda:", breaks = c("Taxa de desocupação - PNADc desagregada com PME - Denton-Cholette",
+                                              #"Taxa de desocupação - PNADc desagregada com PME - Chow-Lin",
+                                              #"Taxa de desocupação - PNAD original",
+                                              #"Taxa de desocupação - PNADc original"),
+                       #values = c("blue", "deepskyblue", "black", "purple")) +
+    theme(legend.position="bottom")
+  
+# Exporta os resultados das séries de desocupados para planilha em formato .xlsx:
+  
+  export(data.frame(trimestre, PNADc_DC_PME, PNADc_CL_PME, PNADc_DC_PED, PNADc_CL_PED, PNADc_DC_PIB, PNADc_CL_PIB, PNADc, PNAD),
+         file = "Taxa de desocupação - PNAD e PNADc - 2002 a 2021.xlsx", overwrite = TRUE)
+  
+  rm(i,i2, x, trimestre, PNADc_DC_PME, PNADc_CL_PME, PNADc_DC_PED, PNADc_CL_PED, PNADc_DC_PIB, PNADc_CL_PIB, PNADc, PNAD)
+  
+
+```
+
+
+-----------------------------------------------------------------------------
+__OBSERVAÇÕES / PENDÊNCIAS:__
+
+1) Correção do nível quando das desagregações: 
+
+  -- O problema seria por conta do argumento "mean", "last" ou "first" na função "td"?
+  -- Ou seria por conta do nível naturalmente diferente entre PME e PED (RMBH) e PNAD (MG)?
+  -- Outra fonte de problema poderia estar no período de referência das pesquisas, cuja diferença talvez pudesse ser corrigida por um ajuste de sazonalidade (ver cap. 3.2 do "Forecasting: principles and practices" --- dados de emprego   normalmente demandam ajustes sazonais).
+
+2) Teste de cointegração para saber se o resultado da regressão entre PNAD e PNADc entre 2012 e 2015 é pertinente:
+
+  -- Teste de Durbin-Watson: o teste depende da especificação de um intercepto e, como nossa regressão passa pela        origem, devemos avaliar  se esse teste atende ao propósito; ver também outros pressupostos do teste                    (https://ibape-nacional.com.br/biblioteca/wp-content/uploads/2020/02/PE-26-Teste-de-Durbin-Watson.pdf); de todo        modo, é interessante observar que os resultados do teste mostram estatísticas muito diferentes para as regressões que   usaram séries desagregadas com o método de Chow-Lin e para as que usaram séries desagregadas pelo método de            Denton-Cholette.
+
+3) Configurar RMarkdown para imprimir PDF.
+
