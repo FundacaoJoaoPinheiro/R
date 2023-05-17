@@ -3,15 +3,17 @@ title: "Extração de séries do Google Trends"
 author: "Caio Gonçalves - caio.goncalves@fjp.mg.gov.br"
 date: "26-maio-2023"
 output:
-  html_document: default
-  pdf_document: default
+  html_document: 
+    toc: true
+    toc_float: true
+  # pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Sobre Google Trends
+# Sobre Google Trends
 
 O [Google Trends](https://trends.google.com.br/home) disponibiliza séries temporais que rastreiam o histórico de consulta de palavras em diversos países desde janeiro de 2004. Em alguns casos, as pesquisas podem ser específicas para estados ou províncias e em diferentes frequências temporais. No entanto, vale destacar que o Google Trends não fornece o volume exato das pesquisas realizadas. A medida utilizada é normalizada em uma escala de 0 a 100, em que o valor máximo (100) indica o ponto mais alto da consulta para o período de tempo selecionado pelo usuário.
 
@@ -21,19 +23,19 @@ O procedimento mencionado é necessário pois os dados do Google Trends represen
 2. para evitar a superestimação dos termos pesquisados, consultas repetidas realizadas por um mesmo usuário em um curto período de tempo são desconsideradas.
 3. os apóstrofos e outros caracteres especiais são eliminados a fim de aumentar a precisão das informações apresentadas na série temporal.
 
-Essas e outras informações estão presentes na [documentação do Google Trends](https://support.google.com/trends?sjid=14820757223693259603-SA#topic=6248052) e no [curso](https://newsinitiative.withgoogle.com/resources/lessons/google-trends-see-whats-trending-across-google-search-google-news-and-youtube/) preprarado por eles. 
+Essas e outras informações estão presentes na [documentação do Google Trends](https://support.google.com/trends?sjid=14820757223693259603-SA#topic=6248052) e no [curso](https://newsinitiative.withgoogle.com/resources/lessons/google-trends-see-whats-trending-across-google-search-google-news-and-youtube/) preparado por eles. 
 
 Os dados do Google Trends são organizados em categorias por meio de um sistema de classificação baseado em linguagem natural. Essas categorias podem incluir temas como saúde, emprego, esportes, viagens, entre outros.
 
-Os dados podem ser usados em diversas aplicações e distintas áreas como mostrado por [Jun, S., Yoo, H. S. and Choi, S. (2017)](http://doi.org/10.1016/j.techfore.2017.11.009). Um estudo usando séries do Google Trends relacionadas a busca de empregos pode ser visualizado em [Gonçalves (2023, Cap. 8](https://ence.ibge.gov.br/images/Teses/Tese_CaioGoncalves.pdf)
+Os dados podem ser usados em diversas aplicações e em distintas áreas como mostrado por [Jun, S., Yoo, H. S. and Choi, S. (2017)](http://doi.org/10.1016/j.techfore.2017.11.009). Um estudo usando séries do Google Trends relacionadas a busca de empregos pode ser visualizado em [Gonçalves (2023, Cap. 8](https://ence.ibge.gov.br/images/Teses/Tese_CaioGoncalves.pdf)
 
-## Extração de séries
+# Extração de séries
 
-Ao acessar a ferramenta do [Google Trends](https://trends.google.com.br/home) é possível pesquisar por um termo, por exemplo, `Minas Gerais`. Uma série será produzida de acordo com os filtros presentes: recorte geográfico, temporal, categorias e tipo de pesquisa. 
+Ao acessar a ferramenta do [Google Trends](https://trends.google.com.br/home) é possível pesquisar por um termo, por exemplo, `Minas Gerais`. Uma série será produzida de acordo com os filtros presentes: recorte geográfico, frequência temporal, categoria e tipo de pesquisa. 
 
 ![](pics/pesquisa_inicial.png)
 
-Além disso, o Google Trends oferece opções para compartilhamento e download dos dados em formato CSV, bem como para a desagregação regional e a apresentação de assuntos e pesquisas relacionadas. Esses recursos, juntamente com outros detalhes relevantes, serão explorados a seguir, utilizando a linguagem de programação R e com o objetivo de extrair as séries de forma automatizada.
+Além disso, o Google Trends oferece opções para compartilhamento e download dos dados em formato CSV, bem como a desagregação regional e a apresentação de assuntos e pesquisas relacionadas. Esses recursos, juntamente com outros detalhes relevantes, serão explorados a seguir, utilizando a linguagem de programação R e com o objetivo de extrair um número amplo de séries de forma automatizada.
 
 Para realizar a extração, será utilizado o pacote [`gtrendsR`](https://cran.r-project.org/web/packages/gtrendsR/index.html) em que a principal função é a `gtrends`.
 
@@ -190,13 +192,13 @@ palavras <- unique(c("currículo",serie09$related_queries$value)) #conjunto de p
 length(palavras)
 ```
 
-## Computação paralela
+# Computação paralela
 
-Todos os exemplos anteriores foram constuídos extraindo uma ou mais séries. Porém, para um  conjunto maior de séries, pode-se utilizar, entre diversos caminhos:
+Todos os exemplos anteriores foram constuídos extraindo uma ou mais séries. Porém, para extrair um conjunto maior de séries, pode-se utilizar, entre diversos caminhos:
 
 ```{r extracao10}
 start_time <- Sys.time()
-data01 <- sapply(palavras, function(i) gtrends(keyword =  i,
+data01 <- sapply(palavras[1:25], function(i) gtrends(keyword =  i,
                    geo = "BR-MG",
                    time =  "2012-01-01 2023-04-30",
                    category = 60,
@@ -233,10 +235,11 @@ clusterEvalQ(cl,{load("partial.Rdata")
   library(gtrendsR)
 })
 ```
+Repetindo a extração anterior, agora usando computação paralela:
 
 ```{r processamento3}
 start_time <- Sys.time()
-data02 <- parSapply(cl,palavras, function(i) gtrends(keyword =  i,
+data02 <- parSapply(cl,palavras[1:25], function(i) gtrends(keyword =  i,
                    geo = "BR-MG",
                    time =  "2012-01-01 2023-04-30",
                    category = 60,
@@ -250,13 +253,13 @@ end_time - start_time
 stopCluster(cl)
 ```
 
-## Extras
+# Extras
 
-# Construindo um ranking relativo
+## Construindo um *ranking* relativo
 
-Uma possibilidade para construir um ranking de palavras é normalizar cada série com uma palavra única e relevante para o contexto em estudo. Para isso, é necessário extrair as séries em pares e calcular uma medida sintética que será utilizada para o ranking.
+Uma possibilidade para construir um *ranking* de palavras é normalizar cada série com uma palavra única e relevante para o contexto em estudo. Para isso, é necessário extrair as séries em pares e calcular uma medida sintética que será utilizada para o *ranking*.
 
-O Google Trends atribui `<1` às buscas menores que 1, mas não nulas. Portanto, as séries são extraídas como `character`. Decidiu-se considerar `0` nesses casos e usar a média dessas séries extraídas. Com base nesses procedimentos, é possível criar uma função:
+O Google Trends atribui `<1` às buscas menores que 1, mas não nulas. Portanto, as séries são extraídas como `character`. Decidiu-se considerar `0` nesses casos e usar a média dos valores dessas séries extraídas. Com base nesses procedimentos, é possível criar uma função:
 
 ```{r ranking1}
 f.ranking <- function(palavra, palavra_rel, geo, time, category){
@@ -274,13 +277,11 @@ f.ranking <- function(palavra, palavra_rel, geo, time, category){
   data = as.numeric(data)
   # computa uma médida síntese
   media = mean(data,na.rm=TRUE)
-  # atribui nome a coluna e linha
-  # rownames(media) = palavra
   return(media)
 }
 ```
 
-Cria-se novamente os clusters:
+Cria-se novamente o cluster:
 
 ```{r ranking2}
 # criando clusters
@@ -294,7 +295,7 @@ clusterEvalQ(cl,{load("partial.Rdata")
   library(gtrendsR)
 })
 ```
-E agora sim computa o ranking:
+E agora sim computa o *ranking*:
 
 ```{r ranking3}
 ranking <- parSapply(cl,palavras, function(i) f.ranking(palavra = i,
@@ -305,17 +306,16 @@ ranking <- parSapply(cl,palavras, function(i) f.ranking(palavra = i,
 ```
 
 
-Comparativamente, muitos termos podem apresentar `NA`, principalmente ao usar um termo mais buscado. Consequentemente, as palavras rankeadas serão:
-
+Organizando e vizualizando o *ranking*:
 
 ```{r ranking4}
-# ordena e salva objeto
+# ordena
 ranking <- data.frame(média = sort(ranking, decreasing = TRUE))
-
+ranking
 ```
 
 
-# Nuvem de palavras
+Pode-se também gerar uma núvem de palavras:
 
 ```{r nuvem, warning=FALSE}
 if (!require("wordcloud")){
@@ -323,22 +323,25 @@ if (!require("wordcloud")){
   library(wordcloud)
 }
 
-set.seed(32)  #para reproduzir o mesmo gráfico
+set.seed(32)  #para reproduzir a mesma núvem
 
 wordcloud(words = rownames(ranking),
           freq = ranking$média,
           scale = c(4, 1),  min.freq=0, max.words = 50,
           random.order = FALSE,
-          # ordered.colors = TRUE,
           color = 1:nrow(ranking))
 
 ```
 
 
-## Referências
+# Referências
 
-Gonçalves, C. C. S. (2023) Produção de indicadores do mercado de trabalho com modelos de séries temporais de pesquisas repetidas  Tese (Doutorado em População, Território e Estatísticas Públicas) – Escola Nacional de Ciências Estatística - Instituto Brasileiro de Geografia e Estatística, Rio de Janeiro.URL: https://ence.ibge.gov.br/images/Teses/Tese_CaioGoncalves.pdf
+Gonçalves, C. C. S. (2023) Produção de indicadores do mercado de trabalho com modelos de séries temporais de pesquisas repetidas  Tese (Doutorado em População, Território e Estatísticas Públicas) – Escola Nacional de Ciências Estatística - Instituto Brasileiro de Geografia e Estatística, Rio de Janeiro. URL: [link](https://ence.ibge.gov.br/images/Teses/Tese_CaioGoncalves.pdf)
 
-Jun, S., Yoo, H. S. and Choi, S. (2017) Ten years of research change using Google Trends: From the perspective of big data utilizations and applications. Technological Forecasting and Social Change. URL: http://doi.org/10.1016/j.techfore.2017.11.009
+Google (2022) Google Trends lessons. URL: [link]( https://newsinitiative.withgoogle.com/training/lessons?tool=Google%20Trends&image=trends)
 
+Jun, S., Yoo, H. S. and Choi, S. (2017) Ten years of research change using Google Trends: From the perspective of big data utilizations and applications. Technological Forecasting and Social Change. URL:[link]( http://doi.org/10.1016/j.techfore.2017.11.009)
 
+Massicotte, P. (2021) gtrendsr: Perform and display Google Trends queries. URL: [link](https://cran.r-project.org/web/packages/gtrendsR/index.html)
+
+R Core Team (2022) Package parallel. URL: [link](https://stat.ethz.ch/R-manual/R-devel/library/parallel/doc/parallel.pdf)
