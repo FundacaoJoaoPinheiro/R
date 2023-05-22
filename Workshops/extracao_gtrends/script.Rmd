@@ -1,6 +1,6 @@
 ---
 title: "Extração de séries do Google Trends"
-author: "Caio Gonçalves - caio.goncalves@fjp.mg.gov.br"
+author: "Caio Gonçalves"
 date: "26-maio-2023"
 output:
   html_document: 
@@ -185,7 +185,7 @@ serie09 <- gtrends(keyword =  c("currículo"),
 serie09$related_queries$value
 ```
 
-Assim, é possível ampliar um conjunto inicial de palavras expandindo o grupo com termos do mesmo contexto. No entanto, é importante avaliar cada palavra adicionada para verificar se realmente faz parte do contexto em estudo, de acordo com o objetivo pretendido.
+É possível enriquecer um conjunto inicial de palavras ao expandir o grupo com termos do mesmo contexto. No entanto, é crucial realizar uma avaliação cuidadosa de cada palavra adicionada para garantir sua relevância ao contexto em estudo, alinhada com o objetivo pretendido.
 
 ```{r buscas_relacionadas}
 palavras <- unique(c("currículo",serie09$related_queries$value)) #conjunto de palavras únicas
@@ -194,7 +194,7 @@ length(palavras)
 
 # Computação paralela
 
-Todos os exemplos anteriores foram constuídos extraindo uma ou mais séries. Porém, para extrair um conjunto maior de séries, pode-se utilizar, entre diversos caminhos:
+Todos os exemplos anteriores foram construídos por meio da extração de uma ou mais séries. No entanto, para obter um conjunto mais amplo de séries, existem várias abordagens possíveis como a família de funções Apply:
 
 ```{r extracao10}
 start_time <- Sys.time()
@@ -207,9 +207,9 @@ end_time <- Sys.time()
 end_time - start_time
 ```
 
-Uma outra alternativa é que, ao considerar atividades independentes, estas podem ser realizadas utilizando computação paralela. Um pacote que possibilita isso é o `parallel`. Para mais detalhes sobre pacotes de computação paralela no R, consulte [este link](https://cran.r-project.org/web/views/HighPerformanceComputing.html).
+Outra alternativa é aproveitar a computação paralela ao considerar atividades independentes. O pacote parallel oferece essa funcionalidade. Para obter mais detalhes sobre pacotes de computação paralela no R, recomenda-se consultar este [link](https://cran.r-project.org/web/views/HighPerformanceComputing.html).
 
-Um dado importante é o número de núcleos do CPU disponíveis.
+Um aspecto relevante é o número de núcleos disponíveis na CPU.
 
 ```{r processamento1}
 if (!require("parallel")){
@@ -221,21 +221,22 @@ numCores<-detectCores()
 numCores
 ```
 
-A ideia básica é criar um conjunto de cópias do R que serão executadas em paralelo. Para isso, é preciso criar essas cópias com a função `makeCluster` e inserir em cada cópia o que é necessário para realizar a tarefa com a função `clusterEvalQ`:
+A ideia principal é criar um conjunto de instâncias paralelas do R para execução simultânea. Para alcançar isso, é necessário criar essas instâncias usando a função `makeCluster` e inserir em cada uma delas as informações necessárias para realizar a tarefa usando a função `clusterEvalQ`:
 
 ```{r processamento2}
-# criando clusters
+# criando cópias
 cl<- makeCluster(numCores-1)
 
-# salva imagem
+# salva objetos
 save.image("partial.Rdata")
 
-# envia dados para cada um dos cluster
+# envia dados para cada uma das cópias
 clusterEvalQ(cl,{load("partial.Rdata")
   library(gtrendsR)
 })
 ```
-Repetindo a extração anterior, agora usando computação paralela:
+
+Realizando a extração anterior novamente, porém utilizando computação paralela:
 
 ```{r processamento3}
 start_time <- Sys.time()
@@ -257,9 +258,11 @@ stopCluster(cl)
 
 ## Construindo um *ranking* relativo
 
-Uma possibilidade para construir um *ranking* de palavras é normalizar cada série com uma palavra única e relevante para o contexto em estudo. Para isso, é necessário extrair as séries em pares e calcular uma medida sintética que será utilizada para o *ranking*.
+Uma abordagem viável para construir um *ranking* de palavras é normalizar cada série com uma palavra única e relevante para o contexto em estudo. Para isso, é necessário extrair as séries em pares e calcular uma medida sintética que será usada para o *ranking*.
 
-O Google Trends atribui `<1` às buscas menores que 1, mas não nulas. Portanto, as séries são extraídas como `character`. Decidiu-se considerar `0` nesses casos e usar a média dos valores dessas séries extraídas. Com base nesses procedimentos, é possível criar uma função:
+É válido tentar identificar a palavra com maior número de buscas no período e, preferencialmente, utilizá-la como a palavra de referência. A ideia é que essa palavra apresente o ponto máximo em comparação com todas as séries. No caso em que isso não ocorra, o *ranking* pode ser considerado uma aproximação, destacando um grupo de palavras mais buscadas, sem necessariamente refletir uma ordenação precisa.
+
+O Google Trends atribui o valor `<1` para buscas menores que 1, mas não nulas. Portanto, as séries são extraídas como tipo `character`. Foi decidido considerar o valor `0` nessas situações e utilizar a média dos valores das séries extraídas. Com base nesses procedimentos, é possível criar uma função:
 
 ```{r ranking1}
 f.ranking <- function(palavra, palavra_rel, geo, time, category){
@@ -281,25 +284,26 @@ f.ranking <- function(palavra, palavra_rel, geo, time, category){
 }
 ```
 
-Cria-se novamente o cluster:
+Cria-se novamente as cópias:
 
 ```{r ranking2}
-# criando clusters
+# criando cópias
 cl<- makeCluster(numCores-1)
 
-# salva imagem
+# salva objetos
 save.image("partial.Rdata")
 
-# envia dados para cada um dos cluster
+# envia dados para cada uma das cópias
 clusterEvalQ(cl,{load("partial.Rdata")
   library(gtrendsR)
 })
 ```
-E agora sim computa o *ranking*:
+
+Agora, finalmente, calcula-se o *ranking*:
 
 ```{r ranking3}
 ranking <- parSapply(cl,palavras, function(i) f.ranking(palavra = i,
-                                                       palavra_rel = "currículo",
+                                                       palavra_rel = "curriculo",
                                                        geo = "BR-MG",
                                                        time = "2012-01-01 2023-04-30",
                                                        category = 60))  
@@ -336,6 +340,8 @@ wordcloud(words = rownames(ranking),
 
 # Referências
 
+Fellows, I. (2018). wordcloud: Word Clouds. URL: [link](https://cran.r-project.org/web/packages/wordcloud/index.html)
+
 Gonçalves, C. C. S. (2023) Produção de indicadores do mercado de trabalho com modelos de séries temporais de pesquisas repetidas  Tese (Doutorado em População, Território e Estatísticas Públicas) – Escola Nacional de Ciências Estatística - Instituto Brasileiro de Geografia e Estatística, Rio de Janeiro. URL: [link](https://ence.ibge.gov.br/images/Teses/Tese_CaioGoncalves.pdf)
 
 Google (2022) Google Trends lessons. URL: [link]( https://newsinitiative.withgoogle.com/training/lessons?tool=Google%20Trends&image=trends)
@@ -345,3 +351,15 @@ Jun, S., Yoo, H. S. and Choi, S. (2017) Ten years of research change using Googl
 Massicotte, P. (2021) gtrendsr: Perform and display Google Trends queries. URL: [link](https://cran.r-project.org/web/packages/gtrendsR/index.html)
 
 R Core Team (2022) Package parallel. URL: [link](https://stat.ethz.ch/R-manual/R-devel/library/parallel/doc/parallel.pdf)
+
+# Contribuições
+
+Dúvidas, contribuições, comentários e sugestões podem ser direcionadas para o e-mail caio.goncalves@fjp.mg.gov.br ou diretamente no Github por meio do [link](https://github.com/FundacaoJoaoPinheiro/R/tree/main/Workshops/extracao_gtrends)
+
+# Licença
+
+<p xmlns:cc="http://creativecommons.org/ns#" xmlns:dct="http://purl.org/dc/terms/"><a property="dct:title" rel="cc:attributionURL" href="https://rpubs.com/caiocgonc/googletrends">Extração de séries do Google Trends</a> by <a rel="cc:attributionURL dct:creator" property="cc:attributionName" href="https://github.com/caiocgonc">Caio Gonçalves</a> is licensed under <a href="http://creativecommons.org/licenses/by-sa/4.0/?ref=chooser-v1" target="_blank" rel="license noopener noreferrer" style="display:inline-block;">Attribution-ShareAlike 4.0 International<img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/cc.svg?ref=chooser-v1"><img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/by.svg?ref=chooser-v1"><img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/sa.svg?ref=chooser-v1"></a></p>
+
+# Citação
+
+Sugestão de citação: Gonçalves, C. Extração de séries do Google Trends. Belo Horizonte, Brasil: Rpubs, 2023. Disponível em https://rpubs.com/caiocgonc/googletrends.

@@ -2,16 +2,18 @@
 # author: "Caio Gonçalves - caio.goncalves@fjp.mg.gov.br"
 # date: "26-maio-2023"
 
-# Extração de séries
+# Extração de séries ####
 
+# biblioteca
 if (!require("gtrendsR")){
   install.packages("gtrendsR")
   library(gtrendsR)
 }
 
+# visualizando detalhes sobre a função
 ?gtrends
 
-# Exemplo 1
+# Exemplo 1 
 serie01 <- gtrends(keyword ="Minas Gerais",
                    geo = "BR",
                    time =  "today 3-m")
@@ -22,37 +24,37 @@ serie02 <- gtrends(keyword ="currículo",
                    geo = "BR",
                    time =  "2012-01-01 2023-04-30")
 head(serie02$interest_over_time)
-# gráfico
 plot(serie02)
 
 # Exemplo 3
 serie03 <- gtrends(keyword ="curriculo",
                    geo = "BR",
                    time =  "2012-01-01 2023-04-30")
-# gráfico
 plot(ts.union(ts(serie02$interest_over_time$hits,start = c(2012,1), frequency = 12),
               ts(serie03$interest_over_time$hits,start = c(2012,1), frequency = 12)),
      plot.type = "single",col = c(1,2), ylab="", xlab="Mês")
 legend("bottomright", legend = c("currículo","curriculo"),col = c(1,2), bty = 'n',lty = c(1,1))
 
 
-# Aplicando filtro geográfico
+## Aplicando filtro geográfico ####
+# Exemplo 4
 serie04 <- gtrends(keyword ="vaga de emprego",
                    geo = "BR-MG",
                    time =  "2012-01-01 2023-04-30")
-# gráfico
 plot(serie04)
 
-
+# Exemplo 5
 serie05 <- gtrends(keyword ="vaga de emprego",
                    geo = c("BR-MG","BR-SP"),
                    time =  "2012-01-01 2023-04-30")
 head(serie05$interest_over_time)
+plot(serie05)
 
-# Extraindo uma categoria
+## Extraindo uma categoria ####
 data("categories")
 View(categories)
 
+# Exemplo 6
 serie06a <- gtrends(keyword ="vaga",
                     geo = "BR-MG",
                     time =  "2012-01-01 2023-04-30",
@@ -63,39 +65,39 @@ serie06b <- gtrends(keyword ="vaga",
                     category = 60)
 head(serie06a$interest_over_time)
 head(serie06b$interest_over_time)
-
-# gráfico
 plot(ts.union(ts(serie06a$interest_over_time$hits,start = c(2012,1), frequency = 12),
               ts(serie06b$interest_over_time$hits,start = c(2012,1), frequency = 12)),
      plot.type = "single",col = c(1,2), ylab="", xlab="Mês")
 legend("topleft", legend = c("sem categoria","com categoria"),col = c(1,2), bty = 'n',lty = c(1,1))
 
+# Exemplo 7
 serie07 <- gtrends(geo = "BR-MG",
                    time =  "2012-01-01 2023-04-30",
                    category = 60)
-# gráfico
 plot(serie07)
 
-# Comparando séries
+## Comparando séries ####
+# Exemplo 8
 serie08 <- gtrends(keyword =  c("currículo","curriculo","vaga de emprego","vaga","sine"),
                    geo = "BR-MG",
                    time =  "2012-01-01 2023-04-30",
                    category = 60)
 head(serie08$interest_over_time)
-# gráfico
 plot(serie08)
 
-#Extraindo palavras relacionadas
+## Extraindo palavras relacionadas ####
+# Exemplo 9
 serie09 <- gtrends(keyword =  c("currículo"),
                    geo = "BR-MG",
                    time =  "2012-01-01 2023-04-30",
                    category = 0)
 serie09$related_queries$value
 
+# define o conjunto de palavras
 palavras <- unique(c("currículo",serie09$related_queries$value)) #conjunto de palavras únicas
 length(palavras)
 
-# Computação paralela
+# Computação paralela ####
 start_time <- Sys.time()
 data01 <- sapply(palavras[1:25], function(i) gtrends(keyword =  i,
                                                      geo = "BR-MG",
