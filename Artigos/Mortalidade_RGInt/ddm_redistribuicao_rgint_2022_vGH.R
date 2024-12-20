@@ -134,7 +134,7 @@ alterar_tabua_mortalidade <- function(x, n, nax, nqx, lx, ndx, nlx, ultimo_inter
 
 ## Censo 2010, Censo 2022, SIM 2010 a 2022 (acumulado), SIM 2022 e  
 ## SIM 2022 redistribuído (baseado em estimativas municipais do IBGE)
-dados_mun <- read.xlsx("Saida\\xlsx\\dados_ddm_rgint.xlsx")
+dados_mun <- read.xlsx("dados_ddm_rgint.xlsx")
 
 # Unir e transformar ------------------------------------------------------
 
@@ -659,4 +659,4 @@ writeData(pt, "Chiang (reestimado) - Direto", tabua_chiang_direto_reestim)
 writeData(pt, "Chiang (reestimado) - Redist", tabua_chiang_redist_reestim)
 writeData(pt, "Chiang (reestimado) - Corrig", tabua_chiang_corrig_reestim)
 
-saveWorkbook(pt, "Saida\\xlsx\\tabuamortalidade_logquad_rgint_2022_redist-corrig.xlsx", overwrite = T)
+saveWorkbook(pt, "tabuamortalidade_logquad_rgint_2022_redist-corrig.xlsx", overwrite = T)
